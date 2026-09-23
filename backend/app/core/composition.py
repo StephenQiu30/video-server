@@ -130,6 +130,7 @@ from app.services.imports.service import (
     CreateUploadSession,
     GetImport,
 )
+from app.services.provider_access import ProviderAccessPolicy, default_access_policy
 from app.services.provider_authorization import ProviderAuthorizationService
 from app.services.provider_canaries import ProviderStatusService
 from app.services.provider_catalog import ProviderCatalogService
@@ -508,6 +509,17 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             get_analysis, analysis_repository, storage
         ),
     )
+
+    def select_intent_policy(url: str) -> ProviderAccessPolicy:
+        profile = provider_profile(url)
+        return settings.runner_default_access_policies.get(
+            profile.key
+        ) or default_access_policy(
+            profile.key,
+            profile.access_modes,
+            guest_configured=profile.key in settings.runner_guest_base_urls,
+        )
+
     return ApiRuntime(
         services=ApiServices(
             engine_catalog_reader=runner.engine_catalog,
@@ -518,9 +530,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
                 fingerprinter,
                 now=clock,
                 new_id=uuid4,
-                uses_guest=lambda url: (
-                    provider_profile(url).key in settings.runner_guest_base_urls
-                ),
+                select_policy=select_intent_policy,
             ),
             auth_service=auth_service,
             web_session_service=WebSessionService(

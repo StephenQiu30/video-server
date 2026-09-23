@@ -22,6 +22,7 @@ from app.services.downloads.fingerprints import HmacRequestFingerprinter
 from app.services.downloads.inspect_media import InspectMedia
 from app.services.downloads.intent_execution import IntentExecution
 from app.services.downloads.intents import IntentService
+from app.services.provider_access import ProviderAccessPolicy
 from app.services.quotas import UserQuota
 from app.workers.runner.provider_registry import provider_profile
 from cryptography.fernet import Fernet
@@ -35,7 +36,9 @@ NOW = datetime(2026, 9, 22, tzinfo=UTC)
 URL = "https://www.youtube.com/watch?v=BaW_jenozKc"
 
 
-def components(engine, runner=None, *, guest_providers=frozenset()):
+def components(
+    engine, runner=None, *, guest_providers=frozenset(), operator_providers=frozenset()
+):
     sessions = async_sessionmaker(engine, expire_on_commit=False)
     repo = IntentRepository(sessions)
     cipher = FernetUrlEnvelope(URLCipher(Fernet.generate_key()), key_id="test")
@@ -48,7 +51,15 @@ def components(engine, runner=None, *, guest_providers=frozenset()):
         fingerprint,
         now=lambda: clock[0],
         new_id=uuid4,
-        uses_guest=lambda url: provider_profile(url).key in guest_providers,
+        select_policy=lambda url: (
+            ProviderAccessPolicy.OPERATOR_PUBLIC
+            if provider_profile(url).key in operator_providers
+            else (
+                ProviderAccessPolicy.PUBLIC_SESSION
+                if provider_profile(url).key in guest_providers
+                else ProviderAccessPolicy.PUBLIC
+            )
+        ),
     )
     inspector = InspectMedia(
         repository=SqlAlchemyDownloadRepository(sessions),
@@ -87,6 +98,20 @@ async def test_public_intent_selects_guest_without_account_escalation(postgres_e
     assert replay.id == first.id and replay.access_policy == first.access_policy
     other = await service.create(URL, TEST_USER.owner_hash, "other")
     assert other.access_policy is ProviderAccessPolicy.PUBLIC
+
+
+async def test_configured_operator_policy_is_frozen_on_idempotent_replay(
+    postgres_engine,
+):
+    service, _, _, _, _ = components(
+        postgres_engine, operator_providers=frozenset({"youtube"})
+    )
+    first = await service.create(URL, TEST_USER.owner_hash, "youtube-operator")
+    assert first.access_policy is ProviderAccessPolicy.OPERATOR_PUBLIC
+    public_service, _, _, _, _ = components(postgres_engine)
+    replay = await public_service.create(URL, TEST_USER.owner_hash, "youtube-operator")
+    assert replay.id == first.id
+    assert replay.access_policy is ProviderAccessPolicy.OPERATOR_PUBLIC
 
 
 class PreparingGuestRunner(FakeRunner):

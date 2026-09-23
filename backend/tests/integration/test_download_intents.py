@@ -100,13 +100,14 @@ async def test_concurrent_acceptance_and_lost_response_recover_one_intent(
         await repo.accept(
             replace(request, id=uuid4(), request_fingerprint="e" * 64), now=NOW
         )
-    with pytest.raises(IdempotencyConflict):
-        await repo.accept(
-            replace(
-                request, id=uuid4(), access_policy=ProviderAccessPolicy.OPERATOR_PUBLIC
-            ),
-            now=NOW,
-        )
+    changed_policy = await repo.accept(
+        replace(
+            request, id=uuid4(), access_policy=ProviderAccessPolicy.OPERATOR_PUBLIC
+        ),
+        now=NOW,
+    )
+    assert changed_policy.id == recovered.id
+    assert changed_policy.access_policy is ProviderAccessPolicy.PUBLIC
     with pytest.raises(RepositoryNotFound):
         await repo.get(recovered.id, "f" * 64)
     with pytest.raises(RepositoryNotFound):

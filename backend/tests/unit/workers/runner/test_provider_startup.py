@@ -177,3 +177,32 @@ def test_configured_local_endpoint_automatically_enables_its_runner() -> None:
     plan = build_startup_plan(values)
     assert set(plan.compose_profiles) == set(_values()["COMPOSE_PROFILES"].split(","))
     assert plan.operator_base_urls == json.loads(values["RUNNER_OPERATOR_BASE_URLS"])
+
+
+def test_auto_browser_route_is_declared_even_before_source_is_ready() -> None:
+    values = {
+        "COMPOSE_PROFILES": "",
+        "RUNNER_OPERATOR_BASE_URLS": "{}",
+        "RUNNER_DEFAULT_ACCESS_POLICIES": "{}",
+    }
+    plan = build_startup_plan(
+        values, auto_browser_routes=frozenset({ProviderKey.YOUTUBE})
+    )
+    assert plan.operator_base_urls == {
+        "youtube": "http://youtube-operator-runner:19100"
+    }
+    assert plan.default_access_policies == {"youtube": "operator_public"}
+    assert "youtube-operator" in plan.compose_profiles
+
+
+def test_auto_browser_route_rejects_remote_operator_endpoint() -> None:
+    values = {
+        "RUNNER_OPERATOR_BASE_URLS": json.dumps(
+            {"youtube": "http://remote-operator.internal:19100"}
+        ),
+        "RUNNER_DEFAULT_ACCESS_POLICIES": "{}",
+    }
+    with pytest.raises(ValueError, match="local operator"):
+        build_startup_plan(
+            values, auto_browser_routes=frozenset({ProviderKey.YOUTUBE})
+        )

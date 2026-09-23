@@ -81,12 +81,7 @@ class IntentRepository:
                 )
             )
             if existing is not None:
-                if (
-                    existing.request_fingerprint != command.request_fingerprint
-                    or not _same_public_scope(
-                        existing.access_policy, command.access_policy
-                    )
-                ):
+                if existing.request_fingerprint != command.request_fingerprint:
                     raise IdempotencyConflict("intent idempotency key already used")
                 return _snapshot(existing)
             await reserve(
@@ -125,10 +120,7 @@ class IntentRepository:
                 )
                 if row is None:
                     raise RepositoryConflict("intent disappeared during acceptance")
-                if (
-                    row.request_fingerprint != command.request_fingerprint
-                    or not _same_public_scope(row.access_policy, command.access_policy)
-                ):
+                if row.request_fingerprint != command.request_fingerprint:
                     raise IdempotencyConflict("intent idempotency key already used")
             else:
                 session.add(_requested(row, now))
@@ -453,13 +445,6 @@ class IntentRepository:
             .with_for_update()
         )
         return row
-
-
-def _same_public_scope(stored: str, requested: ProviderAccessPolicy) -> bool:
-    # Routing availability can change after restart; the original intent keeps
-    # its frozen route. Public guest state grants no additional account rights.
-    public = {ProviderAccessPolicy.PUBLIC, ProviderAccessPolicy.PUBLIC_SESSION}
-    return stored == requested or (stored in public and requested in public)
 
 
 def _remaining(row: DownloadIntentRow, now: datetime) -> int:

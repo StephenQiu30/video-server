@@ -36,7 +36,7 @@ Media Runner 通过 `app/workers/runner/plugins/yt_dlp_plugins/` 加载随项目
 
 主流视频源使用声明式 Provider Profile 接入：`provider_catalog_*.py` 按策略族登记能力和运行参数，`ProviderRegistry.prepare()` 一次解析得到贯穿 inspect/download 的不可变 `ProviderRequest`，`YtDlpCommandBuilder` 只消费该请求生成固定参数，错误由有序 `FailureRule` 归一化。已有 yt-dlp extractor 的公开单视频平台通常只需增加一个 Profile、契约测试和 metadata/media canary；需要自定义解析时再按 yt-dlp 官方插件目录增加可信 extractor，不修改通用命令执行器。未知站点使用无凭据 Generic extractor。可选的 YouTube、抖音、Reddit 运维会话由 `provider-sources` 从现有 PostgreSQL 加密记录自动恢复到单平台只读命名卷；新宿主复用稳定来源密钥即可恢复本地副本，普通客户端不安装扩展。其他受控平台沿用各自批准来源，经租约交给物理隔离的 Docker Runner，并仅在 tmpfs 中建立操作级 `0600` Cookie jar。
 
-macOS 个人部署可显式安装按需 Access Agent，并通过按 Provider 隔离的 Chrome 目录完成授权；不读取日常 Chrome 的 SQLite、复制完整 Profile 或把 Cookie 返回 API。来源选择和授权成功状态以非敏感标记保存，后续 Runner 自动复用。每次 Runner 操作生成一次性 X25519 私钥，助手返回的 Cookie 只能由该操作解密；队列确认后删除密文，Runner 终态删除 tmpfs jar。助手空闲时无进程。视频号是明确批准的专用持久元宝来源，不复制普通 Chrome：首次执行 `uv run python -m app.workers.runner.yuanbao_session login` 并由用户登录，后续按需启动浏览器读取当前元宝状态，结束关闭浏览器但保留专用目录。目录权限、互斥和撤销见[个人部署手册](../docs/operations/008-个人部署重启与换机手册.md)。单次读取在独立进程组中执行，15 秒超时、取消或异常都会回收整个进程组。项目仍只通过根 Docker Compose 运行；平台出口信誉需要隔离时，由运维使用 `RUNNER_PROVIDER_EGRESS_PROXIES` 按稳定 key 指向受控内部代理。
+macOS 标准部署已加入宿主浏览器来源维护进程：对经准入的平台（默认 YouTube）按域名从部署者已登录的日常 Chrome 读取唯一可用 Profile，加密发布到既有来源库；普通用户请求不读取浏览器，也不复制完整 Profile 或把 Cookie 返回 API。既有按需 Access Agent 仍用于明确维护授权，来源边界分别见个人部署手册。来源选择和授权成功状态以非敏感标记保存，后续 Runner 自动复用。每次 Runner 操作生成一次性 X25519 私钥，助手返回的 Cookie 只能由该操作解密；队列确认后删除密文，Runner 终态删除 tmpfs jar。助手空闲时无进程。视频号是明确批准的专用持久元宝来源，不复制普通 Chrome：首次执行 `uv run python -m app.workers.runner.yuanbao_session login` 并由用户登录，后续按需启动浏览器读取当前元宝状态，结束关闭浏览器但保留专用目录。目录权限、互斥和撤销见[个人部署手册](../docs/operations/008-个人部署重启与换机手册.md)。单次读取在独立进程组中执行，15 秒超时、取消或异常都会回收整个进程组。项目仍只通过根 Docker Compose 运行；平台出口信誉需要隔离时，由运维使用 `RUNNER_PROVIDER_EGRESS_PROXIES` 按稳定 key 指向受控内部代理。
 
 完整的 Provider 一次性会话租约、撤销与故障流程见 `docs/operations/003-多平台受控会话运行手册.md`。
 
@@ -69,8 +69,7 @@ uv run --project backend python -m app.workers.runner.provider_startup start --e
 docker compose --env-file .env -f docker-compose.yml ps --all
 ```
 
-这是完整项目唯一的运行入口。它先校验本地 Operator 来源，只启动真实可用的 profile，
-并清理已失去来源的旧 Operator 容器；缺少来源的平台不会以 unhealthy/503 冒充就绪。
+这是完整项目唯一的运行入口。它为已声明的 Operator 保留路线，macOS 默认尝试从部署者已登录的 Chrome 自动维护 YouTube 来源；来源暂缺只影响该平台，不阻断核心 API。宿主来源维护与真实媒体成功分别验收。
 更新代码时先独立执行 `git pull --ff-only`，再重复该命令；不要使用不会重新评估来源、
 应用代码、镜像或配置变化的 `docker compose restart`。固定 Provider 探针仍是独立验收步骤，
 启动预检不等于平台接受来源或真实媒体下载成功。

@@ -91,7 +91,9 @@ class IntentService:
         *,
         now: Callable[[], datetime],
         new_id: Callable[[], UUID],
-        uses_guest: Callable[[str], bool] = lambda _: False,
+        select_policy: Callable[[str], ProviderAccessPolicy] = (
+            lambda _: ProviderAccessPolicy.PUBLIC
+        ),
     ) -> None:
         self._repository = repository
         self._validator = validator
@@ -99,7 +101,7 @@ class IntentService:
         self._fingerprinter = fingerprinter
         self._now = now
         self._new_id = new_id
-        self._uses_guest = uses_guest
+        self._select_policy = select_policy
 
     async def create(
         self,
@@ -115,19 +117,14 @@ class IntentService:
             url = self._validator.validate(value)
         except ValueError as exc:
             raise ApplicationError(ApplicationErrorCode.INVALID_URL) from exc
+        policy = self._select_policy(url)
         command = IntentCreate(
             id=self._new_id(),
             owner_hash=owner_hash,
             idempotency_key=idempotency_key,
-            request_fingerprint=self._fingerprinter.fingerprint(
-                "download_intent", url, "public"
-            ),
+            request_fingerprint=self._fingerprinter.fingerprint("download_intent", url),
             url=self._cipher.encrypt(url),
-            access_policy=(
-                ProviderAccessPolicy.PUBLIC_SESSION
-                if self._uses_guest(url)
-                else ProviderAccessPolicy.PUBLIC
-            ),
+            access_policy=policy,
         )
         try:
             return await self._repository.accept(command, now=self._now(), quota=quota)
