@@ -261,6 +261,10 @@
 
 本台账只完成历史拦截来源与当前候选的追溯；五组均未通过逐项准入。候选与策略／部署／有效证据的机器可读关联仍属 P9.08.S1／S2，不能以此表代替实现。
 
+候选镜像 `generic-b3fb92fe` 的隔离一次性 Runner 使用公开 Wikimedia Commons 视频 `Big_buck_bunny_mcu.ogv` 实测：Generic 路线由内置 `Wikimedia` 提取器解析出 4 条流、2 个下载选项；同一服务按该选项重检并生成 566,309 字节 WebM，含 1 路视频和 1 路音频，文件大小及 SHA-256 与 Runner 响应一致，测试工作区已清理。提取过程中出现过可重试的 `inspection_failed`，最终成功；本证据只覆盖该公开样本在当前出口和候选镜像的 Runner 解析／下载，不是 API／Web 交付、能力目录准入、冷部署或其他长尾平台可用性的证明。
+
+该提交的远端 [CI 35815593361](https://github.com/StephenQiu30/video-server/actions/runs/35815593361) 前后端均成功。部署前业务库无在途下载、活跃解析意图或未发布 Outbox 事件，保留旧镜像标签 `video-server:pre-generic-e25a7fb6`；先重建四个 Runner 与 Guest 维护器，健康后再重建 API／下载及其他后台进程。11 个后端容器均运行候选镜像摘要 `dfe77bee…`，API readiness 与 Web 首页均返回 200。上线后的在线 API 客户端经签名内部调用成功解析同一 Wikimedia 样本，返回 Generic／Wikimedia、1 个格式选项；尚未通过用户 Web 创建任务并取得文件。抖音固定 Guest 探针首次 metadata 成功而 media 返回 `guest_context_required`，同时段 Guest 数据库修订已更新；完整重试的 metadata／media 均成功。该时间关联提示轮换窗口，不能把它确定为唯一根因。Runner 保持严格租约；下载 Worker 的持久重试会重新取上下文、先落库再执行，Canary 的下一轮会按新代际重新探测并更新结果，最多三次下载尝试仍可能在连续轮换后耗尽。单实例重建期间排队／失败率未测，旧镜像对 Generic 待处理任务的回滚限制仍在，P9.08／P9.13／P9.14 不关闭。
+
 <a id="p9-09"></a>
 
 ### P9.09 标准空部署与自动准备
