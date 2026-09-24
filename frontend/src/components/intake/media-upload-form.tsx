@@ -4,11 +4,11 @@ import { FileVideo, UploadSimple, X } from '@phosphor-icons/react';
 import { type FormEvent, useRef } from 'react';
 
 import {
+  IntakeControlRow,
   IntakePickerButton,
   IntakeSubmitButton,
 } from '@/components/intake/intake-control-row';
 import { Button } from '@/components/ui/button';
-import { Field, FieldDescription, FieldTitle } from '@/components/ui/field';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
@@ -61,22 +61,23 @@ export function MediaUploadForm({
           当前文件将记录为“用户提供的视频号来源”，系统不会接收视频号链接、会话或令牌。
         </p>
       ) : null}
-      <Field data-invalid={fileInvalid || undefined}>
-        <FieldTitle>视频文件</FieldTitle>
+      <IntakeControlRow data-invalid={fileInvalid || undefined}>
         <IntakePickerButton
           aria-describedby={
             fileInvalid ? 'download-workspace-error' : undefined
           }
           aria-invalid={fileInvalid || undefined}
-          className="w-full"
+          className="flex-1"
           disabled={busy}
           onClick={() => inputRef.current?.click()}
-          size="lg"
+          size="xl"
           variant="outline"
         >
           <FileVideo aria-hidden data-icon="inline-start" />
           <span className="min-w-0 truncate" title={file?.name}>
-            {file?.name ?? '选择本地 MP4 视频'}
+            {file
+              ? `${file.name} · ${formatFileSize(file.size)}`
+              : '选择本地 MP4 视频'}
           </span>
         </IntakePickerButton>
         <Input
@@ -91,10 +92,15 @@ export function MediaUploadForm({
           ref={inputRef}
           type="file"
         />
-        <FieldDescription>
-          {file ? formatFileSize(file.size) : 'MP4 · 单个文件'}
-        </FieldDescription>
-      </Field>
+        <IntakeSubmitButton disabled={busy} size="xl">
+          {busy ? (
+            <Spinner aria-hidden data-icon="inline-start" />
+          ) : (
+            <UploadSimple aria-hidden data-icon="inline-start" />
+          )}
+          {busy ? '处理中…' : '上传视频'}
+        </IntakeSubmitButton>
+      </IntakeControlRow>
       {busy ? (
         <div>
           <div className="mb-3 flex min-h-9 items-center justify-between gap-4">
@@ -119,14 +125,6 @@ export function MediaUploadForm({
           <Progress aria-label={phaseLabels[phase]} value={progress} />
         </div>
       ) : null}
-      <IntakeSubmitButton className="w-full" disabled={busy} size="lg">
-        {busy ? (
-          <Spinner aria-hidden data-icon="inline-start" />
-        ) : (
-          <UploadSimple aria-hidden data-icon="inline-start" />
-        )}
-        {busy ? '处理中…' : '上传视频'}
-      </IntakeSubmitButton>
     </Form>
   );
 }

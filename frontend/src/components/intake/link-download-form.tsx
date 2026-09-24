@@ -2,7 +2,10 @@
 
 import { DownloadSimple } from '@phosphor-icons/react';
 import type { ClipboardEvent, FormEvent, KeyboardEvent } from 'react';
-import { IntakeSubmitButton } from '@/components/intake/intake-control-row';
+import {
+  IntakeControlRow,
+  IntakeSubmitButton,
+} from '@/components/intake/intake-control-row';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
@@ -51,29 +54,32 @@ export function LinkDownloadForm({
   };
 
   return (
-    <Form className="flex w-full items-center gap-2" onSubmit={submit}>
-      <Input
-        aria-describedby={invalid ? 'download-workspace-error' : undefined}
-        aria-invalid={invalid || undefined}
-        aria-label="公开视频地址"
-        autoComplete="url"
-        disabled={disabled}
-        id="public-media-input"
-        maxLength={4096}
-        onChange={(event) => onUrlChange(event.target.value)}
-        onKeyDown={handleKeyDown}
-        onPaste={handlePaste}
-        placeholder="粘贴公开媒体链接或完整分享文案"
-        value={url}
-      />
-      <IntakeSubmitButton disabled={disabled}>
-        {busy ? (
-          <Spinner aria-hidden data-icon="inline-start" />
-        ) : (
-          <DownloadSimple aria-hidden data-icon="inline-start" />
-        )}
-        {busy ? '解析中…' : hasResult ? '重新解析' : '解析媒体'}
-      </IntakeSubmitButton>
+    <Form onSubmit={submit}>
+      <IntakeControlRow data-invalid={invalid || undefined}>
+        <Input
+          aria-describedby={invalid ? 'download-workspace-error' : undefined}
+          aria-invalid={invalid || undefined}
+          aria-label="公开视频地址"
+          autoComplete="url"
+          controlSize="xl"
+          disabled={disabled}
+          id="public-media-input"
+          maxLength={4096}
+          onChange={(event) => onUrlChange(event.target.value)}
+          onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
+          placeholder="粘贴公开媒体链接或完整分享文案"
+          value={url}
+        />
+        <IntakeSubmitButton disabled={disabled}>
+          {busy ? (
+            <Spinner aria-hidden data-icon="inline-start" />
+          ) : (
+            <DownloadSimple aria-hidden data-icon="inline-start" />
+          )}
+          {busy ? '解析中…' : hasResult ? '重新解析' : '解析媒体'}
+        </IntakeSubmitButton>
+      </IntakeControlRow>
     </Form>
   );
 }

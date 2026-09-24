@@ -4,12 +4,12 @@ import { FileText, UploadSimple, X } from '@phosphor-icons/react';
 import { type FormEvent, useRef } from 'react';
 
 import {
+  IntakeControlRow,
   IntakePickerButton,
   IntakeSubmitButton,
 } from '@/components/intake/intake-control-row';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Field, FieldDescription, FieldTitle } from '@/components/ui/field';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
@@ -64,15 +64,19 @@ export function ScreenplayUploadForm({
     <IntakePickerButton
       aria-describedby={error ? 'screenplay-upload-error' : undefined}
       aria-invalid={fileInvalid || undefined}
-      className="w-full"
+      className={workspace ? 'flex-1' : 'w-full'}
       disabled={busy}
       onClick={() => inputRef.current?.click()}
-      size={workspace ? 'lg' : undefined}
+      size={workspace ? 'xl' : undefined}
       variant={workspace ? 'outline' : undefined}
     >
       <FileText aria-hidden data-icon="inline-start" />
       <span className="min-w-0 truncate" title={file?.name}>
-        {file?.name ?? '选择剧本文档'}
+        {file
+          ? `${file.name} · ${formatFileSize(file.size)}`
+          : workspace
+            ? '选择剧本文档（PDF、DOCX 等）'
+            : '选择剧本文档'}
       </span>
     </IntakePickerButton>
   );
@@ -127,22 +131,20 @@ export function ScreenplayUploadForm({
   if (workspace) {
     return (
       <Form className="flex flex-col gap-4" onSubmit={submit}>
-        <Field data-invalid={fileInvalid || undefined}>
-          <FieldTitle>剧本文件</FieldTitle>
+        <IntakeControlRow data-invalid={fileInvalid || undefined}>
           {filePicker}
           {fileInput}
-          <FieldDescription>{fileDescription}</FieldDescription>
-        </Field>
+          <IntakeSubmitButton disabled={busy}>
+            {busy ? (
+              <Spinner aria-hidden data-icon="inline-start" />
+            ) : (
+              <UploadSimple aria-hidden data-icon="inline-start" />
+            )}
+            {busy ? '处理中…' : '上传剧本'}
+          </IntakeSubmitButton>
+        </IntakeControlRow>
         {errorNotice}
         {progressNotice}
-        <IntakeSubmitButton className="w-full" disabled={busy} size="lg">
-          {busy ? (
-            <Spinner aria-hidden data-icon="inline-start" />
-          ) : (
-            <UploadSimple aria-hidden data-icon="inline-start" />
-          )}
-          {busy ? '处理中…' : '上传剧本'}
-        </IntakeSubmitButton>
       </Form>
     );
   }

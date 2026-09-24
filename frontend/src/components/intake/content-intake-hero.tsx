@@ -37,7 +37,7 @@ export function ContentIntakeHero({
       />
 
       <Tabs
-        className="mt-6"
+        className="mt-8 w-full max-w-5xl"
         onValueChange={(value) => onModeChange(value as IntakeMode)}
         value={mode}
       >
