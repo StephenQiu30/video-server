@@ -1,5 +1,9 @@
 # BACKLOG — 视频解析与平台支持 可维护性/可用性 修复
 
+## 统一解析中心（045）
+
+[PRD](docs/prd/045-统一解析中心PRD.md) · [Design](docs/design/045-统一解析中心设计.md) · [Plan](docs/plan/045-统一解析中心Plan.md)。任务执行顺序与验收状态只在 045 Plan 维护；当前为方案设计，未实现。
+
 ## 当前执行基线（2026-09-22）
 
 - 044 已拆分为 [PRD](docs/prd/044-开源部署无感解析PRD.md)、[Design](docs/design/044-开源部署无感解析需求与系统设计.md) 和 [Plan](docs/plan/044-开源部署无感解析Plan.md)。PRD 唯一维护 FR／NFR／AC；Plan 唯一维护 P9 的步骤、依赖、状态与证据；本台账保留导航与历史记录。
