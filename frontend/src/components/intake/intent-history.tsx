@@ -25,6 +25,7 @@ import {
   intentHistoryActionLabel,
 } from '@/components/intake/intent-status';
 import { BackLink } from '@/components/layout/back-link';
+import { CursorPagination } from '@/components/layout/cursor-pagination';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
@@ -130,8 +131,8 @@ export function IntentHistory({
             variant="outline"
             disabled={history.isFetching}
             onClick={() => {
-              filters.first();
-              void history.refetch();
+              if (filters.page > 1) filters.first();
+              else void history.refetch();
             }}
           >
             <ArrowClockwise data-icon="inline-start" />
@@ -269,29 +270,18 @@ export function IntentHistory({
             </ItemGroup>
           </>
         ) : null}
-        {filters.hasPrevious || history.data?.next_cursor ? (
-          <nav
-            className="mt-4 flex justify-end gap-2"
-            aria-label="解析记录分页"
-          >
-            <Button
-              variant="ghost"
-              disabled={!filters.hasPrevious || history.isFetching}
-              onClick={filters.previous}
-            >
-              较新的记录
-            </Button>
-            <Button
-              variant="ghost"
-              disabled={!history.data?.next_cursor || history.isFetching}
-              onClick={() => {
-                if (history.data?.next_cursor)
-                  filters.next(history.data.next_cursor);
-              }}
-            >
-              更早的记录
-            </Button>
-          </nav>
+        {history.data ? (
+          <CursorPagination
+            ariaLabel="解析记录分页"
+            page={filters.page}
+            hasNext={Boolean(history.data.next_cursor)}
+            busy={history.isFetching}
+            onPageChange={(page) => {
+              if (page <= filters.page) filters.goToPage(page);
+              else if (history.data?.next_cursor)
+                filters.next(history.data.next_cursor);
+            }}
+          />
         ) : null}
       </section>
       <IntentHistoryDialog

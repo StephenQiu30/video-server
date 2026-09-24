@@ -17,6 +17,7 @@ import { useAnalysisJob } from '@/components/analysis/use-analysis-job';
 import { useAnalysisSkills } from '@/components/analysis/use-analysis-skills';
 import { historyRecordLabel } from '@/components/intake/history-record-presentation';
 import { BackLink } from '@/components/layout/back-link';
+import { CursorPagination } from '@/components/layout/cursor-pagination';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
@@ -248,6 +249,7 @@ function AnalysisDetailContent({
             />
           ) : null}
           <AnalysisRuns
+            key={`${job.id}:${job.run_no}`}
             id={job.id}
             runNo={job.run_no}
             active={Boolean(active)}
@@ -305,27 +307,22 @@ function AnalysisRuns({
           </li>
         ))}
       </ol>
-      <div className="mt-4 flex gap-2">
-        <Button
-          variant="ghost"
-          disabled={cursors.length <= 1 || runs.isFetching}
-          onClick={() => setCursors((value) => value.slice(0, -1))}
-        >
-          较新的运行
-        </Button>
-        <Button
-          variant="ghost"
-          disabled={!runs.data?.next_before_run_no || runs.isFetching}
-          onClick={() =>
-            setCursors((value) => [
-              ...value,
-              runs.data?.next_before_run_no ?? undefined,
-            ])
-          }
-        >
-          更早的运行
-        </Button>
-      </div>
+      {runs.data ? (
+        <CursorPagination
+          ariaLabel="运行记录分页"
+          page={cursors.length}
+          hasNext={Boolean(runs.data.next_before_run_no)}
+          busy={runs.isFetching}
+          onPageChange={(page) => {
+            const nextBefore = runs.data?.next_before_run_no;
+            if (page < cursors.length) {
+              setCursors((value) => value.slice(0, page));
+            } else if (page === cursors.length + 1 && nextBefore != null) {
+              setCursors((value) => [...value, nextBefore]);
+            }
+          }}
+        />
+      ) : null}
     </section>
   );
 }

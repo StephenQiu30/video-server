@@ -71,20 +71,21 @@ export function useHistoryRecordFilters() {
     filters,
     category,
     subkind,
+    page: cursors.length + 1,
     search,
     update,
     hasFilters: Boolean(search.size - cursors.length),
-    hasPrevious: cursors.length > 0,
     reset: () => navigate(new URLSearchParams()),
     first: () => {
       const params = new URLSearchParams(search.toString());
       params.delete('cursor');
       navigate(params);
     },
-    previous: () => {
+    goToPage: (page: number) => {
+      if (page < 1 || page >= cursors.length + 1) return;
       const params = new URLSearchParams(search.toString());
       params.delete('cursor');
-      for (const c of cursors.slice(0, -1)) params.append('cursor', c);
+      for (const c of cursors.slice(0, page - 1)) params.append('cursor', c);
       navigate(params);
     },
     next: (value: API.HistoryRecordCursorResponse) => {

@@ -64,8 +64,20 @@ it('keeps pagination read-only and sends a ready result to its dedicated page', 
     ],
     next_cursor: null,
   });
-  fireEvent.click(screen.getByRole('button', { name: '更早的记录' }));
+  expect(
+    screen.getByRole('navigation', { name: '解析记录分页' }),
+  ).toBeVisible();
+  expect(screen.getByRole('button', { name: '第 1 页' })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  fireEvent.click(screen.getByRole('button', { name: '第 2 页' }));
   expect(await screen.findByText('较早的视频')).toBeVisible();
+  expect(screen.getByRole('button', { name: '第 2 页' })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  expect(screen.queryByText('更早的记录')).toBeNull();
   expect(httpRequests()[1].params).toMatchObject({
     before_id: item.id,
     before_created_at: item.created_at,
@@ -76,9 +88,65 @@ it('keeps pagination read-only and sends a ready result to its dedicated page', 
   expect(push).toHaveBeenCalledWith(
     '/downloads/new?inspectionId=11111111-1111-4111-8111-111111111111&intentId=66666666-6666-4666-8666-666666666666',
   );
+  mockHttpResponses({ items: [item], next_cursor: null });
+  fireEvent.click(screen.getByRole('button', { name: '上一页' }));
+  expect(await screen.findByText(item.title)).toBeVisible();
+  expect(window.location.search).toBe('');
+  expect(screen.getByRole('button', { name: '第 1 页' })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
   expect(httpRequests().every((request) => request.method === 'GET')).toBe(
     true,
   );
+});
+
+it('shows numbered pages and resets to page one when the category changes', async () => {
+  const first = {
+    ...intentFixture(),
+    record_type: 'parse',
+    status_group: 'completed',
+    title: '第一页内容',
+    created_at: '2026-09-23T00:00:00Z',
+  };
+  const second = {
+    ...first,
+    id: '22222222-2222-4222-8222-222222222222',
+    title: '第二页内容',
+  };
+  const third = {
+    ...first,
+    id: '33333333-3333-4333-8333-333333333333',
+    title: '第三页内容',
+  };
+  const page = (item: typeof first, more: boolean) => ({
+    items: [item],
+    next_cursor: more
+      ? { id: item.id, created_at: item.created_at, record_type: 'parse' }
+      : null,
+  });
+  mockHttpResponses(page(first, true));
+  render(<IntentHistoryPage />);
+  await screen.findByText(first.title);
+
+  mockHttpResponses(page(second, true));
+  fireEvent.click(screen.getByRole('button', { name: '下一页' }));
+  await screen.findByText(second.title);
+  mockHttpResponses(page(third, false));
+  fireEvent.click(screen.getByRole('button', { name: '下一页' }));
+  await screen.findByText(third.title);
+  expect(screen.getByText('第 3 页')).toBeVisible();
+  expect(screen.getByRole('button', { name: '下一页' })).toBeDisabled();
+
+  mockHttpResponses(page(first, true));
+  fireEvent.click(screen.getByRole('button', { name: '第 1 页' }));
+  expect(await screen.findByText(first.title)).toBeVisible();
+  expect(window.location.search).toBe('');
+
+  mockHttpResponses({ items: [], next_cursor: null });
+  fireEvent.click(screen.getByRole('button', { name: '视频 AI' }));
+  expect(await screen.findByText('没有匹配的解析记录')).toBeVisible();
+  expect(window.location.search).toBe('?category=video');
 });
 
 it('opens failed history in a read-only dialog without restoring it as the current home task', async () => {
