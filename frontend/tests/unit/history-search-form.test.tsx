@@ -24,7 +24,7 @@ describe('history date filters', () => {
       screen.getByRole('button', { name: '开始日期：2026-09-20' }),
     );
     fireEvent.click(
-      screen.getByRole('button', { name: '2026年9月24日 星期四' }),
+      screen.getByRole('button', { name: /2026年9月24日 星期四$/ }),
     );
     expect(onApply).not.toHaveBeenCalled();
     expect(
