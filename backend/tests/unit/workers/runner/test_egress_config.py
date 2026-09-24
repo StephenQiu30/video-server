@@ -31,12 +31,12 @@ def test_bilibili_tls_media_port_is_scoped_to_its_cdn() -> None:
     assert "http_access deny bilibili_media_port !bilibili_media" in config
     assert (
         "http_access allow docker_clients bilibili_media_port "
-        "bilibili_media docker_desktop_public" in config
+        "bilibili_media docker_desktop_synthetic_dns" in config
     )
     assert "acl docker_desktop_web_port port 80 443" in config
     assert (
         "http_access allow docker_clients docker_desktop_web_port "
-        "docker_desktop_public" in config
+        "docker_desktop_synthetic_dns" in config
     )
 
     scoped_deny = config.index("http_access deny bilibili_media_port !bilibili_media")
@@ -44,14 +44,17 @@ def test_bilibili_tls_media_port_is_scoped_to_its_cdn() -> None:
     assert scoped_deny < public_allow
 
 
-def test_destination_policy_allows_docker_desktop_synthetic_public_ranges() -> None:
+def test_destination_policy_allows_configured_synthetic_dns_ranges() -> None:
     policy = (CONFIG_ROOT / "blocked-destinations.conf").read_text(encoding="utf-8")
+    config = CONFIG.read_text(encoding="utf-8")
 
-    # Docker Desktop resolves public DNS to synthetic IPv4 and IPv6 ranges; the
-    # egress proxy must allow both while keeping other special ranges blocked.
-    assert "acl docker_desktop_public dst 198.18.0.0/15" in policy
+    # The local Firecrawl profile relies on these synthetic answers; the egress
+    # proxy must allow the exact ranges while keeping other private ranges blocked.
+    assert "acl docker_desktop_synthetic_dns dst 198.18.0.0/15" in policy
     assert "acl blocked_destination dst 198.18.0.0/15" not in policy
-    assert "acl docker_desktop_public dst 2001:2::/48" in policy
+    assert "acl docker_desktop_synthetic_dns dst fdfe:dcba:9876::/48" in policy
+    assert "acl blocked_destination dst fdfe:dcba:9876::/48" not in policy
+    assert "acl docker_desktop_synthetic_dns dst 2001:2::/48" in policy
     assert "acl blocked_destination dst 2001:2::/48" not in policy
     for blocked in (
         "10.0.0.0/8",
@@ -60,8 +63,17 @@ def test_destination_policy_allows_docker_desktop_synthetic_public_ranges() -> N
         "169.254.0.0/16",
         "172.16.0.0/12",
         "192.168.0.0/16",
+        "fc00::/7",
     ):
         assert f"acl blocked_destination dst {blocked}" in policy
+    assert config.index("http_access deny ip_literal_url") < config.index(
+        "http_access allow docker_clients docker_desktop_web_port "
+        "docker_desktop_synthetic_dns"
+    )
+    assert config.index(
+        "http_access allow docker_clients docker_desktop_web_port "
+        "docker_desktop_synthetic_dns"
+    ) < config.index("http_access deny blocked_destination")
     assert not (CONFIG_ROOT / "blocked-destinations-docker-desktop.conf").exists()
 
 
