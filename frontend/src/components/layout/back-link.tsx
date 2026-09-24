@@ -48,7 +48,7 @@ export function BackLink({
     <Button
       asChild
       className={cn(
-        '-ml-3 min-h-11 text-muted-foreground hover:text-foreground',
+        '-ml-3 min-h-control-lg text-muted-foreground hover:text-foreground',
         className,
       )}
       variant="ghost"

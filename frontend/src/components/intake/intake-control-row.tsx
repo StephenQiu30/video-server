@@ -2,7 +2,7 @@ import { cn } from 'cn';
 import type * as React from 'react';
 import { Button } from '@/components/ui/button';
 
-export const intakeControlHeightClassName = 'h-16 sm:h-[68px]';
+export const intakeControlHeightClassName = 'h-control-prominent';
 
 export function IntakeControlRow({
   className,

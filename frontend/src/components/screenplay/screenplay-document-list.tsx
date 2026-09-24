@@ -155,7 +155,7 @@ function LoadingRows() {
               <Skeleton className="h-4 w-3/5" />
               <Skeleton className="h-4 w-1/2" />
             </div>
-            <Skeleton className="h-7 w-20" />
+            <Skeleton className="h-placeholder-chip w-20" />
           </div>
         ))}
       </div>

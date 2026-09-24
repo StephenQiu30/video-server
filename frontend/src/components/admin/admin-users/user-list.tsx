@@ -1,7 +1,13 @@
-import { PencilSimple, Trash } from '@phosphor-icons/react';
+import { CaretDown, PencilSimple, Trash } from '@phosphor-icons/react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Table,
   TableBody,
@@ -28,33 +34,39 @@ export function UserList({
   function action(item: API.ManagedUserResponse) {
     const self = item.id === currentUserId;
     return (
-      <span className="flex justify-end gap-1">
-        <Button
-          className="text-muted-foreground hover:text-foreground"
-          variant="ghost"
-          size="sm"
-          disabled={self}
-          title={self ? '不能修改自己的管理员身份' : '管理用户'}
-          aria-label={`管理用户 ${item.username}`}
-          onClick={() => onEdit(item)}
-          type="button"
-        >
-          <PencilSimple data-icon="inline-start" />
-          管理
-        </Button>
-        <Button
-          aria-label={`删除用户 ${item.username}`}
-          className="text-destructive hover:text-destructive"
-          disabled={self}
-          onClick={() => onDelete(item)}
-          size="icon-lg"
-          title={self ? '不能删除当前登录管理员' : '删除用户'}
-          type="button"
-          variant="ghost"
-        >
-          <Trash aria-hidden />
-        </Button>
-      </span>
+      <div className="flex justify-end">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              aria-label={`管理用户 ${item.username}`}
+              className="text-muted-foreground hover:text-foreground"
+              disabled={self}
+              size="sm"
+              title={self ? '不能修改或删除当前登录管理员' : '管理用户'}
+              type="button"
+              variant="ghost"
+            >
+              <PencilSimple aria-hidden data-icon="inline-start" />
+              管理
+              <CaretDown aria-hidden data-icon="inline-end" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => onEdit(item)}>
+              <PencilSimple aria-hidden />
+              编辑用户
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              aria-label={`删除用户 ${item.username}`}
+              onSelect={() => onDelete(item)}
+              variant="destructive"
+            >
+              <Trash aria-hidden />
+              删除用户
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     );
   }
 

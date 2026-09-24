@@ -213,9 +213,9 @@ export function RegisterView() {
         </FieldGroup>
         {emailVerified ? (
           <Button
-            className="h-12 w-full text-[15px]"
+            className="w-full text-[15px]"
             disabled={loading || submitting || sendingCode}
-            size="lg"
+            size="xl"
             type="submit"
           >
             {submitting ? (

@@ -102,7 +102,7 @@ function NavigationLink({
         asChild
         className={cn(
           navigationMenuTriggerStyle(),
-          'h-11 min-h-11 rounded-md px-3.5 text-[15px] text-foreground',
+          'rounded-md px-3.5 text-[15px] text-foreground',
           active && 'bg-muted',
         )}
       >

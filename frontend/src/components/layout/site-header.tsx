@@ -20,7 +20,7 @@ export function BrandLink({ className }: { className?: string }) {
     <Link
       aria-label="帧取首页"
       className={cn(
-        'focus-ring inline-flex min-h-11 items-center gap-3 rounded-md text-[17px] font-semibold tracking-[-0.02em]',
+        'focus-ring inline-flex min-h-control-lg items-center gap-3 rounded-md text-[17px] font-semibold tracking-[-0.02em]',
         className,
       )}
       href="/"
@@ -87,7 +87,7 @@ export function SiteHeader() {
           {headerAuthPending ? (
             <div
               aria-hidden
-              className="h-11 w-28 lg:w-48"
+              className="h-control-lg w-[clamp(7rem,9vw,12rem)]"
               data-slot="header-auth-pending"
             />
           ) : (
@@ -112,7 +112,7 @@ export function SiteHeader() {
                   {publicView ? (
                     <Button
                       asChild
-                      className="size-11 lg:hidden"
+                      className="lg:hidden"
                       size="icon-lg"
                       variant="ghost"
                     >
@@ -129,7 +129,7 @@ export function SiteHeader() {
                   <ThemeToggle />
                   {publicView ? (
                     <div className="flex shrink-0 justify-end">
-                      <Button asChild className="min-h-11 px-4 text-[15px]">
+                      <Button asChild className="px-4 text-[15px]" size="lg">
                         <Link href="/user/login">登录</Link>
                       </Button>
                     </div>

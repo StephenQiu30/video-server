@@ -66,7 +66,7 @@ export function ScreenplayUploadForm({
         <IntakePickerButton
           aria-describedby={error ? 'screenplay-upload-error' : undefined}
           aria-invalid={fileInvalid || undefined}
-          className={workspace ? undefined : 'h-20 w-full sm:h-20'}
+          className={workspace ? undefined : 'h-control-upload w-full'}
           disabled={busy}
           onClick={() => inputRef.current?.click()}
         >
@@ -125,7 +125,7 @@ export function ScreenplayUploadForm({
 
       {busy ? (
         <div className="mt-4 py-4">
-          <div className="mb-3 flex min-h-11 items-center justify-between gap-4">
+          <div className="mb-3 flex min-h-control-lg items-center justify-between gap-4">
             <p aria-live="polite" className="text-sm" role="status">
               {phaseLabels[phase]}
             </p>
@@ -154,7 +154,7 @@ export function ScreenplayUploadForm({
       ) : null}
 
       {!workspace ? (
-        <Button className="mt-5 h-11 w-full" disabled={busy} type="submit">
+        <Button className="mt-5 w-full" disabled={busy} size="lg" type="submit">
           {busy ? (
             <Spinner aria-hidden data-icon="inline-start" />
           ) : (

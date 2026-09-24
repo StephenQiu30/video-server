@@ -94,9 +94,10 @@ export function SourceDiscoveryWorkspace({
                   </ItemContent>
                   <ItemActions className="w-full sm:w-auto">
                     <Button
-                      className="h-11 w-full sm:w-auto"
+                      className="w-full sm:w-auto"
                       disabled={busyItemRef !== null}
                       onClick={() => onSelect(item)}
+                      size="lg"
                       variant="secondary"
                     >
                       {busy ? (

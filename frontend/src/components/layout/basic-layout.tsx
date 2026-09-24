@@ -19,7 +19,8 @@ export function BasicLayout({ children }: { children: ReactNode }) {
       >
         <Button
           asChild
-          className="fixed left-4 top-3 z-[60] h-11 -translate-y-[calc(100%+1rem)] focus-visible:translate-y-0"
+          className="fixed left-4 top-3 z-[60] -translate-y-[calc(100%+1rem)] focus-visible:translate-y-0"
+          size="lg"
         >
           <a href="#main-content">跳到主要内容</a>
         </Button>

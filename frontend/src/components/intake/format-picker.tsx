@@ -38,7 +38,7 @@ export default function FormatPicker({
   return (
     <RadioGroup
       aria-label="选择下载版本"
-      className="scrollbar-thin max-h-[360px] gap-1 overflow-y-auto"
+      className="scrollbar-thin max-h-[min(45vh,22.5rem)] gap-1 overflow-y-auto"
       onValueChange={onChange}
       value={selectedId}
     >
@@ -49,7 +49,7 @@ export default function FormatPicker({
           <div key={format.id}>
             <FieldLabel
               className={cn(
-                'min-h-[62px] w-full cursor-pointer flex-row rounded-md border-0 px-3 py-3 transition-colors has-data-[state=checked]:bg-muted/70 hover:bg-muted/50 hover:text-foreground',
+                'min-h-control-prominent w-full cursor-pointer flex-row rounded-md border-0 px-3 py-3 transition-colors has-data-[state=checked]:bg-muted/70 hover:bg-muted/50 hover:text-foreground',
                 selected ? 'text-foreground' : 'text-muted-foreground',
               )}
               htmlFor={format.id}

@@ -68,7 +68,7 @@ export function AdminAnalyticsScreen({
                 >
                   <SelectTrigger
                     aria-label="统计周期"
-                    className="h-10 w-full rounded-lg sm:w-40"
+                    className="w-full rounded-lg sm:w-40"
                   >
                     <SelectValue />
                   </SelectTrigger>
@@ -89,7 +89,7 @@ export function AdminAnalyticsScreen({
               </div>
               <Button
                 aria-label="刷新下载分析"
-                className="h-10 w-full shrink-0 bg-muted px-3 sm:w-auto"
+                className="w-full shrink-0 bg-muted px-3 sm:w-auto"
                 disabled={loading}
                 onClick={onRetry}
                 type="button"

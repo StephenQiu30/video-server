@@ -35,7 +35,7 @@ export function ProviderCatalogFilters({
     <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_12rem]">
       <Field>
         <FieldLabel htmlFor="provider-catalog-search">搜索平台</FieldLabel>
-        <InputGroup className="h-11">
+        <InputGroup>
           <InputGroupAddon>
             <MagnifyingGlassIcon aria-hidden />
           </InputGroupAddon>
@@ -56,10 +56,7 @@ export function ProviderCatalogFilters({
           }
           value={visibility}
         >
-          <SelectTrigger
-            className="h-11 w-full"
-            id="provider-catalog-visibility"
-          >
+          <SelectTrigger className="w-full" id="provider-catalog-visibility">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

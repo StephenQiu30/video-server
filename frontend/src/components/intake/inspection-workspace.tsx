@@ -155,7 +155,7 @@ export default function InspectionWorkspace({
             ) : null}
             {inspection.access_decision === 'export_required' ? (
               <Button
-                className="mt-7 h-13 w-full text-[15px]"
+                className="mt-7 h-control-prominent w-full text-[15px]"
                 onClick={onUseUpload}
               >
                 <UploadSimple data-icon="inline-start" />
@@ -163,7 +163,7 @@ export default function InspectionWorkspace({
               </Button>
             ) : downloadable ? (
               <Button
-                className="mt-7 h-13 w-full text-[15px]"
+                className="mt-7 h-control-prominent w-full text-[15px]"
                 disabled={!selectedId || busy}
                 onClick={onCreate}
               >

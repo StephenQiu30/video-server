@@ -66,7 +66,7 @@ export default function AnalysisArticleResultView({
                       key={`${evidence.start_ms}-${evidence.end_ms}-${evidence.note}`}
                     >
                       <Button
-                        className="h-11 px-0 text-xs tabular-nums"
+                        className="px-0 text-xs tabular-nums"
                         disabled={!onSelectTime}
                         onClick={() => onSelectTime?.(evidence.start_ms)}
                         type="button"

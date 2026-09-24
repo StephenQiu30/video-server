@@ -106,7 +106,7 @@ export function UserFilters({
           </SelectContent>
         </Select>
       </Field>
-      <Button className="h-10" type="submit">
+      <Button type="submit">
         <MagnifyingGlass />
         搜索
       </Button>

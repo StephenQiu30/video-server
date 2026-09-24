@@ -51,17 +51,21 @@ export function HeaderAccount({
 }: HeaderAccountProps) {
   return (
     <div
-      className="flex w-[88px] shrink-0 items-center justify-end"
+      className="flex shrink-0 items-center justify-end"
       data-slot="header-account"
     >
       {loading ? (
-        <Skeleton aria-hidden className="h-11 w-[74px]" />
+        <Skeleton
+          aria-hidden
+          className="h-control-lg w-[clamp(4.5rem,5vw,5.5rem)]"
+        />
       ) : user ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               aria-label="打开账户菜单"
-              className="min-h-11 w-[74px] px-2.5 text-foreground"
+              className="px-2.5 text-foreground"
+              size="lg"
               variant="ghost"
             >
               <Avatar>
@@ -147,7 +151,8 @@ export function HeaderAccount({
       ) : (
         <Button
           asChild
-          className="min-h-11 w-full px-3.5 text-[15px]"
+          className="w-full px-3.5 text-[15px]"
+          size="lg"
           variant="ghost"
         >
           <Link href={`/user/login?redirect=${encodeURIComponent(pathname)}`}>

@@ -69,11 +69,9 @@ describe('administrator user management', () => {
     })) {
       expect(button).toBeDisabled();
     }
-    for (const button of screen.getAllByRole('button', {
-      name: '删除用户 owner',
-    })) {
-      expect(button).toBeDisabled();
-    }
+    expect(
+      screen.queryByRole('menuitem', { name: '删除用户 owner' }),
+    ).not.toBeInTheDocument();
 
     const search = screen.getByRole('textbox', { name: '搜索用户名或邮箱' });
     fireEvent.change(search, { target: { value: '  editor  ' } });
@@ -84,9 +82,11 @@ describe('administrator user management', () => {
       ),
     );
 
-    fireEvent.click(
+    fireEvent.pointerDown(
       screen.getAllByRole('button', { name: '管理用户 editor' })[0],
+      { button: 0, ctrlKey: false },
     );
+    fireEvent.click(await screen.findByRole('menuitem', { name: '编辑用户' }));
     const dialog = await screen.findByRole('dialog');
     fireEvent.change(
       within(dialog).getByRole('spinbutton', { name: '24 小时任务数' }),
@@ -215,7 +215,13 @@ describe('administrator user management', () => {
     render(<AdminUsersView />);
 
     expect(await screen.findByText('editor')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '删除用户 editor' }));
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: '管理用户 editor' }),
+      { button: 0, ctrlKey: false },
+    );
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: '删除用户 editor' }),
+    );
 
     const dialog = await screen.findByRole('alertdialog', {
       name: '删除用户？',

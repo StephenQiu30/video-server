@@ -41,9 +41,8 @@ export function ProviderCatalogList({
       <span className="inline-flex items-center justify-end gap-0.5">
         <Button
           aria-label={`编辑平台 ${item.display_name}`}
-          className="h-11"
           onClick={() => onEdit(item)}
-          size="sm"
+          size="lg"
           type="button"
           variant="ghost"
         >

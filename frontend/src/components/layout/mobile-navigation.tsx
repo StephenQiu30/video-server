@@ -41,7 +41,7 @@ export function MobileNavigation({
       <SheetTrigger asChild>
         <Button
           aria-label="打开导航菜单"
-          className="size-11 lg:hidden"
+          className="lg:hidden"
           disabled={loading}
           size="icon"
           variant="ghost"

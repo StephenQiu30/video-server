@@ -361,7 +361,7 @@ describe('download history', () => {
     const refreshButton = screen.getByRole('button', { name: '刷新' });
 
     expect(fieldGroup).toHaveClass('grid', 'gap-3');
-    expect(inputGroup).toHaveClass('h-8');
+    expect(inputGroup).toHaveClass('h-control-default');
     expect(selectTrigger).toHaveAttribute('data-size', 'default');
     expect(refreshButton).toHaveAttribute('data-size', 'default');
   });
