@@ -175,3 +175,7 @@ API 使用 `runtime.py` 定义类型化的 `ApiServices`，在 `app.state.servic
 管理员可在 AI 服务中选择 OpenRouter 或 OpenAI 兼容 API。OpenRouter 使用官方固定 Base URL，读取公开模型目录后选择模型；视频要求图像输入与结构化输出。通用兼容线路自行填写模型、Base URL 和 Key，服务须支持图像与 JSON 输出。API 线路无需 CLI，但现有宿主分析 Worker、FFmpeg 与基础服务仍需运行。修改服务地址或引擎时必须重新提供 Key。设计、能力边界及验收见 [037](../docs/design/037-统一AI执行与OpenRouter接入设计.md)。
 
 Web JSON 响应及全局异常统一遵循 [PROJECT.md §3.1](../PROJECT.md#31-全局响应与异常)。持久化代码在 repositories 内按业务聚合；业务路由使用 ApiResponseRoute，生成契约随注解自动更新。
+
+## 系统操作日志
+
+管理员日志入口、记录范围、故障语义和部署验证见[系统操作日志运行说明](../docs/operations/system-operation-logs.md)。

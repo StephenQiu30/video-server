@@ -17,6 +17,7 @@ from app.api.openapi import (
 from app.api.routes.admin_ai_providers import router as admin_ai_providers_router
 from app.api.routes.admin_downloads import router as admin_downloads_router
 from app.api.routes.admin_files import router as admin_files_router
+from app.api.routes.admin_operation_logs import router as admin_operation_logs_router
 from app.api.routes.admin_provider_runtime import (
     router as admin_provider_runtime_router,
 )
@@ -78,6 +79,7 @@ def create_app(
     api_router.include_router(auth_router)
     api_router.include_router(users_router)
     api_router.include_router(admin_users_router)
+    api_router.include_router(admin_operation_logs_router)
     api_router.include_router(admin_downloads_router)
     api_router.include_router(admin_files_router)
     api_router.include_router(admin_ai_providers_router)

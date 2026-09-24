@@ -436,6 +436,15 @@ declare namespace API {
     data: MediaUploadSessionResponse;
   };
 
+  type ApiResponseOperationLogPageResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: OperationLogPageResponse;
+  };
+
   type ApiResponseProviderAuthorizationResponse_ = {
     /** 稳定的业务结果码。 */
     code: ErrorCode;
@@ -1594,6 +1603,17 @@ declare namespace API {
     limit?: number;
   };
 
+  type listOperationLogsParams = {
+    page?: number;
+    page_size?: number;
+    q?: string | null;
+    outcome?: "started" | "succeeded" | "failed" | null;
+    created_from?: string | null;
+    created_to?: string | null;
+    admin_only?: boolean;
+    source?: "request" | "task" | null;
+  };
+
   type listStoredFilesParams = {
     page?: number;
     page_size?: number;
@@ -1719,6 +1739,52 @@ declare namespace API {
     access_expires_at: string;
     /** Refresh Expires At */
     refresh_expires_at: string;
+  };
+
+  type OperationLogPageResponse = {
+    /** Items */
+    items: OperationLogResponse[];
+    /** Page */
+    page: number;
+    /** Page Size */
+    page_size: number;
+    /** Total */
+    total: number;
+  };
+
+  type OperationLogResponse = {
+    /** Id */
+    id: string;
+    /** Created At */
+    created_at: string;
+    /** Finished At */
+    finished_at: string | null;
+    /** Actor Id */
+    actor_id: string | null;
+    /** Actor Name */
+    actor_name: string | null;
+    /** Operation */
+    operation: string;
+    /** Description */
+    description: string;
+    /** Method */
+    method: string;
+    /** Route */
+    route: string;
+    /** Resource Id */
+    resource_id: string | null;
+    /** Resource Key */
+    resource_key: string | null;
+    /** Outcome */
+    outcome: "started" | "succeeded" | "failed";
+    /** Source */
+    source: "request" | "task";
+    /** Task State */
+    task_state: string | null;
+    /** Status Code */
+    status_code: number | null;
+    /** Error Code */
+    error_code: string | null;
   };
 
   type ParseHistoryRecordResponse = {

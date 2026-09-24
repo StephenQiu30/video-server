@@ -4,6 +4,7 @@ import {
   CaretDownIcon,
   ChartLineUpIcon,
   HardDrivesIcon,
+  ListBulletsIcon,
   RobotIcon,
   SignOutIcon,
   StackIcon,
@@ -86,6 +87,19 @@ export function HeaderAccount({
             </DropdownMenuItem>
             {user.role === 'admin' ? (
               <>
+                <DropdownMenuItem asChild>
+                  <Link
+                    aria-current={
+                      pathname.startsWith('/admin/operation-logs')
+                        ? 'page'
+                        : undefined
+                    }
+                    href="/admin/operation-logs"
+                  >
+                    <ListBulletsIcon aria-hidden />
+                    系统操作日志
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link
                     aria-current={filesActive ? 'page' : undefined}

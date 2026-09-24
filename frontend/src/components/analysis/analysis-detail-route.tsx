@@ -35,13 +35,13 @@ export default function AnalysisDetailRoute() {
   const id = useSearchParams().get('analysisId')?.trim();
   return (
     <div className="inner-page">
-      <BackLink fallbackHref="/history/inspections" />
+      <BackLink fallbackHref="/history/activity" />
       {id ? (
         <AnalysisDetail key={id} id={id} />
       ) : (
         <PageEmptyNotice
           title="缺少分析记录"
-          description="请从解析中心选择一条分析记录。"
+          description="请从我的处理记录选择一条分析记录。"
         />
       )}
     </div>
@@ -96,10 +96,10 @@ function AnalysisDetailContent({
       ? `/downloads/detail?jobId=${encodeURIComponent(record.download_id)}`
       : null;
   const allHref = record.document_id
-    ? `/history/inspections?document_id=${encodeURIComponent(record.document_id)}`
+    ? `/history/activity?document_id=${encodeURIComponent(record.document_id)}`
     : record.download_id
-      ? `/history/inspections?download_id=${encodeURIComponent(record.download_id)}`
-      : '/history/inspections';
+      ? `/history/activity?download_id=${encodeURIComponent(record.download_id)}`
+      : '/history/activity';
   return (
     <>
       <PageHeader
@@ -143,7 +143,7 @@ function AnalysisDetailContent({
       {!state.loading && !job && !state.error ? (
         <PageEmptyNotice
           title="分析记录已删除"
-          description="返回解析中心查看其他记录。"
+          description="返回我的处理记录查看其他记录。"
         />
       ) : null}
       {job ? (

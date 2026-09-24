@@ -166,7 +166,7 @@ export default function ScreenplayDocumentDetailView({
           <div className="mt-6">
             <Button asChild variant="outline">
               <Link
-                href={`/history/inspections?document_id=${encodeURIComponent(documentId)}`}
+                href={`/history/activity?document_id=${encodeURIComponent(documentId)}`}
               >
                 查看全部解析与分析
               </Link>

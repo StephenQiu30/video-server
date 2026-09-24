@@ -127,7 +127,7 @@ export function IntentHistory({
           </DropdownMenu>
         }
         description="查看链接解析、视频 AI 分析、剧本基础解析与 AI 分析的处理记录。"
-        title="解析中心"
+        title="我的处理记录"
       />
       <HistoryRecordFilters
         state={filters}

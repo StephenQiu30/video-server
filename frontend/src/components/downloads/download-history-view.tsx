@@ -155,12 +155,17 @@ export default function DownloadHistoryView() {
       <BackLink className="mb-4" fallbackHref="/" />
       <PageHeader
         action={
-          <Button asChild size="lg">
-            <Link href="/">
-              <Plus data-icon="inline-start" />
-              解析新链接
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" size="lg">
+              <Link href="/history/activity">我的处理记录</Link>
+            </Button>
+            <Button asChild size="lg">
+              <Link href="/">
+                <Plus data-icon="inline-start" />
+                解析新链接
+              </Link>
+            </Button>
+          </div>
         }
         description="继续查看、获取或分析已创建的任务。"
         title="下载记录"

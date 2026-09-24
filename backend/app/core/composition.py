@@ -64,6 +64,7 @@ from app.repositories.downloads.intent_repository import IntentRepository
 from app.repositories.downloads.repository import SqlAlchemyDownloadRepository
 from app.repositories.history_records import SqlAlchemyHistoryRecordRepository
 from app.repositories.imports.repository import SqlAlchemyMediaImportRepository
+from app.repositories.operation_logs import OperationLogStore
 from app.repositories.operational_metrics import OperationalMetrics
 from app.repositories.providers.authorizations import ProviderAuthorizationRepository
 from app.repositories.providers.canary_repository import (
@@ -559,6 +560,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             ),
             realtime_hub=realtime_hub,
             task_event_store=TaskEventStore(sessions),
+            operation_log_store=OperationLogStore(sessions),
             operational_metrics=OperationalMetrics(sessions),
             provider_status_service=ProviderStatusService(
                 MergedProviderStatusEvidenceReader(

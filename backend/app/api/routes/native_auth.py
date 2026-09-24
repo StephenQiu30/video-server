@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Request, Response, status
 from app.api.admission import enforce_rate_limit
 from app.api.deps import get_auth_service, get_native_user, get_runtime_settings
 from app.api.openapi import ERROR_RESPONSES as WEB_ERROR_RESPONSES
+from app.api.operation_logging import OperationLogRoute, identify_operation_actor
 from app.core.config import Settings
 from app.schemas.auth import (
     EmailPasswordRequest,
@@ -33,6 +34,7 @@ ERROR_RESPONSES = {
 }
 
 router = APIRouter(
+    route_class=OperationLogRoute,
     prefix="/api/app/v1/auth",
     tags=["app-auth"],
     responses=ERROR_RESPONSES,
@@ -104,6 +106,7 @@ async def register_native_user(
         verification_code=body.verification_code,
     )
     response.headers["Location"] = "/api/app/v1/auth/me"
+    identify_operation_actor(grant.user)
     return NativeSessionResponse.from_grant(grant)
 
 
@@ -121,6 +124,7 @@ async def login_native_user(
 ) -> NativeSessionResponse:
     await enforce_rate_limit(request, "login", _email_hash(str(body.email)), settings)
     grant = await auth.login(str(body.email), body.password)
+    identify_operation_actor(grant.user)
     return NativeSessionResponse.from_grant(grant)
 
 
@@ -145,6 +149,7 @@ async def refresh_native_session(
     auth: Auth,
 ) -> NativeSessionResponse:
     grant = await auth.refresh(body.refresh_token)
+    identify_operation_actor(grant.user)
     return NativeSessionResponse.from_grant(grant)
 
 

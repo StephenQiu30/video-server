@@ -4,7 +4,6 @@ import {
   FileTextIcon,
   GithubLogoIcon,
   HouseIcon,
-  MagnifyingGlassIcon,
   PulseIcon,
 } from '@phosphor-icons/react';
 import { cn } from 'cn';
@@ -21,7 +20,6 @@ import {
 type DesktopNavigationProps = {
   documentsActive: boolean;
   historyActive: boolean;
-  intentHistoryActive: boolean;
   homeActive: boolean;
   providersActive: boolean;
   publicView: boolean;
@@ -30,7 +28,6 @@ type DesktopNavigationProps = {
 export function DesktopNavigation({
   documentsActive,
   historyActive,
-  intentHistoryActive,
   homeActive,
   providersActive,
   publicView,
@@ -61,13 +58,6 @@ export function DesktopNavigation({
             <NavigationLink active={historyActive} href="/history">
               <ClockCounterClockwiseIcon aria-hidden />
               下载记录
-            </NavigationLink>
-            <NavigationLink
-              active={intentHistoryActive}
-              href="/history/inspections"
-            >
-              <MagnifyingGlassIcon aria-hidden />
-              解析中心
             </NavigationLink>
             <NavigationLink active={documentsActive} href="/documents">
               <FileTextIcon aria-hidden />

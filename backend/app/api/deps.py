@@ -8,6 +8,7 @@ from fastapi import Depends, Header, Request, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from starlette.requests import HTTPConnection
 
+from app.api.operation_logging import identify_operation_actor
 from app.core.config import Settings
 from app.core.errors import AppError
 from app.core.runtime import (
@@ -148,7 +149,9 @@ async def get_native_user(
     if credentials is None or credentials.scheme.casefold() != "bearer":
         raise _unauthenticated()
     try:
-        return await auth.current_user(credentials.credentials)
+        user = await auth.current_user(credentials.credentials)
+        identify_operation_actor(user)
+        return user
     except AuthError as exc:
         raise _unauthenticated() from exc
 
@@ -161,9 +164,11 @@ async def get_web_user(
     if request.headers.get("authorization") is not None:
         raise _unauthenticated()
     try:
-        return await web.current_user(
+        user = await web.current_user(
             request.cookies.get(settings.auth_web_cookie_name, "")
         )
+        identify_operation_actor(user)
+        return user
     except AuthError as exc:
         raise _unauthenticated() from exc
 

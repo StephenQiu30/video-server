@@ -27,7 +27,7 @@ vi.mock('next/navigation', async () => {
 });
 beforeEach(() => {
   push.mockReset();
-  window.history.replaceState(null, '', '/history/inspections');
+  window.history.replaceState(null, '', '/history/activity');
   const original = window.history.pushState.bind(window.history);
   vi.spyOn(window.history, 'pushState').mockImplementation((...args) => {
     original(...args);
@@ -52,7 +52,7 @@ it('keeps pagination read-only and sends a ready result to its dedicated page', 
     },
   });
   render(<IntentHistoryPage />);
-  expect(screen.getByRole('heading', { name: '解析中心' })).toBeVisible();
+  expect(screen.getByRole('heading', { name: '我的处理记录' })).toBeVisible();
   expect(await screen.findByText(item.title)).toBeVisible();
   mockHttpResponses({
     items: [

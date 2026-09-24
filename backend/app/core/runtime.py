@@ -16,6 +16,7 @@ from app.integrations.readiness import (
 )
 from app.integrations.realtime import RabbitMqRealtimeConsumer, RealtimeHub
 from app.repositories.auth.redis_auth_repository import RedisAuthSessionStore
+from app.repositories.operation_logs import OperationLogStore
 from app.repositories.operational_metrics import OperationalMetrics
 from app.repositories.task_event_store import TaskEventStore
 from app.schemas.engine_catalog import EngineCatalogResponse
@@ -154,6 +155,7 @@ class ApiServices:
     readiness_probe: RuntimeReadiness | None = None
     realtime_hub: RealtimeHub | None = None
     task_event_store: TaskEventStore | None = None
+    operation_log_store: OperationLogStore | None = None
     operational_metrics: OperationalMetrics | None = None
     provider_status_service: ProviderStatusService | None = None
     provider_authorization_service: ProviderAuthorizationService | None = None

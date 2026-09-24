@@ -27,6 +27,7 @@ from app.models.media import (
     MediaThumbnailRow,
 )
 from app.models.media_import import MediaImportAttemptRow, MediaImportRow
+from app.models.operation_log import OperationLogRow
 from app.models.operational_metric import OperationalCounterRow
 from app.models.outbox import OutboxEventRow
 from app.models.provider_authorization import ProviderAuthorizationRow
@@ -41,6 +42,7 @@ from app.models.task_event import TaskEventRow
 from app.models.web_session import WebSessionRow
 
 __all__ = [
+    "OperationLogRow",
     "WebSessionRow",
     "EmailVerificationRow",
     "ResourceAdmissionRow",

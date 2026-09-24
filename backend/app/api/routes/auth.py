@@ -14,6 +14,7 @@ from app.api.deps import (
     get_web_user,
     set_auth_cookies,
 )
+from app.api.operation_logging import identify_operation_actor
 from app.api.responses import ApiResponseRoute
 from app.core.config import Settings
 from app.schemas.auth import (
@@ -119,6 +120,7 @@ async def register_user(
     )
     set_auth_cookies(response, settings, grant)
     response.headers["Location"] = "/api/auth/me"
+    identify_operation_actor(grant.user)
     return UserResponse.from_user(grant.user)
 
 
@@ -148,6 +150,7 @@ async def login_user(
         user.id, previous_token=request.cookies.get(settings.auth_web_cookie_name)
     )
     set_auth_cookies(response, settings, grant)
+    identify_operation_actor(grant.user)
     return UserResponse.from_user(grant.user)
 
 

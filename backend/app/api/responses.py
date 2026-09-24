@@ -9,14 +9,14 @@ from typing import Any
 
 from fastapi.datastructures import DefaultPlaceholder
 from fastapi.dependencies.utils import get_typed_return_annotation
-from fastapi.routing import APIRoute
 from starlette.concurrency import run_in_threadpool
 from starlette.responses import Response
 
+from app.api.operation_logging import OperationLogRoute
 from app.schemas.response import ApiResponse
 
 
-class ApiResponseRoute(APIRoute):
+class ApiResponseRoute(OperationLogRoute):
     def __init__(self, path: str, endpoint: Callable[..., Any], **kwargs: Any) -> None:
         model = kwargs.get("response_model")
         if isinstance(model, DefaultPlaceholder):

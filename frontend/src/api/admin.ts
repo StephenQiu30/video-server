@@ -166,6 +166,29 @@ export async function cleanupStoredFiles(
   );
 }
 
+/** 查询全系统操作日志 GET /api/admin/operation-logs */
+export async function listOperationLogs(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.listOperationLogsParams,
+  options?: RequestOptions
+) {
+  return request<API.ApiResponseOperationLogPageResponse_>(
+    "/api/admin/operation-logs",
+    {
+      method: "GET",
+      params: {
+        // page has a default value: 1
+        page: "1",
+        // page_size has a default value: 10
+        page_size: "10",
+
+        ...params,
+      },
+      ...(options || {}),
+    }
+  );
+}
+
 /** 读取已开放平台的脱敏运行诊断 仅元数据快照，不登录、不导出会话、不解析或下载媒体。 GET /api/admin/provider-runtime */
 export async function getAdminProviderRuntime(options?: RequestOptions) {
   return request<API.ApiResponseProviderRuntimeListResponse_>(

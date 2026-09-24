@@ -1615,3 +1615,68 @@ CREATE INDEX IF NOT EXISTS ix_guest_context_maintenance
     ON provider_guest_contexts (state, lease_expires_at, retry_at);
 
 COMMIT;
+
+-- Request audit metadata only. No FK: deleting an account/resource retains evidence.
+CREATE TABLE IF NOT EXISTS operation_logs (
+    id UUID PRIMARY KEY,
+    created_at TIMESTAMPTZ NOT NULL,
+    finished_at TIMESTAMPTZ,
+    actor_id UUID,
+    actor_name VARCHAR(128),
+    operation VARCHAR(160) NOT NULL,
+    description VARCHAR(256) NOT NULL,
+    method VARCHAR(8) NOT NULL,
+    route VARCHAR(256) NOT NULL,
+    resource_id UUID,
+    resource_key VARCHAR(128),
+    outcome VARCHAR(16) NOT NULL,
+    source VARCHAR(16) NOT NULL DEFAULT 'request',
+    task_state VARCHAR(32),
+    status_code INTEGER,
+    error_code VARCHAR(128),
+    CONSTRAINT ck_operation_logs_outcome CHECK (outcome IN ('started','succeeded','failed'))
+);
+ALTER TABLE operation_logs ADD COLUMN IF NOT EXISTS resource_key VARCHAR(128);
+CREATE INDEX IF NOT EXISTS ix_operation_logs_created ON operation_logs (created_at, id);
+CREATE INDEX IF NOT EXISTS ix_operation_logs_actor_created ON operation_logs (actor_id, created_at);
+
+-- State events are inserted atomically with business transitions, not backfilled
+-- from mutable current state. Progress-only updates intentionally produce no log.
+CREATE OR REPLACE FUNCTION record_system_task_operation() RETURNS trigger AS $$
+DECLARE
+    current_row JSONB;
+    state_value TEXT;
+    object_id UUID;
+BEGIN
+    current_row := CASE WHEN TG_OP = 'DELETE' THEN to_jsonb(OLD) ELSE to_jsonb(NEW) END;
+    IF TG_OP = 'UPDATE'
+       AND (to_jsonb(OLD)->>'status') IS NOT DISTINCT FROM (current_row->>'status')
+       AND (to_jsonb(OLD)->>'deleted_at') IS NOT DISTINCT FROM (current_row->>'deleted_at') THEN
+        RETURN NEW;
+    END IF;
+    state_value := CASE WHEN TG_OP = 'DELETE' OR current_row->>'deleted_at' IS NOT NULL
+        THEN 'deleted' ELSE current_row->>'status' END;
+    object_id := (current_row->>'id')::uuid;
+    INSERT INTO operation_logs (id, created_at, finished_at, actor_name, operation, description, method, route, resource_id, outcome, source, task_state, error_code)
+    VALUES (gen_random_uuid(), clock_timestamp(), clock_timestamp(), '系统', TG_TABLE_NAME || '.' || lower(TG_OP), TG_ARGV[0], 'SYSTEM', TG_TABLE_NAME, object_id,
+        CASE WHEN state_value = 'failed' THEN 'failed' ELSE 'succeeded' END,
+        'task', state_value, current_row->>'error_code');
+    IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS operation_log_state_trigger ON download_intents;
+CREATE TRIGGER operation_log_state_trigger AFTER INSERT OR UPDATE OR DELETE ON download_intents
+FOR EACH ROW EXECUTE FUNCTION record_system_task_operation('链接解析');
+DROP TRIGGER IF EXISTS operation_log_state_trigger ON download_jobs;
+CREATE TRIGGER operation_log_state_trigger AFTER INSERT OR UPDATE OR DELETE ON download_jobs
+FOR EACH ROW EXECUTE FUNCTION record_system_task_operation('下载任务');
+DROP TRIGGER IF EXISTS operation_log_state_trigger ON analysis_jobs;
+CREATE TRIGGER operation_log_state_trigger AFTER INSERT OR UPDATE OR DELETE ON analysis_jobs
+FOR EACH ROW EXECUTE FUNCTION record_system_task_operation('AI 分析');
+DROP TRIGGER IF EXISTS operation_log_state_trigger ON documents;
+CREATE TRIGGER operation_log_state_trigger AFTER INSERT OR UPDATE OR DELETE ON documents
+FOR EACH ROW EXECUTE FUNCTION record_system_task_operation('剧本文档');
+DROP TRIGGER IF EXISTS operation_log_state_trigger ON media_imports;
+CREATE TRIGGER operation_log_state_trigger AFTER INSERT OR UPDATE OR DELETE ON media_imports
+FOR EACH ROW EXECUTE FUNCTION record_system_task_operation('视频导入');

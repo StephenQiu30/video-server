@@ -143,7 +143,7 @@ export function useAnalysisJob(
             409,
             'analysis_source_mismatch',
             '来源不匹配',
-            '该分析记录不属于当前素材，请从解析中心重新打开。',
+            '该分析记录不属于当前素材，请从我的处理记录重新打开。',
           );
       }
       const previous = queries.getQueryData<API.AnalysisResponse | null>(

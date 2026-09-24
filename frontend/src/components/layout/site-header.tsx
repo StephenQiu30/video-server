@@ -49,9 +49,6 @@ export function SiteHeader() {
     homeActive || pathname === '/guide' || pathname === '/guide/';
   const authView = pathname.startsWith('/user/');
   const historyActive = pathname === '/history';
-  const intentHistoryActive =
-    pathname.startsWith('/history/inspections') ||
-    pathname.startsWith('/analyses/');
   const documentsActive = pathname.startsWith('/documents');
   const providersActive = pathname.startsWith('/providers');
   const analyticsActive = pathname.startsWith('/admin/analytics');
@@ -104,7 +101,6 @@ export function SiteHeader() {
                     <DesktopNavigation
                       documentsActive={documentsActive}
                       historyActive={historyActive}
-                      intentHistoryActive={intentHistoryActive}
                       homeActive={homeActive}
                       providersActive={providersActive}
                       publicView={publicView}

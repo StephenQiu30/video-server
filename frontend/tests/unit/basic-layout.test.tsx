@@ -78,9 +78,9 @@ describe('BasicLayout', () => {
     const historyLink = screen.getByRole('link', { name: /下载记录/ });
     expect(historyLink).toHaveAttribute('href', '/history');
     expect(historyLink).not.toHaveAttribute('aria-current');
-    const intentHistoryLink = screen.getByRole('link', { name: /解析中心/ });
-    expect(intentHistoryLink).toHaveAttribute('href', '/history/inspections');
-    expect(intentHistoryLink).not.toHaveAttribute('aria-current');
+    expect(
+      screen.queryByRole('link', { name: /解析中心/ }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /剧本文档/ })).toHaveAttribute(
       'href',
       '/documents',
@@ -267,8 +267,8 @@ describe('BasicLayout', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('selects only the parse history route in desktop and mobile navigation', async () => {
-    runtime.pathname = '/history/inspections';
+  it('keeps personal activity out of desktop and mobile primary navigation', async () => {
+    runtime.pathname = '/history/activity';
     render(
       <BasicLayout>
         <div>解析历史页面</div>
@@ -279,8 +279,8 @@ describe('BasicLayout', () => {
       name: '主要导航',
     });
     expect(
-      within(desktopNavigation).getByRole('link', { name: '解析中心' }),
-    ).toHaveAttribute('aria-current', 'page');
+      within(desktopNavigation).queryByRole('link', { name: '解析中心' }),
+    ).not.toBeInTheDocument();
     expect(
       within(desktopNavigation).getByRole('link', { name: '下载记录' }),
     ).not.toHaveAttribute('aria-current');
@@ -290,8 +290,8 @@ describe('BasicLayout', () => {
       name: '移动导航',
     });
     expect(
-      within(mobileNavigation).getByRole('link', { name: '解析中心' }),
-    ).toHaveAttribute('aria-current', 'page');
+      within(mobileNavigation).queryByRole('link', { name: '解析中心' }),
+    ).not.toBeInTheDocument();
     expect(
       within(mobileNavigation).getByRole('link', { name: '下载记录' }),
     ).not.toHaveAttribute('aria-current');
@@ -321,6 +321,9 @@ describe('BasicLayout', () => {
       name: '下载分析',
     });
     expect(desktopLink).toHaveAttribute('href', '/admin/analytics');
+    expect(
+      screen.getByRole('menuitem', { name: '系统操作日志' }),
+    ).toHaveAttribute('href', '/admin/operation-logs');
     expect(desktopLink).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('menuitem', { name: '平台目录' })).toHaveAttribute(
       'href',

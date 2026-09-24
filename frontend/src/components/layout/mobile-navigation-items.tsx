@@ -4,7 +4,7 @@ import {
   FileTextIcon,
   HardDrivesIcon,
   HouseIcon,
-  MagnifyingGlassIcon,
+  ListBulletsIcon,
   PulseIcon,
   RobotIcon,
   StackIcon,
@@ -32,13 +32,6 @@ export function MobileNavigationItems({
         <ClockCounterClockwiseIcon aria-hidden />
         下载记录
       </MobileLink>
-      <MobileLink
-        active={pathname.startsWith('/history/inspections')}
-        href="/history/inspections"
-      >
-        <MagnifyingGlassIcon aria-hidden />
-        解析中心
-      </MobileLink>
       <MobileLink active={pathname.startsWith('/documents')} href="/documents">
         <FileTextIcon aria-hidden />
         剧本文档
@@ -55,6 +48,13 @@ export function MobileNavigationItems({
           </MobileLink>
           {user.role === 'admin' ? (
             <>
+              <MobileLink
+                active={pathname.startsWith('/admin/operation-logs')}
+                href="/admin/operation-logs"
+              >
+                <ListBulletsIcon aria-hidden />
+                系统操作日志
+              </MobileLink>
               <MobileLink
                 active={pathname.startsWith('/admin/ai-providers')}
                 href="/admin/ai-providers"
