@@ -118,7 +118,10 @@ describe('ScreenplayAnalysisPanel', () => {
     expect(screen.getByRole('tab', { name: '人物' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '场景' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '对白' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: '修改建议' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: '优先修改' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '完整报告' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '导出 DOCX' })).toHaveAttribute(
       'href',
       '#report-docx',
