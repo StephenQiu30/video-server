@@ -32,10 +32,7 @@ export function SourcePerformanceDetails({ sources }: { sources: Source[] }) {
         <TableBody>
           {sources.map((source) => (
             <TableRow key={source.source_key}>
-              <TableHead
-                className="px-3 py-2 text-left align-middle whitespace-normal"
-                scope="row"
-              >
+              <TableHead className="text-left whitespace-normal" scope="row">
                 <p className="truncate font-medium">{sourceLabel(source)}</p>
                 <p className="mt-1 truncate font-mono text-[11px] text-muted-foreground">
                   {source.source_key}
@@ -45,7 +42,7 @@ export function SourcePerformanceDetails({ sources }: { sources: Source[] }) {
               <MetricCell value={formatPercent(source.success_rate)} />
               <MetricCell value={formatInteger(source.unique_users)} />
               <MetricCell value={formatBytes(source.downloaded_bytes)} />
-              <TableCell className="px-3 py-2 whitespace-normal">
+              <TableCell className="whitespace-normal">
                 <StatusSummary source={source} />
               </TableCell>
             </TableRow>
@@ -78,7 +75,7 @@ function SourceHead({
 
 function MetricCell({ value }: { value: string }) {
   return (
-    <TableCell className="px-3 py-2 text-right text-xs tabular-nums whitespace-normal">
+    <TableCell className="text-right text-xs tabular-nums whitespace-normal">
       {value}
     </TableCell>
   );

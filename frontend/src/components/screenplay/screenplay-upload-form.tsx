@@ -66,26 +66,13 @@ export function ScreenplayUploadForm({
         <IntakePickerButton
           aria-describedby={error ? 'screenplay-upload-error' : undefined}
           aria-invalid={fileInvalid || undefined}
-          className={workspace ? undefined : 'h-12 w-full'}
+          className={workspace ? undefined : 'w-full'}
           disabled={busy}
           onClick={() => inputRef.current?.click()}
         >
-          <FileText
-            aria-hidden
-            className="size-5 shrink-0 text-muted-foreground"
-          />
-          <span className="min-w-0 flex-1">
-            <span
-              className="block line-clamp-2 break-words text-[15px] leading-5 font-medium"
-              title={file?.name}
-            >
-              {file?.name ?? '选择剧本文档'}
-            </span>
-            <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-              {file
-                ? formatFileSize(file.size)
-                : 'DOCX、PDF、TXT、Markdown 或 Fountain'}
-            </span>
+          <FileText aria-hidden data-icon="inline-start" />
+          <span className="min-w-0 truncate" title={file?.name}>
+            {file?.name ?? '选择剧本文档'}
           </span>
         </IntakePickerButton>
         <Input
@@ -111,6 +98,11 @@ export function ScreenplayUploadForm({
           </IntakeSubmitButton>
         ) : null}
       </IntakeControlRow>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {file
+          ? formatFileSize(file.size)
+          : 'DOCX、PDF、TXT、Markdown 或 Fountain'}
+      </p>
 
       {error ? (
         <Alert

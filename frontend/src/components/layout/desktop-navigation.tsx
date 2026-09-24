@@ -100,11 +100,7 @@ function NavigationLink({
       <NavigationMenuLink
         active={active}
         asChild
-        className={cn(
-          navigationMenuTriggerStyle(),
-          'rounded-full px-3 text-sm text-muted-foreground hover:text-foreground',
-          active && 'bg-muted text-foreground',
-        )}
+        className={cn(navigationMenuTriggerStyle(), active && 'bg-accent')}
       >
         <Link
           aria-current={active ? 'page' : undefined}

@@ -44,10 +44,7 @@ export default function ScreenplayRewriteResultView({
         />
       </div>
       <div className="mt-10 overflow-x-auto">
-        <TabsList
-          className="h-auto w-max gap-7 rounded-none p-0"
-          variant="line"
-        >
+        <TabsList className="w-max" variant="line">
           <ResultTab value="summary">术语与摘要</ResultTab>
           {reportMarkdown ? (
             <ResultTab value="report">改写正文</ResultTab>
@@ -69,27 +66,21 @@ export default function ScreenplayRewriteResultView({
               </TableCaption>
               <TableHeader>
                 <TableRow className="text-muted-foreground hover:bg-transparent">
-                  <TableHead className="py-3 pr-5 font-normal whitespace-normal">
-                    原文
-                  </TableHead>
-                  <TableHead className="py-3 pr-5 font-normal whitespace-normal">
-                    统一写法
-                  </TableHead>
-                  <TableHead className="py-3 font-normal whitespace-normal">
-                    类别
-                  </TableHead>
+                  <TableHead className="whitespace-normal">原文</TableHead>
+                  <TableHead className="whitespace-normal">统一写法</TableHead>
+                  <TableHead className="whitespace-normal">类别</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {result.glossary.map((term) => (
                   <TableRow key={`${term.category}:${term.source}`}>
-                    <TableCell className="py-4 pr-5 font-medium whitespace-normal">
+                    <TableCell className="font-medium whitespace-normal">
                       {term.source}
                     </TableCell>
-                    <TableCell className="py-4 pr-5 whitespace-normal">
+                    <TableCell className="whitespace-normal">
                       {term.target}
                     </TableCell>
-                    <TableCell className="py-4 text-muted-foreground whitespace-normal">
+                    <TableCell className="text-muted-foreground whitespace-normal">
                       {categoryLabels[term.category] ?? term.category}
                     </TableCell>
                   </TableRow>

@@ -154,16 +154,14 @@ export default function InspectionWorkspace({
               </ItemGroup>
             ) : null}
             {inspection.access_decision === 'export_required' ? (
-              <Button
-                className="mt-7 h-10 w-full text-[15px]"
-                onClick={onUseUpload}
-              >
+              <Button className="mt-7 w-full" size="lg" onClick={onUseUpload}>
                 <UploadSimple data-icon="inline-start" />
                 上传自有 MP4
               </Button>
             ) : downloadable ? (
               <Button
-                className="mt-7 h-10 w-full text-[15px]"
+                className="mt-7 w-full"
+                size="lg"
                 disabled={!selectedId || busy}
                 onClick={onCreate}
               >

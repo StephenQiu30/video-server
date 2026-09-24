@@ -172,12 +172,12 @@ export function ScreenplayDocumentPreview({
                 tbody: ({ children }) => <TableBody>{children}</TableBody>,
                 tr: ({ children }) => <TableRow>{children}</TableRow>,
                 th: ({ children }) => (
-                  <TableHead className="bg-muted/50 px-3 py-2 font-medium whitespace-normal">
+                  <TableHead className="whitespace-normal">
                     {children}
                   </TableHead>
                 ),
                 td: ({ children }) => (
-                  <TableCell className="px-3 py-2 whitespace-normal">
+                  <TableCell className="whitespace-normal">
                     {children}
                   </TableCell>
                 ),

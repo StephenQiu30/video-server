@@ -28,7 +28,7 @@ export function BrandLink({ className }: { className?: string }) {
       <Image
         alt=""
         aria-hidden
-        className="size-8 shrink-0"
+        className="size-8 shrink-0 brightness-0 dark:invert"
         height={32}
         src="/logo.svg"
         width={32}
@@ -129,7 +129,7 @@ export function SiteHeader() {
                   <ThemeToggle />
                   {publicView ? (
                     <div className="flex shrink-0 justify-end">
-                      <Button asChild className="h-7 px-2 text-sm" size="sm">
+                      <Button asChild size="sm">
                         <Link href="/user/login">登录</Link>
                       </Button>
                     </div>

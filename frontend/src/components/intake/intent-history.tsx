@@ -231,7 +231,7 @@ export function IntentHistory({
                     })}
                   </time>
                   <Badge
-                    className="justify-self-end rounded-md px-2 py-1 font-normal lg:justify-self-start"
+                    className="justify-self-end lg:justify-self-start"
                     variant={historyRecordVariant(item)}
                   >
                     {historyRecordStatus(item)}

@@ -126,7 +126,6 @@ export default function ScreenplayDocumentDetailView({
             <div className="min-w-0">
               <Badge
                 aria-live="polite"
-                className="rounded-md px-2 py-1 font-normal"
                 variant={documentStatusVariant(state.document.status)}
               >
                 {documentStatusLabels[state.document.status]}

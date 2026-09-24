@@ -87,11 +87,7 @@ export function ResultTab({
   children: ReactNode;
   value: string;
 }) {
-  return (
-    <TabsTrigger className="px-3 py-2" value={value}>
-      {children}
-    </TabsTrigger>
-  );
+  return <TabsTrigger value={value}>{children}</TabsTrigger>;
 }
 
 export function languageLabel(language: string) {

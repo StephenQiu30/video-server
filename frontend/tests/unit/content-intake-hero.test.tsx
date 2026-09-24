@@ -25,7 +25,7 @@ describe('ContentIntakeHero', () => {
     const { container } = render(hero('link'));
 
     expect(container.querySelector('[data-slot="tabs"]')).toHaveClass(
-      'flex-col',
+      'data-horizontal:flex-col',
     );
     expect(container.querySelector('[data-slot="tabs"]')).not.toHaveClass(
       'lg:flex-row',

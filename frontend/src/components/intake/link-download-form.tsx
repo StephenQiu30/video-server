@@ -45,24 +45,24 @@ export function LinkDownloadForm({
   return (
     <Form onSubmit={submit}>
       <IntakeControlRow>
-        <InputGroup className="h-12">
+        <InputGroup>
           <InputGroupInput
             aria-describedby={invalid ? 'download-workspace-error' : undefined}
             aria-invalid={invalid ? true : undefined}
             aria-label="公开视频地址"
             autoComplete="url"
-            className="h-full min-w-0 px-2 text-sm"
+            className="min-w-0"
             disabled={disabled}
             maxLength={4096}
             onChange={(event) => onUrlChange(event.target.value)}
             placeholder="粘贴媒体链接或平台分享文案"
             value={url}
           />
-          <InputGroupAddon align="inline-start" className="gap-2 pl-4">
+          <InputGroupAddon align="inline-start">
             <LinkSimple aria-hidden className="text-muted-foreground" />
           </InputGroupAddon>
           {url ? (
-            <InputGroupAddon align="inline-end" className="pr-3">
+            <InputGroupAddon align="inline-end">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <InputGroupButton

@@ -55,7 +55,6 @@ export default function ScreenplayDocumentsView() {
           <div className="flex flex-col gap-2 sm:flex-row">
             <ScreenplayUploadDialog />
             <Button
-              className="bg-surface px-4"
               aria-busy={state.refreshing}
               disabled={state.refreshing}
               onClick={state.refresh}

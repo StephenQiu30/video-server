@@ -135,7 +135,7 @@ export default function ScreenplayAnalysisResultView({
 
       <Tabs defaultValue="structure" className="gap-6">
         <TabsList
-          className="h-auto w-full flex-wrap justify-start gap-3 rounded-none p-0"
+          className="w-full justify-start overflow-x-auto"
           variant="line"
         >
           <ResultTab value="structure">结构</ResultTab>

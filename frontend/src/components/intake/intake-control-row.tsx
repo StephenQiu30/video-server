@@ -23,11 +23,7 @@ export function IntakePickerButton({
 }: React.ComponentProps<typeof Button>) {
   return (
     <Button
-      className={cn(
-        'h-12 min-w-0 justify-start px-4 text-left font-normal',
-        className,
-      )}
-      size="lg"
+      className={cn('min-w-0 justify-start', className)}
       type="button"
       variant="secondary"
       {...props}
@@ -39,12 +35,5 @@ export function IntakeSubmitButton({
   className,
   ...props
 }: React.ComponentProps<typeof Button>) {
-  return (
-    <Button
-      className={cn('h-12 rounded-full px-4', className)}
-      size="lg"
-      type="submit"
-      {...props}
-    />
-  );
+  return <Button className={className} type="submit" {...props} />;
 }

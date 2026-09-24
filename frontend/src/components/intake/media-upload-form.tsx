@@ -70,17 +70,9 @@ export function MediaUploadForm({
           disabled={busy}
           onClick={() => inputRef.current?.click()}
         >
-          <FileVideo aria-hidden className="size-5 text-muted-foreground" />
-          <span className="min-w-0">
-            <span
-              className="block line-clamp-2 break-words text-[15px] leading-5 font-medium"
-              title={file?.name}
-            >
-              {file?.name ?? '选择本地 MP4 视频'}
-            </span>
-            <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-              {file ? formatFileSize(file.size) : 'MP4 · 单个文件'}
-            </span>
+          <FileVideo aria-hidden data-icon="inline-start" />
+          <span className="min-w-0 truncate" title={file?.name}>
+            {file?.name ?? '选择本地 MP4 视频'}
           </span>
         </IntakePickerButton>
         <Input
@@ -104,6 +96,9 @@ export function MediaUploadForm({
           {busy ? '处理中…' : '上传视频'}
         </IntakeSubmitButton>
       </IntakeControlRow>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {file ? formatFileSize(file.size) : 'MP4 · 单个文件'}
+      </p>
 
       {busy ? (
         <div className="mt-4 py-4">

@@ -68,29 +68,25 @@ export function ProviderCatalogList({
       <TableCaption className="sr-only">平台目录列表</TableCaption>
       <TableHeader>
         <TableRow className="hover:bg-transparent">
-          <TableHead className="px-3">平台</TableHead>
-          <TableHead className="px-3">目录键</TableHead>
-          <TableHead className="px-3">注册与可见性</TableHead>
-          <TableHead className="px-3 text-right">排序</TableHead>
-          <TableHead className="px-3 text-right">操作</TableHead>
+          <TableHead>平台</TableHead>
+          <TableHead>目录键</TableHead>
+          <TableHead>注册与可见性</TableHead>
+          <TableHead className="text-right">排序</TableHead>
+          <TableHead className="text-right">操作</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {items.map((item) => (
           <TableRow key={item.key}>
-            <TableCell className="px-3 py-2 font-medium">
-              {item.display_name}
-            </TableCell>
-            <TableCell className="px-3 py-2 font-mono text-xs text-muted-foreground">
+            <TableCell className="font-medium">{item.display_name}</TableCell>
+            <TableCell className="font-mono text-xs text-muted-foreground">
               {item.key}
             </TableCell>
-            <TableCell className="px-3 py-2">{badges(item)}</TableCell>
-            <TableCell className="px-3 py-2 text-right text-xs tabular-nums">
+            <TableCell>{badges(item)}</TableCell>
+            <TableCell className="text-right text-xs tabular-nums">
               {item.sort_order}
             </TableCell>
-            <TableCell className="px-3 py-2 text-right">
-              {actions(item)}
-            </TableCell>
+            <TableCell className="text-right">{actions(item)}</TableCell>
           </TableRow>
         ))}
       </TableBody>

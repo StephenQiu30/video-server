@@ -41,11 +41,11 @@ export function ScreenplayDocumentList({
           <TableCaption className="sr-only">剧本文档列表</TableCaption>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[34%] px-3">文档</TableHead>
-              <TableHead className="w-[15%] px-3">格式与更新时间</TableHead>
-              <TableHead className="w-[22%] px-3">内容统计</TableHead>
-              <TableHead className="w-[13%] px-3">状态</TableHead>
-              <TableHead className="w-[16%] px-3 text-right">操作</TableHead>
+              <TableHead className="w-[34%]">文档</TableHead>
+              <TableHead className="w-[15%]">格式与更新时间</TableHead>
+              <TableHead className="w-[22%]">内容统计</TableHead>
+              <TableHead className="w-[13%]">状态</TableHead>
+              <TableHead className="w-[16%] text-right">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -84,10 +84,7 @@ function DocumentRow({
   const detailHref = `/documents/detail?documentId=${encodeURIComponent(document.id)}`;
   return (
     <TableRow>
-      <TableHead
-        className="max-w-0 px-3 py-2 text-left align-middle whitespace-normal"
-        scope="row"
-      >
+      <TableHead className="max-w-0 text-left whitespace-normal" scope="row">
         <div className="flex min-w-0 flex-col gap-1">
           <Link
             className="focus-ring line-clamp-2 rounded-sm text-[15px] font-medium leading-snug hover:text-muted-foreground"
@@ -100,7 +97,7 @@ function DocumentRow({
           </span>
         </div>
       </TableHead>
-      <TableCell className="px-3 py-2 text-xs text-muted-foreground whitespace-normal">
+      <TableCell className="text-xs text-muted-foreground whitespace-normal">
         <div className="flex flex-col gap-1">
           <span>{documentFormatLabels[document.source_format]}</span>
           <time dateTime={document.updated_at}>
@@ -108,7 +105,7 @@ function DocumentRow({
           </time>
         </div>
       </TableCell>
-      <TableCell className="px-3 py-2 text-sm whitespace-normal">
+      <TableCell className="text-sm whitespace-normal">
         <div className="flex flex-col gap-1">
           <span>
             {document.scene_count ?? '-'} 个场景 ·{' '}
@@ -119,15 +116,12 @@ function DocumentRow({
           </span>
         </div>
       </TableCell>
-      <TableCell className="px-3 py-2">
-        <Badge
-          className="rounded-md px-2 py-1 font-normal"
-          variant={documentStatusVariant(document.status)}
-        >
+      <TableCell>
+        <Badge variant={documentStatusVariant(document.status)}>
           {documentStatusLabels[document.status]}
         </Badge>
       </TableCell>
-      <TableCell className="px-3 py-2 text-right">
+      <TableCell className="text-right">
         <ScreenplayDocumentDeleteDialog
           busy={pending}
           compact

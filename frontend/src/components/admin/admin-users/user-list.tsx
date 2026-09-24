@@ -92,37 +92,27 @@ export function UserList({
         <TableCaption className="sr-only">用户账户列表</TableCaption>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead className="px-3 text-xs font-normal text-muted-foreground">
-              用户名
-            </TableHead>
-            <TableHead className="px-3 text-xs font-normal text-muted-foreground">
-              邮箱
-            </TableHead>
-            <TableHead className="px-3 text-xs font-normal text-muted-foreground">
-              身份与状态
-            </TableHead>
-            <TableHead className="px-3 text-xs font-normal text-muted-foreground">
-              注册日期
-            </TableHead>
-            <TableHead className="px-3 text-right text-xs font-normal text-muted-foreground">
-              操作
-            </TableHead>
+            <TableHead>用户名</TableHead>
+            <TableHead>邮箱</TableHead>
+            <TableHead>身份与状态</TableHead>
+            <TableHead>注册日期</TableHead>
+            <TableHead className="text-right">操作</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {items.map((item) => (
             <TableRow key={item.id}>
-              <TableCell className="max-w-0 truncate px-3 py-2 font-medium">
+              <TableCell className="max-w-0 truncate font-medium">
                 {item.username}
               </TableCell>
-              <TableCell className="max-w-0 truncate px-3 py-2 text-muted-foreground">
+              <TableCell className="max-w-0 truncate text-muted-foreground">
                 {item.email}
               </TableCell>
-              <TableCell className="px-3 py-2">{badges(item)}</TableCell>
-              <TableCell className="px-3 py-2 text-xs text-muted-foreground tabular-nums">
+              <TableCell>{badges(item)}</TableCell>
+              <TableCell className="text-xs text-muted-foreground tabular-nums">
                 {formatUserDate(item.created_at)}
               </TableCell>
-              <TableCell className="px-3 py-2 text-right whitespace-nowrap">
+              <TableCell className="text-right whitespace-nowrap">
                 {action(item)}
               </TableCell>
             </TableRow>

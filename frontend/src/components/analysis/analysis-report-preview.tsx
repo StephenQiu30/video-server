@@ -82,14 +82,10 @@ export default function AnalysisReportPreview({
           tbody: ({ children }) => <TableBody>{children}</TableBody>,
           tr: ({ children }) => <TableRow>{children}</TableRow>,
           td: ({ children }) => (
-            <TableCell className="px-3 py-2 align-top whitespace-normal">
-              {children}
-            </TableCell>
+            <TableCell className="whitespace-normal">{children}</TableCell>
           ),
           th: ({ children }) => (
-            <TableHead className="bg-muted px-3 py-2 font-medium whitespace-normal">
-              {children}
-            </TableHead>
+            <TableHead className="whitespace-normal">{children}</TableHead>
           ),
           ul: ({ children }) => (
             <ul className="my-4 flex flex-col gap-1 list-disc pl-5">
