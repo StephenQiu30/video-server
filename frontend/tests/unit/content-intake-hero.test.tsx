@@ -37,7 +37,7 @@ describe('ContentIntakeHero', () => {
     );
     expect(container.querySelector('[data-slot="tabs-list"]')).toHaveAttribute(
       'data-variant',
-      'line',
+      'default',
     );
   });
 });

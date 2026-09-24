@@ -37,14 +37,14 @@ export function ContentIntakeHero({
       />
 
       <Tabs
-        className="mt-8 w-full max-w-5xl"
+        className="mt-8 w-full"
         onValueChange={(value) => onModeChange(value as IntakeMode)}
         value={mode}
       >
         <TabsList
           aria-label="选择内容来源"
           className="grid w-full grid-cols-3 sm:inline-flex sm:w-fit"
-          variant="line"
+          variant="default"
         >
           <TabsTrigger className="min-w-0" disabled={disabled} value="link">
             <LinkSimple aria-hidden />
