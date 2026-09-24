@@ -6,7 +6,7 @@ from app.services.analysis.rules.parse_helpers import ParseContext
 from app.services.analysis.rules.result_models import AnalysisLimits
 from app.services.analysis.rules.screenplay_result_items import (
     ScreenplayCharacter,
-    ScreenplayEvidenceItem,
+    ScreenplayFinding,
     ScreenplayScene,
     ScreenplayStructure,
 )
@@ -53,8 +53,8 @@ def parse_screenplay_analysis_result(
         logline=context.text(root["logline"], "logline"),
         synopsis=context.text(root["synopsis"], "synopsis"),
         structure=ScreenplayStructure(
-            acts=_evidence_items(context, structure["acts"], "act", False),
-            turning_points=_evidence_items(
+            acts=_findings(context, structure["acts"], "act", False),
+            turning_points=_findings(
                 context, structure["turning_points"], "turning_point", True
             ),
             pacing_summary=context.text(
@@ -73,11 +73,11 @@ def parse_screenplay_analysis_result(
                 context.array(root["scenes"], "scenes", allow_empty=False)
             )
         ),
-        dialogue_findings=_evidence_items(
+        dialogue_findings=_findings(
             context, root["dialogue_findings"], "dialogue_finding", True
         ),
-        strengths=_evidence_items(context, root["strengths"], "strength", False),
-        priority_revisions=_evidence_items(
+        strengths=_findings(context, root["strengths"], "strength", False),
+        priority_revisions=_findings(
             context, root["priority_revisions"], "priority_revision", False
         ),
     )
@@ -90,47 +90,35 @@ def parse_screenplay_analysis_result(
     return result
 
 
-def _evidence_items(
+def _findings(
     context: ParseContext, value: object, label: str, allow_empty: bool
-) -> tuple[ScreenplayEvidenceItem, ...]:
+) -> tuple[ScreenplayFinding, ...]:
     return tuple(
-        _evidence_item(context, item, f"{label}[{index}]")
+        _finding(context, item, f"{label}[{index}]")
         for index, item in enumerate(
             context.array(value, label, allow_empty=allow_empty)
         )
     )
 
 
-def _evidence_item(
-    context: ParseContext, value: object, path: str
-) -> ScreenplayEvidenceItem:
-    source = context.mapping(
-        value, path, {"id", "title", "description", "evidence_scene_ids"}
-    )
-    return ScreenplayEvidenceItem(
+def _finding(context: ParseContext, value: object, path: str) -> ScreenplayFinding:
+    source = context.mapping(value, path, {"id", "title", "description"})
+    return ScreenplayFinding(
         id=context.text(source["id"], f"{path}.id", maximum=128),
         title=context.text(source["title"], f"{path}.title"),
         description=context.text(source["description"], f"{path}.description"),
-        evidence_scene_ids=_references(
-            context, source["evidence_scene_ids"], f"{path}.evidence_scene_ids"
-        ),
     )
 
 
 def _character(context: ParseContext, value: object, index: int) -> ScreenplayCharacter:
     path = f"character[{index}]"
-    source = context.mapping(
-        value, path, {"id", "name", "goal", "conflict", "arc", "evidence_scene_ids"}
-    )
+    source = context.mapping(value, path, {"id", "name", "goal", "conflict", "arc"})
     return ScreenplayCharacter(
         id=context.text(source["id"], f"{path}.id", maximum=128),
         name=context.text(source["name"], f"{path}.name"),
         goal=context.text(source["goal"], f"{path}.goal"),
         conflict=context.text(source["conflict"], f"{path}.conflict"),
         arc=context.text(source["arc"], f"{path}.arc"),
-        evidence_scene_ids=_references(
-            context, source["evidence_scene_ids"], f"{path}.evidence_scene_ids"
-        ),
     )
 
 
@@ -156,13 +144,6 @@ def _scene(context: ParseContext, value: object, index: int) -> ScreenplayScene:
                 source["findings"], f"{path}.findings", allow_empty=True
             )
         ),
-    )
-
-
-def _references(context: ParseContext, value: object, path: str) -> tuple[str, ...]:
-    return tuple(
-        context.text(item, path, maximum=128)
-        for item in context.array(value, path, allow_empty=False)
     )
 
 

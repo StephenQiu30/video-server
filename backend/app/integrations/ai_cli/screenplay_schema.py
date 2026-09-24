@@ -15,8 +15,7 @@ def screenplay_analysis_output_schema(
         or len(set(source_scene_ids)) != len(source_scene_ids)
     ):
         raise ValueError("screenplay schema inputs are invalid")
-    references = _references(source_scene_ids)
-    evidence = _evidence_item(references)
+    finding = _finding_item()
     return _object(
         [
             "language",
@@ -38,19 +37,19 @@ def screenplay_analysis_output_schema(
             "structure": _object(
                 ["acts", "turning_points", "pacing_summary"],
                 {
-                    "acts": _array(evidence, minimum=1),
-                    "turning_points": _array(evidence),
+                    "acts": _array(finding),
+                    "turning_points": _array(finding),
                     "pacing_summary": _text(),
                 },
             ),
-            "characters": _array(_character(references)),
+            "characters": _array(_character()),
             "scenes": {
                 "type": "array",
                 "items": _scene(source_scene_ids),
             },
-            "dialogue_findings": _array(evidence),
-            "strengths": _array(evidence, minimum=1),
-            "priority_revisions": _array(evidence, minimum=1),
+            "dialogue_findings": _array(finding),
+            "strengths": _array(finding),
+            "priority_revisions": _array(finding),
         },
     )
 
@@ -58,8 +57,7 @@ def screenplay_analysis_output_schema(
 def screenplay_analysis_summary_output_schema(language: str) -> dict[str, Any]:
     if language not in {"zh-CN", "en-US"}:
         raise ValueError("screenplay summary schema language is invalid")
-    references = _unbounded_references()
-    evidence = _evidence_item(references)
+    finding = _finding_item()
     return _object(
         [
             "language",
@@ -80,41 +78,39 @@ def screenplay_analysis_summary_output_schema(language: str) -> dict[str, Any]:
             "structure": _object(
                 ["acts", "turning_points", "pacing_summary"],
                 {
-                    "acts": _array(evidence, minimum=1),
-                    "turning_points": _array(evidence),
+                    "acts": _array(finding),
+                    "turning_points": _array(finding),
                     "pacing_summary": _text(),
                 },
             ),
-            "characters": _array(_character(references)),
-            "dialogue_findings": _array(evidence),
-            "strengths": _array(evidence, minimum=1),
-            "priority_revisions": _array(evidence, minimum=1),
+            "characters": _array(_character()),
+            "dialogue_findings": _array(finding),
+            "strengths": _array(finding),
+            "priority_revisions": _array(finding),
         },
     )
 
 
-def _evidence_item(references: dict[str, Any]) -> dict[str, Any]:
+def _finding_item() -> dict[str, Any]:
     return _object(
-        ["id", "title", "description", "evidence_scene_ids"],
+        ["id", "title", "description"],
         {
             "id": _identifier(),
             "title": _text(),
             "description": _text(),
-            "evidence_scene_ids": references,
         },
     )
 
 
-def _character(references: dict[str, Any]) -> dict[str, Any]:
+def _character() -> dict[str, Any]:
     return _object(
-        ["id", "name", "goal", "conflict", "arc", "evidence_scene_ids"],
+        ["id", "name", "goal", "conflict", "arc"],
         {
             "id": _identifier(),
             "name": _text(),
             "goal": _text(),
             "conflict": _text(),
             "arc": _text(),
-            "evidence_scene_ids": references,
         },
     )
 
@@ -145,22 +141,7 @@ def _scene(source_scene_ids: tuple[str, ...]) -> dict[str, Any]:
     )
 
 
-def _references(source_scene_ids: tuple[str, ...]) -> dict[str, Any]:
-    return {
-        "type": "array",
-        "items": {"type": "string", "enum": list(source_scene_ids)},
-    }
-
-
-def _unbounded_references() -> dict[str, Any]:
-    return {
-        "type": "array",
-        "items": _identifier(),
-    }
-
-
-def _array(items: dict[str, Any], *, minimum: int = 0) -> dict[str, Any]:
-    del minimum
+def _array(items: dict[str, Any]) -> dict[str, Any]:
     return {"type": "array", "items": items}
 
 

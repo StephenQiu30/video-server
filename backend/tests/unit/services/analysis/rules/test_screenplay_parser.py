@@ -28,7 +28,6 @@ def payload() -> dict[str, object]:
             "id": "revision-1",
             "title": "强化阻力",
             "description": "让危机更早影响人物选择。",
-            "evidence_scene_ids": ["scene-1"],
         }
     ]
     return document
@@ -41,7 +40,7 @@ def test_screenplay_parser_accepts_exact_source_scene_coverage() -> None:
 
     assert result.title == "剧本分析"
     assert result.scenes[0].source_scene_id == "scene-1"
-    assert result.characters[0].evidence_scene_ids == ("scene-1",)
+    assert result.characters[0].name == "林舟"
 
 
 def test_screenplay_parser_rejects_reordered_source_scenes() -> None:

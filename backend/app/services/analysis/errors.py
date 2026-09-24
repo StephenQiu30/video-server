@@ -18,6 +18,7 @@ class AnalysisApplicationErrorCode(StrEnum):
     REPORT_UNAVAILABLE = "analysis_report_unavailable"
     RETRY_LIMITED = "analysis_retry_limited"
     SERVICE_UNAVAILABLE = "analysis_unavailable"
+    SKILL_OUTDATED = "analysis_skill_outdated"
 
 
 class AnalysisApplicationError(RuntimeError):

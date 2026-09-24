@@ -12,7 +12,7 @@ from app.services.analysis.errors import (
 )
 from app.services.analysis.models import AnalysisJobSnapshot
 from app.services.analysis.retry_analysis import RetryAnalysis
-from tests.unit.services.analysis.fakes import FakeRepository
+from tests.unit.services.analysis.fakes import FakeRepository, FakeSkillCatalog
 
 NOW = datetime(2026, 8, 10, 10, tzinfo=UTC)
 JOB_ID = UUID("11111111-1111-4111-8111-111111111111")
@@ -58,7 +58,12 @@ async def test_retry_keeps_job_and_idempotently_creates_next_run() -> None:
     repository = FakeRepository()
     repository.jobs[JOB_ID] = terminal_job()
     ids = iter((RUN_ID, uuid4(), uuid4(), uuid4()))
-    retry = RetryAnalysis(repository, now=lambda: NOW, new_id=lambda: next(ids))
+    retry = RetryAnalysis(
+        repository,
+        now=lambda: NOW,
+        new_id=lambda: next(ids),
+        skill_catalog=FakeSkillCatalog(),
+    )
 
     first = await retry(JOB_ID, OWNER, "retry-key")
     replay = await retry(JOB_ID, OWNER, "retry-key")
@@ -77,20 +82,20 @@ async def test_retry_keeps_job_and_idempotently_creates_next_run() -> None:
 async def test_rerun_trigger_and_active_or_foreign_rejection() -> None:
     repository = FakeRepository()
     repository.jobs[JOB_ID] = terminal_job("succeeded")
-    rerun = await RetryAnalysis(repository, now=lambda: NOW, new_id=uuid4)(
-        JOB_ID, OWNER, "rerun-key"
-    )
+    rerun = await RetryAnalysis(
+        repository, now=lambda: NOW, new_id=uuid4, skill_catalog=FakeSkillCatalog()
+    )(JOB_ID, OWNER, "rerun-key")
     assert rerun.run_trigger == "manual_rerun"
 
     repository.jobs[JOB_ID] = replace(terminal_job(), status="running")
     with pytest.raises(AnalysisApplicationError) as active:
-        await RetryAnalysis(repository, now=lambda: NOW, new_id=uuid4)(
-            JOB_ID, OWNER, "active-key"
-        )
+        await RetryAnalysis(
+            repository, now=lambda: NOW, new_id=uuid4, skill_catalog=FakeSkillCatalog()
+        )(JOB_ID, OWNER, "active-key")
     assert active.value.code is AnalysisApplicationErrorCode.ALREADY_ACTIVE
 
     with pytest.raises(AnalysisApplicationError) as foreign:
-        await RetryAnalysis(repository, now=lambda: NOW, new_id=uuid4)(
-            JOB_ID, "d" * 64, "foreign-key"
-        )
+        await RetryAnalysis(
+            repository, now=lambda: NOW, new_id=uuid4, skill_catalog=FakeSkillCatalog()
+        )(JOB_ID, "d" * 64, "foreign-key")
     assert foreign.value.code is AnalysisApplicationErrorCode.NOT_FOUND

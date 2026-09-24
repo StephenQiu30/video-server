@@ -1,6 +1,6 @@
 from app.services.analysis.rules.screenplay_result_items import (
     ScreenplayCharacter,
-    ScreenplayEvidenceItem,
+    ScreenplayFinding,
     ScreenplayScene,
     ScreenplayStructure,
 )
@@ -15,11 +15,10 @@ from app.services.analysis.rules.screenplay_rewrite_items import (
 
 
 def screenplay_analysis_result() -> ScreenplayAnalysisResult:
-    act = ScreenplayEvidenceItem(
+    act = ScreenplayFinding(
         id="act-1",
         title="建立",
         description="建立人物目标。",
-        evidence_scene_ids=("scene-1",),
     )
     return ScreenplayAnalysisResult(
         language="zh-CN",
@@ -29,11 +28,10 @@ def screenplay_analysis_result() -> ScreenplayAnalysisResult:
         structure=ScreenplayStructure(
             acts=(act,),
             turning_points=(
-                ScreenplayEvidenceItem(
+                ScreenplayFinding(
                     id="turn-1",
                     title="素材消失",
                     description="外部目标变成明确危机。",
-                    evidence_scene_ids=("scene-1",),
                 ),
             ),
             pacing_summary="开场紧凑，转折清晰。",
@@ -45,7 +43,6 @@ def screenplay_analysis_result() -> ScreenplayAnalysisResult:
                 goal="找回结局",
                 conflict="必须面对自己的删改",
                 arc="从逃避转向承担",
-                evidence_scene_ids=("scene-1",),
             ),
         ),
         scenes=(
@@ -61,7 +58,7 @@ def screenplay_analysis_result() -> ScreenplayAnalysisResult:
         ),
         dialogue_findings=(),
         strengths=(act,),
-        priority_revisions=(),
+        priority_revisions=(act,),
     )
 
 

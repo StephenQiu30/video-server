@@ -141,15 +141,15 @@ async def test_screenplay_scene_limit_uses_multiple_chunks(tmp_path: Path) -> No
 
 
 @pytest.mark.asyncio
-async def test_screenplay_unknown_evidence_retries_as_invalid_output(
+async def test_screenplay_unknown_source_scene_retries_as_invalid_output(
     tmp_path: Path,
 ) -> None:
     job, source = screenplay_job_and_source()
     repository = ScreenplayRepository(job, source)
     payload = valid_screenplay_mapping()
-    strength = payload["strengths"]
-    assert isinstance(strength, list) and isinstance(strength[0], dict)
-    strength[0]["evidence_scene_ids"] = ["invented-scene"]
+    scenes = payload["scenes"]
+    assert isinstance(scenes, list) and isinstance(scenes[0], dict)
+    scenes[0]["source_scene_id"] = "invented-scene"
 
     await build_screenplay_execution(
         repository,
@@ -181,19 +181,6 @@ class ChunkedScreenplayAnalyzer(FakeScreenplayAnalyzer):
 
 def _mapping(scene_ids: tuple[str, ...]) -> dict[str, object]:
     payload = valid_screenplay_mapping()
-    reference = scene_ids[0]
-    for key in ("strengths", "priority_revisions"):
-        items = payload[key]
-        assert isinstance(items, list) and isinstance(items[0], dict)
-        items[0]["evidence_scene_ids"] = [reference]
-    structure = payload["structure"]
-    assert isinstance(structure, dict)
-    acts = structure["acts"]
-    assert isinstance(acts, list) and isinstance(acts[0], dict)
-    acts[0]["evidence_scene_ids"] = [reference]
-    characters = payload["characters"]
-    assert isinstance(characters, list) and isinstance(characters[0], dict)
-    characters[0]["evidence_scene_ids"] = [reference]
     payload["scenes"] = [
         {
             "id": f"analysis-{scene_id}",

@@ -10,12 +10,14 @@ from tests.unit.services.analysis.rules.screenplay_factories import (
 )
 
 
-def test_screenplay_analysis_rejects_unknown_evidence_scene() -> None:
+def test_screenplay_analysis_rejects_duplicate_source_scene() -> None:
     result = screenplay_analysis_result()
-    invalid = replace(result.characters[0], evidence_scene_ids=("missing-scene",))
+    duplicate = replace(result.scenes[0], id="analysis-scene-2")
 
-    with pytest.raises(AnalysisValidationError, match="unknown source scene"):
-        replace(result, characters=(invalid,))
+    with pytest.raises(
+        AnalysisValidationError, match="source scene ids must be unique"
+    ):
+        replace(result, scenes=(*result.scenes, duplicate))
 
 
 def test_screenplay_rewrite_requires_contiguous_unique_parts() -> None:

@@ -255,6 +255,12 @@ _ANALYSIS_ERRORS: dict[AnalysisApplicationErrorCode, tuple[int, str, str]] = {
         "Analysis retry limited",
         "The analysis retry limit was reached. Try again later.",
     ),
+    AnalysisApplicationErrorCode.SKILL_OUTDATED: (
+        409,
+        "Analysis skill outdated",
+        "The saved skill has changed. Create a new analysis task "
+        "with the current skill.",
+    ),
     AnalysisApplicationErrorCode.SERVICE_UNAVAILABLE: (
         503,
         "Analysis unavailable",

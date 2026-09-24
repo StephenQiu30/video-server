@@ -8,7 +8,7 @@ from app.services.analysis.rules.errors import AnalysisValidationError
 from app.services.analysis.rules.result_items import _strings
 from app.services.analysis.rules.screenplay_result_items import (
     ScreenplayCharacter,
-    ScreenplayEvidenceItem,
+    ScreenplayFinding,
     ScreenplayScene,
     ScreenplayStructure,
 )
@@ -28,9 +28,9 @@ class ScreenplayAnalysisResult:
     structure: ScreenplayStructure
     characters: tuple[ScreenplayCharacter, ...]
     scenes: tuple[ScreenplayScene, ...]
-    dialogue_findings: tuple[ScreenplayEvidenceItem, ...]
-    strengths: tuple[ScreenplayEvidenceItem, ...]
-    priority_revisions: tuple[ScreenplayEvidenceItem, ...]
+    dialogue_findings: tuple[ScreenplayFinding, ...]
+    strengths: tuple[ScreenplayFinding, ...]
+    priority_revisions: tuple[ScreenplayFinding, ...]
     kind: AnalysisResultKind = field(
         init=False, default=AnalysisResultKind.SCREENPLAY_ANALYSIS
     )
@@ -77,6 +77,8 @@ class ScreenplayRewriteResult:
 def validate_screenplay_analysis_result(result: ScreenplayAnalysisResult) -> None:
     if not result.scenes:
         _invalid("screenplay analysis must contain scenes")
+    if not result.strengths or not result.priority_revisions:
+        _invalid("screenplay strengths and priority revisions cannot be empty")
     collections = (
         result.characters,
         result.scenes,
@@ -92,8 +94,7 @@ def validate_screenplay_analysis_result(result: ScreenplayAnalysisResult) -> Non
             "screenplay analysis collection exceeds the item limit",
         )
     _unique_ids(result.scenes, "scene result")
-    source_ids = tuple(scene.source_scene_id for scene in result.scenes)
-    if len(set(source_ids)) != len(source_ids):
+    if len({scene.source_scene_id for scene in result.scenes}) != len(result.scenes):
         _duplicate("source scene ids must be unique")
     for values, label in (
         (result.characters, "character"),
@@ -104,14 +105,6 @@ def validate_screenplay_analysis_result(result: ScreenplayAnalysisResult) -> Non
         (result.priority_revisions, "priority revision"),
     ):
         _unique_ids(values, label)
-        for item in values:
-            if any(
-                reference not in source_ids for reference in item.evidence_scene_ids
-            ):
-                raise AnalysisValidationError(
-                    AnalysisValidationCode.INVALID_EVIDENCE,
-                    f"{label} references an unknown source scene",
-                )
 
 
 def validate_screenplay_rewrite_result(result: ScreenplayRewriteResult) -> None:

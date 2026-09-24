@@ -21,6 +21,8 @@ const localizedErrorMessages: Record<string, string> = {
   analysis_report_unavailable: '分析报告暂时不可用，请重新分析后再试。',
   analysis_resource_limit: '视频超出分析资源限制，请使用更短或更小的视频。',
   analysis_retry_limited: '分析重试过于频繁，请稍后再试。',
+  analysis_skill_outdated:
+    '该任务保存的 Skill 已更新，请使用最新 Skill 新建分析任务。',
   analysis_sandbox_unavailable:
     'AI 安全执行环境配置异常，请联系管理员检查分析工作目录。',
   analysis_unavailable: 'AI 分析服务暂时不可用，请稍后重试。',

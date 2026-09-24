@@ -25,11 +25,11 @@
 
 汇总调用使用同一份全局结构，但不返回 `scenes`；执行器会把已经校验的分块场景结果合并回最终结果。
 
-## ID 和证据
+## ID 与场景覆盖
 
 - 所有 `id` 都是不含空白的稳定字符串。推荐使用 `act-01`、`turn-01`、`character-01`、`scene-analysis-0001`、`finding-01` 等可读 ID；同一数组内不得重复。
 - `source_scene_id` 必须逐字复制请求提供的 ID，只能来自权威列表。不得创建 `scene-1`、`场景一` 或其他替代名称。
-- `evidence_scene_ids` 必须是非空数组，且每个值都来自权威列表；不能引用不存在的场景、字符偏移、块序号或模型推测。
+- `source_scene_id` 只校验逐场景覆盖，不代表截图、引文、事实证明或人工确认。不要在其他字段添加 ID 列表。
 - `scenes` 中每项只对应一个源场景，并且按输入列表原顺序出现：
 
 ```json
@@ -46,7 +46,7 @@
 
 这里的 `scenes` 是 editorial coverage 对源文本场景的逐项审阅，不是视频分析中的 `shots`，也不是未来生产分镜。不得在字段中填入模型自造的镜头数量、Cut 编号或固定时长拆分。
 
-## 证据条目
+## 分析条目
 
 `acts`、`turning_points`、`dialogue_findings`、`strengths` 和 `priority_revisions` 使用相同形状：
 
@@ -54,12 +54,11 @@
 {
   "id": "finding-01",
   "title": "短标题",
-  "description": "事实或诊断，以及为什么成立；不要泛泛评价",
-  "evidence_scene_ids": ["scene-0001-abc123"]
+  "description": "剧本文本明确事实或分析判断，以及为什么成立；不要泛泛评价"
 }
 ```
 
-`acts`、`strengths` 和 `priority_revisions` 至少返回一项；`turning_points` 和 `dialogue_findings` 在没有充分证据时可以为空数组。不要为了填充数组而生成重复或无证据的内容。
+`acts`、`strengths` 和 `priority_revisions` 至少返回一项；`turning_points` 和 `dialogue_findings` 在文本没有足够内容时可以为空数组。不要为了填充数组而生成重复或臆测的内容。
 
 ## 人物条目
 
@@ -69,8 +68,7 @@
   "name": "原文中的人物名",
   "goal": "外部目标或稳定欲望",
   "conflict": "阻力、矛盾或关系压力",
-  "arc": "选择、结果和变化；静态人物说明其稳定立场如何影响故事",
-  "evidence_scene_ids": ["scene-0001-abc123"]
+  "arc": "选择、结果和变化；静态人物说明其稳定立场如何影响故事"
 }
 ```
 
@@ -78,4 +76,4 @@
 
 ## 与服务端报告的关系
 
-这些 JSON 字段会由服务端渲染为固定章节：阅读摘要、故事概览、结构与节奏、人物分析、逐场景分析、对白与写作、文本优势、优先修改建议和阅读说明。`source_scene_id` 与 `evidence_scene_ids` 只供服务端校验引用关系，不会作为已核实的证据展示给读者。不要在字段内容中嵌套 Markdown 标题、表格、代码围栏、HTML、链接或整段原文。
+这些 JSON 字段会由服务端渲染为固定章节：阅读摘要、故事概览、结构与节奏、人物分析、逐场景分析、对白与写作、文本优势、优先修改建议和阅读说明。`source_scene_id` 仅供服务端校验逐场景覆盖，不会作为事实证据展示。不要在字段内容中嵌套 Markdown 标题、表格、代码围栏、HTML、链接或整段原文。

@@ -498,6 +498,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             analysis_repository,
             now=clock,
             new_id=uuid4,
+            skill_catalog=skill_catalog,
             max_runs_per_job=settings.analysis_max_runs_per_job,
             min_interval_seconds=(settings.analysis_manual_retry_min_interval_seconds),
             retries_per_day=settings.analysis_manual_retries_per_day,

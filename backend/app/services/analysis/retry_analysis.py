@@ -14,7 +14,8 @@ from app.services.analysis.errors import (
     PersistenceRetryLimited,
 )
 from app.services.analysis.models import AnalysisJobView, AnalysisRetry
-from app.services.analysis.ports import AnalysisRepository
+from app.services.analysis.ports import AnalysisRepository, AnalysisSkillCatalog
+from app.services.analysis.rules.enums import AnalysisInputKind
 from app.services.analysis.validation import (
     validate_idempotency_key,
     validate_now,
@@ -31,6 +32,7 @@ class RetryAnalysis:
         *,
         now: Callable[[], datetime],
         new_id: Callable[[], UUID],
+        skill_catalog: AnalysisSkillCatalog,
         max_runs_per_job: int = 10,
         min_interval_seconds: int = 0,
         retries_per_day: int = 20,
@@ -38,6 +40,7 @@ class RetryAnalysis:
         self._repository = repository
         self._now = now
         self._new_id = new_id
+        self._skill_catalog = skill_catalog
         self._max_runs_per_job = max_runs_per_job
         self._min_interval_seconds = min_interval_seconds
         self._retries_per_day = retries_per_day
@@ -56,6 +59,17 @@ class RetryAnalysis:
         current = await self._repository.get_job(job_id)
         if current is None or current.owner_hash != owner_hash:
             raise AnalysisApplicationError(AnalysisApplicationErrorCode.NOT_FOUND)
+        if current.input_kind == AnalysisInputKind.SCREENPLAY.value:
+            skill = self._skill_catalog.resolve(
+                current.skill_id, AnalysisInputKind.SCREENPLAY
+            )
+            if (
+                skill is None
+                or skill.instructions_sha256 != current.skill_instructions_sha256
+            ):
+                raise AnalysisApplicationError(
+                    AnalysisApplicationErrorCode.SKILL_OUTDATED
+                )
         command = AnalysisRetry(
             job_id=job_id,
             run_id=self._new_id(),

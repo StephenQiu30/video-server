@@ -50,7 +50,6 @@ def valid_screenplay_mapping() -> dict[str, object]:
         "id": "act-1",
         "title": "建立",
         "description": "建立人物目标。",
-        "evidence_scene_ids": ["scene-1"],
     }
     return {
         "language": "zh-CN",
@@ -69,7 +68,6 @@ def valid_screenplay_mapping() -> dict[str, object]:
                 "goal": "找回结局",
                 "conflict": "必须面对自己的删改",
                 "arc": "从逃避转向承担",
-                "evidence_scene_ids": ["scene-1"],
             }
         ],
         "scenes": [
@@ -90,7 +88,6 @@ def valid_screenplay_mapping() -> dict[str, object]:
                 "id": "revision-1",
                 "title": "强化阻力",
                 "description": "让危机更早影响人物选择。",
-                "evidence_scene_ids": ["scene-1"],
             }
         ],
     }

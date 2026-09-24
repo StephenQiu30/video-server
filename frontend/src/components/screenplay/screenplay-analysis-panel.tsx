@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import AnalysisConfigurator from '@/components/analysis/analysis-configurator';
 import { AnalysisStatusCode } from '@/components/analysis/analysis-panel-model';
 import { useAnalysisJob } from '@/components/analysis/use-analysis-job';
@@ -18,6 +19,9 @@ export default function ScreenplayAnalysisPanel({
   pollIntervalMs?: number;
 }) {
   const state = useAnalysisJob(documentId, pollIntervalMs, 'screenplay');
+  const [newAnalysisForJobId, setNewAnalysisForJobId] = useState<string | null>(
+    null,
+  );
 
   if (state.loading && state.action !== 'start') {
     return (
@@ -70,6 +74,7 @@ export default function ScreenplayAnalysisPanel({
             job={state.job}
             onDelete={state.remove}
             onRetry={state.retry}
+            onNewAnalysis={() => setNewAnalysisForJobId(state.job?.id ?? null)}
           />
         </>
       ) : (
@@ -112,10 +117,27 @@ export default function ScreenplayAnalysisPanel({
               onStart={state.start}
             />
           ) : (
-            <ScreenplayAnalysisJobState job={state.job} state={state} />
+            <ScreenplayAnalysisJobState
+              job={state.job}
+              state={state}
+              onNewAnalysis={() =>
+                setNewAnalysisForJobId(state.job?.id ?? null)
+              }
+            />
           )}
         </>
       )}
+      {state.job && newAnalysisForJobId === state.job.id ? (
+        <div className="mt-10 max-w-3xl" id="new-screenplay-analysis">
+          <h3 className="mb-4 text-xl font-medium">使用最新 Skill 新建任务</h3>
+          <AnalysisConfigurator
+            inputId={documentId}
+            busy={state.action === 'start'}
+            inputKind="screenplay"
+            onStart={state.start}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

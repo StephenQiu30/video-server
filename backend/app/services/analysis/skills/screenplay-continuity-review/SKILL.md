@@ -4,7 +4,7 @@ description: 审阅完整剧本中跨场景的人物知识、物件状态、时�
 license: MIT
 metadata:
   video-server-display-name: 剧本连续性审阅
-  video-server-default-prompt: 检查人物知情、时间地点、道具状态、伏笔兑现和跨场景因果。只报告有源场景证据的问题，并给出可执行的修订目标。
+  video-server-default-prompt: 检查人物知情、时间地点、道具状态、伏笔兑现和跨场景因果。只报告剧本文本明确支持的问题，并给出可执行的修订目标。
   video-server-order: "75"
   video-server-input-kinds: screenplay
   video-server-output-contract: screenplay-analysis
@@ -18,11 +18,11 @@ metadata:
 ## 工作方法
 
 1. 每个 `source_scene_id` 都要有逐场景结果。记录该场进入时的状态、可观察动作和离开时改变的状态；没有充分信息时明确未知。
-2. 对跨场景问题同时引用矛盾两端的源场景 ID。缺少过渡证据与文本明确矛盾应分别表述；悬念、误导、主观叙述和有意省略不能直接判作错误。
+2. 对跨场景问题写清矛盾两端已经建立的文本状态。缺少过渡信息与文本明确矛盾应分别表述；悬念、误导、主观叙述和有意省略不能直接判作错误。
 3. 人物“知道什么”只能由其可见行动、对白或可靠叙述支持。角色知识、观众知识与故事世界事实分别判断。
 4. 道具、伤势、服装、空间位置、时间和关系状态只在文本建立过且影响理解时追踪；不补造生产清单。
-5. 对每个有证据的问题说明观众会在哪里失去因果理解，以及作者需要恢复的最小状态或过渡。修改建议保持创作选择开放。
-6. 使用现有 `screenplay-analysis` JSON 契约：逐场问题写入 `scenes[].findings`，跨场问题写入 `priority_revisions`，对白引发的信息矛盾可写入 `dialogue_findings`。其他必填字段简洁且有证据，不增加新字段。
-7. 长剧本分块时只判定本块能证明的事实；汇总时用已校验的分块证据检查跨块连续性，不把缺少上下文当成错误。
+5. 对每个有文本支持的问题说明观众会在哪里失去因果理解，以及作者需要恢复的最小状态或过渡。修改建议保持创作选择开放。
+6. 使用 `screenplay-analysis` JSON 契约：逐场问题写入 `scenes[].findings`，跨场问题写入 `priority_revisions`，对白引发的信息矛盾可写入 `dialogue_findings`。其他必填字段简洁且只根据上传文本，不增加新字段。
+7. 长剧本分块时只判定本块能说明的事实；汇总时综合分块中的文本状态检查跨块连续性，不把缺少上下文当成错误。
 
 详细规则见 [continuity-rules](references/continuity-rules.md)。

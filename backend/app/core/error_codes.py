@@ -16,6 +16,7 @@ class ErrorCode(StrEnum):
     ANALYSIS_REPORT_NOT_READY = "analysis_report_not_ready"
     ANALYSIS_REPORT_UNAVAILABLE = "analysis_report_unavailable"
     ANALYSIS_RETRY_LIMITED = "analysis_retry_limited"
+    ANALYSIS_SKILL_OUTDATED = "analysis_skill_outdated"
     ANALYSIS_UNAVAILABLE = "analysis_unavailable"
     ARTICLE_ACCESS_RESTRICTED = "article_access_restricted"
     ARTICLE_DISCOVERY_FAILED = "article_discovery_failed"

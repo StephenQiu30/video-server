@@ -117,16 +117,15 @@ class VideoArticleResultResponse(StrictModel):
     media: AnalysisMediaResponse
 
 
-class ScreenplayEvidenceItemResponse(StrictModel):
+class ScreenplayFindingResponse(StrictModel):
     id: str
     title: str
     description: str
-    evidence_scene_ids: tuple[str, ...]
 
 
 class ScreenplayStructureResponse(StrictModel):
-    acts: tuple[ScreenplayEvidenceItemResponse, ...]
-    turning_points: tuple[ScreenplayEvidenceItemResponse, ...]
+    acts: tuple[ScreenplayFindingResponse, ...]
+    turning_points: tuple[ScreenplayFindingResponse, ...]
     pacing_summary: str
 
 
@@ -136,7 +135,6 @@ class ScreenplayCharacterResponse(StrictModel):
     goal: str
     conflict: str
     arc: str
-    evidence_scene_ids: tuple[str, ...]
 
 
 class ScreenplaySceneResponse(StrictModel):
@@ -160,9 +158,9 @@ class ScreenplayAnalysisResultResponse(StrictModel):
     structure: ScreenplayStructureResponse
     characters: tuple[ScreenplayCharacterResponse, ...]
     scenes: tuple[ScreenplaySceneResponse, ...]
-    dialogue_findings: tuple[ScreenplayEvidenceItemResponse, ...]
-    strengths: tuple[ScreenplayEvidenceItemResponse, ...]
-    priority_revisions: tuple[ScreenplayEvidenceItemResponse, ...]
+    dialogue_findings: tuple[ScreenplayFindingResponse, ...]
+    strengths: tuple[ScreenplayFindingResponse, ...]
+    priority_revisions: tuple[ScreenplayFindingResponse, ...]
 
 
 class ScreenplayGlossaryTermResponse(StrictModel):

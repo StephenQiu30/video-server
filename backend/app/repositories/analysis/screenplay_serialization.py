@@ -2,7 +2,7 @@ from app.repositories.analysis.storage_fields import array, mapping, string, str
 from app.services.analysis.rules.enums import AnalysisResultKind
 from app.services.analysis.rules.screenplay_result_items import (
     ScreenplayCharacter,
-    ScreenplayEvidenceItem,
+    ScreenplayFinding,
     ScreenplayScene,
     ScreenplayStructure,
 )
@@ -37,11 +37,11 @@ def screenplay_analysis_from_document(document: object) -> ScreenplayAnalysisRes
         synopsis=string(root["synopsis"], "synopsis"),
         structure=ScreenplayStructure(
             acts=tuple(
-                _evidence_item(value, "act")
+                _finding(value, "act")
                 for value in array(structure["acts"], "structure.acts")
             ),
             turning_points=tuple(
-                _evidence_item(value, "turning point")
+                _finding(value, "turning point")
                 for value in array(
                     structure["turning_points"], "structure.turning_points"
                 )
@@ -54,36 +54,29 @@ def screenplay_analysis_from_document(document: object) -> ScreenplayAnalysisRes
             _character(value) for value in array(root["characters"], "characters")
         ),
         scenes=tuple(_scene(value) for value in array(root["scenes"], "scenes")),
-        dialogue_findings=_evidence_items(
-            root["dialogue_findings"], "dialogue finding"
-        ),
-        strengths=_evidence_items(root["strengths"], "strength"),
-        priority_revisions=_evidence_items(
-            root["priority_revisions"], "priority revision"
-        ),
+        dialogue_findings=_findings(root["dialogue_findings"], "dialogue finding"),
+        strengths=_findings(root["strengths"], "strength"),
+        priority_revisions=_findings(root["priority_revisions"], "priority revision"),
     )
 
 
-def _evidence_items(value: object, label: str) -> tuple[ScreenplayEvidenceItem, ...]:
-    return tuple(_evidence_item(item, label) for item in array(value, f"{label}s"))
+def _findings(value: object, label: str) -> tuple[ScreenplayFinding, ...]:
+    return tuple(_finding(item, label) for item in array(value, f"{label}s"))
 
 
-def _evidence_item(value: object, label: str) -> ScreenplayEvidenceItem:
-    source = mapping(value, {"id", "title", "description", "evidence_scene_ids"}, label)
-    return ScreenplayEvidenceItem(
+def _finding(value: object, label: str) -> ScreenplayFinding:
+    source = mapping(value, {"id", "title", "description"}, label)
+    return ScreenplayFinding(
         id=string(source["id"], f"{label}.id"),
         title=string(source["title"], f"{label}.title"),
         description=string(source["description"], f"{label}.description"),
-        evidence_scene_ids=strings(
-            source["evidence_scene_ids"], f"{label}.evidence_scene_ids"
-        ),
     )
 
 
 def _character(value: object) -> ScreenplayCharacter:
     source = mapping(
         value,
-        {"id", "name", "goal", "conflict", "arc", "evidence_scene_ids"},
+        {"id", "name", "goal", "conflict", "arc"},
         "character",
     )
     return ScreenplayCharacter(
@@ -92,9 +85,6 @@ def _character(value: object) -> ScreenplayCharacter:
         goal=string(source["goal"], "character.goal"),
         conflict=string(source["conflict"], "character.conflict"),
         arc=string(source["arc"], "character.arc"),
-        evidence_scene_ids=strings(
-            source["evidence_scene_ids"], "character.evidence_scene_ids"
-        ),
     )
 
 

@@ -29,7 +29,6 @@ export const screenplayAnalysisResult: API.ScreenplayAnalysisResultResponse = {
         id: 'act-1',
         title: '第一幕',
         description: '建立素材失踪与时间压力。',
-        evidence_scene_ids: ['scene-0001'],
       },
     ],
     turning_points: [
@@ -37,7 +36,6 @@ export const screenplayAnalysisResult: API.ScreenplayAnalysisResultResponse = {
         id: 'turn-1',
         title: '硬盘重新亮起',
         description: '外部故障转为人物主动选择。',
-        evidence_scene_ids: ['scene-0002'],
       },
     ],
     pacing_summary: '前段信息清楚，第二场的决定可以留出更长停顿。',
@@ -49,7 +47,6 @@ export const screenplayAnalysisResult: API.ScreenplayAnalysisResultResponse = {
       goal: '找回结局素材',
       conflict: '害怕面对自己删除素材的原因',
       arc: '从逃避转向承认选择',
-      evidence_scene_ids: ['scene-0001', 'scene-0002'],
     },
   ],
   scenes: [
@@ -68,7 +65,6 @@ export const screenplayAnalysisResult: API.ScreenplayAnalysisResultResponse = {
       id: 'dialogue-1',
       title: '对白信息略直白',
       description: '可让林舟通过操作和停顿表达犹豫。',
-      evidence_scene_ids: ['scene-0001'],
     },
   ],
   strengths: [
@@ -76,7 +72,6 @@ export const screenplayAnalysisResult: API.ScreenplayAnalysisResultResponse = {
       id: 'strength-1',
       title: '目标明确',
       description: '首场迅速建立寻找素材的行动目标。',
-      evidence_scene_ids: ['scene-0001'],
     },
   ],
   priority_revisions: [
@@ -84,7 +79,6 @@ export const screenplayAnalysisResult: API.ScreenplayAnalysisResultResponse = {
       id: 'revision-1',
       title: '强化人物选择',
       description: '在转折后增加林舟主动恢复素材的动作。',
-      evidence_scene_ids: ['scene-0002'],
     },
   ],
 };

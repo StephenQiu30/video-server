@@ -9,7 +9,7 @@ from app.services.analysis_execution.models import SCREENPLAY_SINGLE_CALL_SCENE_
 from tests.unit.integrations.ai_cli.helpers import screenplay_request
 
 
-def test_screenplay_schema_is_strict_and_whitelists_scene_evidence() -> None:
+def test_screenplay_schema_is_strict_and_whitelists_source_scenes() -> None:
     schema = screenplay_analysis_output_schema("zh-CN", ("scene-1", "scene-2"))
 
     assert schema["additionalProperties"] is False
@@ -19,11 +19,11 @@ def test_screenplay_schema_is_strict_and_whitelists_scene_evidence() -> None:
         "scene-1",
         "scene-2",
     ]
-    evidence = properties["strengths"]["items"]
-    assert evidence["properties"]["evidence_scene_ids"]["items"]["enum"] == [
-        "scene-1",
-        "scene-2",
-    ]
+    assert set(properties["strengths"]["items"]["properties"]) == {
+        "id",
+        "title",
+        "description",
+    }
     serialized = json.dumps(schema)
     for unsupported in (
         '"uniqueItems"',

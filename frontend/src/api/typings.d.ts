@@ -1098,6 +1098,7 @@ declare namespace API {
     | "analysis_report_not_ready"
     | "analysis_report_unavailable"
     | "analysis_retry_limited"
+    | "analysis_skill_outdated"
     | "analysis_unavailable"
     | "article_access_restricted"
     | "article_discovery_failed"
@@ -1870,11 +1871,11 @@ declare namespace API {
     /** Scenes */
     scenes: ScreenplaySceneResponse[];
     /** Dialogue Findings */
-    dialogue_findings: ScreenplayEvidenceItemResponse[];
+    dialogue_findings: ScreenplayFindingResponse[];
     /** Strengths */
-    strengths: ScreenplayEvidenceItemResponse[];
+    strengths: ScreenplayFindingResponse[];
     /** Priority Revisions */
-    priority_revisions: ScreenplayEvidenceItemResponse[];
+    priority_revisions: ScreenplayFindingResponse[];
   };
 
   type ScreenplayCharacterResponse = {
@@ -1888,19 +1889,15 @@ declare namespace API {
     conflict: string;
     /** Arc */
     arc: string;
-    /** Evidence Scene Ids */
-    evidence_scene_ids: string[];
   };
 
-  type ScreenplayEvidenceItemResponse = {
+  type ScreenplayFindingResponse = {
     /** Id */
     id: string;
     /** Title */
     title: string;
     /** Description */
     description: string;
-    /** Evidence Scene Ids */
-    evidence_scene_ids: string[];
   };
 
   type ScreenplayGlossaryTermResponse = {
@@ -1948,9 +1945,9 @@ declare namespace API {
 
   type ScreenplayStructureResponse = {
     /** Acts */
-    acts: ScreenplayEvidenceItemResponse[];
+    acts: ScreenplayFindingResponse[];
     /** Turning Points */
-    turning_points: ScreenplayEvidenceItemResponse[];
+    turning_points: ScreenplayFindingResponse[];
     /** Pacing Summary */
     pacing_summary: string;
   };

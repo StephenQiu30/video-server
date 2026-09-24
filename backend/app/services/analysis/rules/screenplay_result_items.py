@@ -4,34 +4,28 @@ from dataclasses import dataclass
 
 from app.services.analysis.rules.enums import AnalysisValidationCode
 from app.services.analysis.rules.errors import AnalysisValidationError
-from app.services.analysis.rules.result_items import _references, _strings
+from app.services.analysis.rules.result_items import _strings
 from app.services.analysis.rules.text import identifier, required_text
 
 
 @dataclass(frozen=True, slots=True)
-class ScreenplayEvidenceItem:
+class ScreenplayFinding:
     id: str
     title: str
     description: str
-    evidence_scene_ids: tuple[str, ...]
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "id", identifier(self.id, "evidence item id"))
+        object.__setattr__(self, "id", identifier(self.id, "finding id"))
         object.__setattr__(self, "title", required_text(self.title, "item title"))
         object.__setattr__(
             self, "description", required_text(self.description, "item description")
-        )
-        object.__setattr__(
-            self,
-            "evidence_scene_ids",
-            _references(self.evidence_scene_ids, "evidence source scene id"),
         )
 
 
 @dataclass(frozen=True, slots=True)
 class ScreenplayStructure:
-    acts: tuple[ScreenplayEvidenceItem, ...]
-    turning_points: tuple[ScreenplayEvidenceItem, ...]
+    acts: tuple[ScreenplayFinding, ...]
+    turning_points: tuple[ScreenplayFinding, ...]
     pacing_summary: str
 
     def __post_init__(self) -> None:
@@ -54,7 +48,6 @@ class ScreenplayCharacter:
     goal: str
     conflict: str
     arc: str
-    evidence_scene_ids: tuple[str, ...]
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "id", identifier(self.id, "character id"))
@@ -64,11 +57,6 @@ class ScreenplayCharacter:
                 field_name,
                 required_text(getattr(self, field_name), f"character {field_name}"),
             )
-        object.__setattr__(
-            self,
-            "evidence_scene_ids",
-            _references(self.evidence_scene_ids, "character evidence source scene id"),
-        )
 
 
 @dataclass(frozen=True, slots=True)

@@ -3,7 +3,7 @@ from __future__ import annotations
 import html
 import re
 
-from app.services.analysis.rules.screenplay_result_items import ScreenplayEvidenceItem
+from app.services.analysis.rules.screenplay_result_items import ScreenplayFinding
 from app.services.analysis.rules.screenplay_results import (
     ScreenplayAnalysisResult,
     ScreenplayRewriteResult,
@@ -45,8 +45,8 @@ def _analysis_report(result: ScreenplayAnalysisResult) -> str:
         "## 三、结构与节奏",
         "",
     ]
-    _evidence_items(lines, "幕结构", result.structure.acts)
-    _evidence_items(lines, "关键转折", result.structure.turning_points)
+    _findings(lines, "幕结构", result.structure.acts)
+    _findings(lines, "关键转折", result.structure.turning_points)
     lines.extend(("### 节奏判断", "", _inline(result.structure.pacing_summary), ""))
     lines.extend(("## 四、人物分析", ""))
     if result.characters:
@@ -80,11 +80,11 @@ def _analysis_report(result: ScreenplayAnalysisResult) -> str:
             lines.append("- 发现：本场没有独立发现。")
         lines.append("")
     lines.extend(("## 六、对白与写作", ""))
-    _evidence_items(lines, "对白发现", result.dialogue_findings)
+    _findings(lines, "对白发现", result.dialogue_findings)
     lines.extend(("## 七、文本优势", ""))
-    _evidence_items(lines, "优势", result.strengths)
+    _findings(lines, "优势", result.strengths)
     lines.extend(("## 八、优先修改建议", ""))
-    _evidence_items(lines, "建议清单", result.priority_revisions)
+    _findings(lines, "建议清单", result.priority_revisions)
     lines.extend(
         (
             "## 九、阅读说明",
@@ -129,8 +129,8 @@ def _rewrite_report(result: ScreenplayRewriteResult) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _evidence_items(
-    lines: list[str], title: str, items: tuple[ScreenplayEvidenceItem, ...]
+def _findings(
+    lines: list[str], title: str, items: tuple[ScreenplayFinding, ...]
 ) -> None:
     lines.extend((f"### {title}", ""))
     if not items:

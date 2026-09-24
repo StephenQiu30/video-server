@@ -15,11 +15,13 @@ export function ScreenplayCompletedAnalysis({
   job,
   onDelete,
   onRetry,
+  onNewAnalysis,
 }: {
   action: string | null;
   job: API.AnalysisResponse;
   onDelete: () => Promise<void>;
   onRetry: () => Promise<void>;
+  onNewAnalysis: () => void;
 }) {
   if (
     !job.result ||
@@ -93,6 +95,13 @@ export function ScreenplayCompletedAnalysis({
               <ArrowClockwise aria-hidden data-icon="inline-start" />
             )}
             {action === 'retry' ? '正在重新执行' : '重新执行'}
+          </Button>
+          <Button
+            disabled={Boolean(action)}
+            onClick={onNewAnalysis}
+            variant="outline"
+          >
+            使用最新 Skill 新建任务
           </Button>
           <AnalysisDeleteDialog
             disabled={Boolean(action)}

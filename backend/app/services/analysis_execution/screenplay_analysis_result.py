@@ -6,7 +6,7 @@ from dataclasses import asdict
 from app.services.analysis.models import AnalysisJobSnapshot
 from app.services.analysis.rules.enums import AnalysisValidationCode
 from app.services.analysis.rules.errors import AnalysisValidationError
-from app.services.analysis.rules.screenplay_result_items import ScreenplayEvidenceItem
+from app.services.analysis.rules.screenplay_result_items import ScreenplayFinding
 from app.services.analysis.rules.screenplay_results import ScreenplayAnalysisResult
 from app.services.analysis_execution.errors import AnalysisArtifactError
 from app.services.analysis_execution.models import (
@@ -49,7 +49,7 @@ def chunk_results_json(results: tuple[ScreenplayAnalysisResult, ...]) -> str:
 def synthesis_results_json(
     results: tuple[ScreenplayAnalysisResult, ...], *, maximum_bytes: int
 ) -> str:
-    """Keep full evidence when it fits; bound only the synthesis copy on overflow.
+    """Keep full chunk results when they fit; bound the synthesis copy on overflow.
 
     The validated scene results remain untouched and are merged into the final
     report after synthesis. The compact copy preserves every source scene ID.
@@ -65,21 +65,20 @@ def synthesis_results_json(
                 "logline": _brief(result.logline, 600),
                 "synopsis": _brief(result.synopsis, 1600),
                 "pacing_summary": _brief(result.structure.pacing_summary, 600),
-                "acts": _evidence(result.structure.acts),
-                "turning_points": _evidence(result.structure.turning_points),
+                "acts": _findings(result.structure.acts),
+                "turning_points": _findings(result.structure.turning_points),
                 "characters": [
                     {
                         "name": _brief(item.name, 120),
                         "goal": _brief(item.goal, 240),
                         "conflict": _brief(item.conflict, 240),
                         "arc": _brief(item.arc, 320),
-                        "evidence_scene_ids": list(item.evidence_scene_ids[:12]),
                     }
                     for item in result.characters[:32]
                 ],
-                "dialogue_findings": _evidence(result.dialogue_findings),
-                "strengths": _evidence(result.strengths),
-                "priority_revisions": _evidence(result.priority_revisions),
+                "dialogue_findings": _findings(result.dialogue_findings),
+                "strengths": _findings(result.strengths),
+                "priority_revisions": _findings(result.priority_revisions),
                 "scenes": [
                     {
                         "source_scene_id": item.source_scene_id,
@@ -105,12 +104,11 @@ def synthesis_results_json(
     return compact
 
 
-def _evidence(items: tuple[ScreenplayEvidenceItem, ...]) -> list[dict[str, object]]:
+def _findings(items: tuple[ScreenplayFinding, ...]) -> list[dict[str, object]]:
     return [
         {
             "title": _brief(item.title, 160),
             "description": _brief(item.description, 360),
-            "evidence_scene_ids": list(item.evidence_scene_ids[:12]),
         }
         for item in items[:32]
     ]
