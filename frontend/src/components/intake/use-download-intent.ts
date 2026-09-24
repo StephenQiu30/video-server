@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   cancelDownloadIntent,
   createDownloadIntent,
@@ -244,7 +244,7 @@ export function useDownloadIntent() {
     }
   }
 
-  function clear() {
+  const clear = useCallback(() => {
     setAttempt(null);
     setOperationError(null);
     try {
@@ -252,7 +252,7 @@ export function useDownloadIntent() {
     } catch {
       /* Already absent. */
     }
-  }
+  }, [setAttempt]);
 
   const missing =
     intent.error instanceof ApiError && intent.error.status === 404;

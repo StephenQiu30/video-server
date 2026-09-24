@@ -20,8 +20,6 @@ type IntakeDraft = {
   setDeclaredOrigin: Dispatch<SetStateAction<API.DeclaredOrigin>>;
   attempt: ParseAttempt | null;
   setAttempt: Dispatch<SetStateAction<ParseAttempt | null>>;
-  openedResultKey: string | null;
-  setOpenedResultKey: Dispatch<SetStateAction<string | null>>;
 };
 
 export type ParseAttempt = {
@@ -41,7 +39,6 @@ export function IntakeDraftProvider({ children }: { children: ReactNode }) {
   const [declaredOrigin, setDeclaredOrigin] =
     useState<API.DeclaredOrigin>('user_file');
   const [attempt, setAttempt] = useState<ParseAttempt | null>(null);
-  const [openedResultKey, setOpenedResultKey] = useState<string | null>(null);
   const value = useMemo(
     () => ({
       input,
@@ -52,10 +49,8 @@ export function IntakeDraftProvider({ children }: { children: ReactNode }) {
       setDeclaredOrigin,
       attempt,
       setAttempt,
-      openedResultKey,
-      setOpenedResultKey,
     }),
-    [input, mode, declaredOrigin, attempt, openedResultKey],
+    [input, mode, declaredOrigin, attempt],
   );
   return <IntakeDraftContext value={value}>{children}</IntakeDraftContext>;
 }

@@ -66,19 +66,28 @@ it('dismisses the loading notice once the parsed result has opened', async () =>
   renderEntry();
   enter('https://youtu.be/owned');
   await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
+  expect(sessionStorage.getItem('framefetch-active-intent')).toBeNull();
   await waitFor(() =>
     expect(screen.queryByText('正在加载解析结果')).not.toBeInTheDocument(),
   );
 });
 
-it('shows a retry instead of loading forever when a ready intent has no result reference', async () => {
-  mockHttpResponses(intentFixture({ inspection_id: null }));
+it('retires a restored ready task after handing off its result', async () => {
+  const ready = intentFixture();
+  sessionStorage.setItem(
+    'framefetch-active-intent',
+    JSON.stringify({ owner: 'intent-test-owner', id: ready.id }),
+  );
+  mockHttpResponses(ready, inspection);
+  const first = renderEntry();
+  await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
+  expect(sessionStorage.getItem('framefetch-active-intent')).toBeNull();
+  const requests = httpRequests().length;
+  first.unmount();
   renderEntry();
-  enter('https://youtu.be/owned');
-  expect(await screen.findByText('解析结果暂不可用')).toBeVisible();
-  expect(screen.getByRole('button', { name: '重试读取' })).toBeEnabled();
-  expect(screen.queryByText('正在加载解析结果')).not.toBeInTheDocument();
-  expect(push).not.toHaveBeenCalled();
+  expect(screen.getByLabelText('公开视频地址')).toBeVisible();
+  expect(httpRequests()).toHaveLength(requests);
+  expect(push).toHaveBeenCalledTimes(1);
 });
 
 it('keeps an expired inspection on home with a refresh action', async () => {
