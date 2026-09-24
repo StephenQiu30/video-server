@@ -18,6 +18,7 @@ describe('ContentIntakeHero', () => {
       'data-state',
       'active',
     );
+    expect(screen.getByRole('tab', { name: '本地视频' })).not.toHaveFocus();
     expect(screen.getByRole('tabpanel', { name: '本地视频' })).toBeVisible();
   });
 
@@ -33,6 +34,10 @@ describe('ContentIntakeHero', () => {
     expect(container.querySelector('[data-slot="tabs-list"]')).toHaveClass(
       'w-full',
       'sm:w-fit',
+    );
+    expect(container.querySelector('[data-slot="tabs-list"]')).toHaveAttribute(
+      'data-variant',
+      'line',
     );
   });
 });
