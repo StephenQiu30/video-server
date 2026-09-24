@@ -34,8 +34,8 @@ from app.services.analysis_execution.screenplay_analysis_plan import (
 )
 from app.services.analysis_execution.screenplay_analysis_result import (
     build_analysis_request,
-    chunk_results_json,
     combined_analysis_payload,
+    synthesis_results_json,
 )
 from app.services.analysis_execution.screenplay_rewrite_result import (
     read_screenplay_text,
@@ -166,9 +166,9 @@ class ScreenplayAnalysisExecutor:
                     source_scene_ids=chunk_request.source_scene_ids,
                 )
             )
-        synthesis_input = chunk_results_json(tuple(results))
-        if len(synthesis_input.encode()) > self._max_synthesis_bytes:
-            raise AnalysisArtifactError("analysis_resource_limit")
+        synthesis_input = synthesis_results_json(
+            tuple(results), maximum_bytes=self._max_synthesis_bytes
+        )
         synthesis_request = ScreenplayAnalysisSynthesisRequest(
             screenplay=local.screenplay,
             workspace=local.workspace,

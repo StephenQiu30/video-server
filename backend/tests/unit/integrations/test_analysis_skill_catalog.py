@@ -67,6 +67,7 @@ def test_builtin_skills_are_filtered_ordered_and_contract_bound() -> None:
     assert [skill.id for skill in screenplay] == [
         "screenplay-analysis",
         "screenplay-structure-review",
+        "screenplay-continuity-review",
         "screenplay-rewrite",
     ]
     assert {skill.result_contract for skill in video} == {
@@ -74,6 +75,7 @@ def test_builtin_skills_are_filtered_ordered_and_contract_bound() -> None:
         AnalysisResultContract.VIDEO_ARTICLE,
     }
     assert [skill.result_contract for skill in screenplay] == [
+        AnalysisResultContract.SCREENPLAY_ANALYSIS,
         AnalysisResultContract.SCREENPLAY_ANALYSIS,
         AnalysisResultContract.SCREENPLAY_ANALYSIS,
         AnalysisResultContract.SCREENPLAY_REWRITE,

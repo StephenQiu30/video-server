@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from datetime import datetime
 from typing import Protocol
 from uuid import UUID
@@ -39,6 +40,8 @@ from app.services.analysis_execution.video_executor import (
     StaticAnalyzerResolver,
     VideoAnalysisExecutor,
 )
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class ClaimedAnalysisExecutor(Protocol):
@@ -150,6 +153,15 @@ class AnalysisExecution:
                 job.id, job.attempt, AnalysisErrorCode.INVALID_MODEL_OUTPUT
             )
         except Exception as error:
+            _LOGGER.warning(
+                "analysis execution failed job_id=%s attempt=%s exception_type=%s "
+                "cause_type=%s code=%s",
+                job.id,
+                job.attempt,
+                type(error).__name__,
+                type(error.__cause__).__name__ if error.__cause__ else "none",
+                getattr(error, "code", "none"),
+            )
             return await self._transitions.fail(
                 job.id,
                 job.attempt,

@@ -6,7 +6,7 @@
 
 ## 1. 分析能力设计
 
-全部内置分析 Skill 复用 `AnalysisSkillRegistry → BuiltinAnalysisSkillCatalog → Analysis Worker` 当前链路。前端只消费动态目录，不新增 skill ID 条件分支。2026-08-31 的长镜头退化修订统一打磨了 11 个视频 Skill 与 3 个剧本 Skill：视频能力共享分析分镜语义，剧本能力继续保持文本场景与未来镜头的层次隔离。
+全部内置分析 Skill 复用 `AnalysisSkillRegistry → BuiltinAnalysisSkillCatalog → Analysis Worker` 当前链路。前端只消费动态目录，不新增 skill ID 条件分支。2026-08-31 的长镜头退化修订统一打磨了 11 个视频 Skill 与当时的 3 个剧本 Skill；2026-09-24 增加 `screenplay-continuity-review` 后剧本 Skill 为 4 个。视频能力共享分析分镜语义，剧本能力继续保持文本场景与未来镜头的层次隔离。
 
 | Skill | 主要诊断问题 | 结果映射 |
 | --- | --- | --- |
@@ -18,7 +18,7 @@
 
 超过 10 秒仍只有一个分析分镜时，模型必须完成全时间线复核、添加 `segmentation:single-unit-verified`，并在摘要说明主体任务、空间、动作阶段和信息状态为何始终稳定。Provider 新结果入口拒绝缺少该标记的长视频单项结果，且只允许第一项使用 `transition_in=none`；已持久化的历史报告仍按原始结果读取，避免质量门禁让旧报告不可访问。报告继续展示同一 `shots` 数据，但分析方式明确为“Cut + 连续节拍”。
 
-三个剧本 Skill 不生成视频 `shots`：`source_scene_id` 始终是规范化文本场景，不得按页数、段落、对白行或 chunk 推断镜头数量。`video-to-article` 使用完整可见阶段选择 evidence，但不虚构 Cut 类型。
+四个剧本 Skill 不生成视频 `shots`：`source_scene_id` 始终是规范化文本场景，不得按页数、段落、对白行或 chunk 推断镜头数量。`video-to-article` 使用完整可见阶段选择 evidence，但不虚构 Cut 类型。
 
 视觉分析结果采用“模型写事实与判断、服务端编排文章”的分工。公共 Prompt 要求 `summary` 写成 2–4 句导语，场景描述形成可连续阅读的段落，叙事作用解释前后连接，制作建议直接给出动作、位置与预期效果；避免“本报告将”“综上所述”“推进剧情”“营造氛围”等空泛套话。模型仍只返回结构化 JSON，不输出 Markdown 或复述字段名。
 
@@ -60,3 +60,18 @@ DOCX 规范化标题会被现有安全 Markdown renderer 和目录提取器直�
 - Artifact metadata 只保存低敏整数；API 不返回 object key、SHA-256 或正文副本。
 - 现有 ready Artifact 没有 summary 时返回 `null`，不回读全文推断，也不迁移或改写不可变文档。
 - 真实 Provider 质量验证独立于静态目录完成状态；失败不影响已有视频与文档能力。
+
+## 6. 2026-09-24 剧本 Skill 候选调研与接入
+
+GitHub star 数为 2026-09-24 查询快照，只作社区采用度信号；接入仍以剧本审阅任务、许可、输入权限和本项目结果契约为准。使用 GitHub 仓库检索与元数据、Firecrawl 开发者检索、Context7 的 Agent Skills 资料交叉核对，再查看具体 `SKILL.md` 与引用文件。
+
+| 候选 | Stars | 判断 |
+| --- | ---: | --- |
+| [zenstory-ai/drama-skills](https://github.com/zenstory-ai/drama-skills) | 2,225 | MIT；`short-drama-review` 的跨场景证据、知情状态和可执行修订方法适合剧本审阅。以原写方式接入 `screenplay-continuity-review`，只使用现有 `screenplay-analysis` 契约。 |
+| [eternityspring/shuohao-skills](https://github.com/eternityspring/shuohao-skills) | 3,753 | Apache-2.0；`novel-script` 面向短剧创作、分集产物和 Node 校验脚本，与当前只读剧本审阅和不可变原文边界不符，暂不接入。 |
+| [jwynia/agent-skills](https://github.com/jwynia/agent-skills) | 160 | `story-analysis`、`dialogue` 等方法此前已被本地综合审阅规则吸收；追加同类 Skill 会重复入口，暂不新增。 |
+| [jpcastel88/Script-Breakdown-Skills](https://github.com/jpcastel88/Script-Breakdown-Skills) | 5 | 专注制作拆解，且仓库元数据未列许可；当前是 editorial coverage，暂不接入。 |
+
+高 star 的通用目录如 [anthropics/skills](https://github.com/anthropics/skills)（177,850）、[github/awesome-copilot](https://github.com/github/awesome-copilot)（39,334）和 [openai/skills](https://github.com/openai/skills)（27,592）证明 Skill 形态流行，不能证明其中某个工作流满足本项目的场景证据、结构化 JSON 与无工具执行要求。Context7 的 Agent Skills 资料强调简短入口和按需引用；本项目继续只允许 `SKILL.md` 与显式列出的一级 `references`，不引入上游脚本、工具权限或运行时安装器。
+
+新 Skill 被目录自动发现，只影响新建分析任务；已有任务保存了创建时的 Skill 指令快照。静态接入不等于真实 Provider 已通过长剧本验收，需单独记录重试结果和人工审阅质量。

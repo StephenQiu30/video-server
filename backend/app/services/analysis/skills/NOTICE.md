@@ -79,6 +79,13 @@ The built-in analysis skills are original, project-specific rewrites. They do no
 - License: MIT; copyright 2026 drama-skills contributors.
 - Local use: the opening-hook review independently separates bounded evidence, viewer or production impact, and the required revision outcome. Upstream review wording, templates, rubrics, scripts, examples, production adapters, assets, generation workflow, and cross-Skill orchestration were excluded.
 
+## drama-skills screenplay continuity review (2026-09-24 refresh)
+
+- Source: https://github.com/zenstory-ai/drama-skills/tree/b71cb3ca9343eaf6c0375725ccc9261a4e79021e/skills/short-drama-review
+- Reviewed commit: `b71cb3ca9343eaf6c0375725ccc9261a4e79021e`.
+- License: MIT; copyright 2026 drama-skills contributors.
+- Local use: the new `screenplay-continuity-review` independently expresses source-scene evidence, information permissions, physical handoffs and actionable revision outcomes inside the existing screenplay result contract. Upstream text, scripts, templates, review files, production workflow and tool permissions were not copied or executed.
+
 ## video-shotcraft
 
 - Source: https://github.com/Vincentwei1021/video-shotcraft
