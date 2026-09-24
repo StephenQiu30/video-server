@@ -42,7 +42,7 @@ describe('FormatPicker', () => {
     const radio = screen.getByRole('radio');
     expect(radio).not.toBeChecked();
 
-    fireEvent.click(radio);
+    fireEvent.click(screen.getByText(format.display_name));
     expect(onChange).toHaveBeenCalledWith('image-gallery-zip');
   });
 });

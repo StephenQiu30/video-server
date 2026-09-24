@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { type ExternalToast, toast } from 'sonner';
+import { toast } from 'sonner';
 import { inspectMedia } from '@/api/inspections';
 import { createSourceDiscovery } from '@/api/sourceDiscoveries';
 import { ContentIntakeHero } from '@/components/intake/content-intake-hero';
@@ -33,6 +33,7 @@ import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { markNavigationPush } from '@/components/layout/navigation-history';
 import { ProviderAuthorizationDialog } from '@/components/providers/provider-authorization-dialog';
 import { ScreenplayUploadForm } from '@/components/screenplay/screenplay-upload-form';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { localizedErrorMessage } from '@/lib/error-messages';
 import {
@@ -45,8 +46,6 @@ import { createUuid as createIdempotencyKey } from '@/lib/uuid';
 
 type BusyAction = 'inspect' | null;
 type StableKey = { payload: string; value: string };
-const PARSE_STATUS_TOAST_ID = 'framefetch-parse-status';
-
 export default function DownloadWorkspace() {
   const router = useRouter();
   const queries = useQueryClient();
@@ -90,6 +89,39 @@ export default function DownloadWorkspace() {
         (intent.snapshot?.status === IntentStatusCode.Failed ||
           intent.snapshot?.status === IntentStatusCode.Expired ||
           intent.snapshot?.status === IntentStatusCode.ActionRequired)));
+  const snapshot = intent.snapshot;
+  const intentStatusError =
+    !!intent.error ||
+    snapshot?.status === IntentStatusCode.Failed ||
+    snapshot?.status === IntentStatusCode.Expired;
+  const intentStatusTitle = intent.error
+    ? '任务状态暂时无法更新'
+    : intent.pending && snapshot?.status === IntentStatusCode.Ready
+      ? '正在更新解析结果'
+      : intent.resultExpired
+        ? '解析结果已过期'
+        : snapshot?.status === IntentStatusCode.Ready
+          ? intent.inspection
+            ? '正在打开解析结果'
+            : '正在加载解析结果'
+          : intentTitle(snapshot?.status);
+  const intentStatusDescription =
+    intent.error ??
+    (intent.pending && snapshot?.status === IntentStatusCode.Ready
+      ? '正在更新解析结果，请稍候。'
+      : intent.resultExpired
+        ? '更新后请重新确认下载规格，无需再次粘贴原链接。'
+        : snapshot?.reason_code
+          ? localizedErrorMessage(snapshot.reason_code)
+          : !snapshot
+            ? '正在确认接单，请稍候，无需重复提交。'
+            : intent.pending
+              ? '任务在后台处理，切换页面不会中断解析。'
+              : snapshot.status === IntentStatusCode.Ready
+                ? intent.inspection
+                  ? '解析已完成，正在打开结果页。'
+                  : '正在读取解析结果，请稍候。'
+                : '本次解析已结束。');
   const inspectionKey = useRef<StableKey | null>(null);
   const discoveryKey = useRef<StableKey | null>(null);
   const openingResultKey = useRef<string | null>(null);
@@ -157,114 +189,6 @@ export default function DownloadWorkspace() {
   useEffect(() => {
     if (mediaImport.notice) toast.info(mediaImport.notice);
   }, [mediaImport.notice]);
-
-  useEffect(() => {
-    if (!showIntentStatus) {
-      toast.dismiss(PARSE_STATUS_TOAST_ID);
-      return;
-    }
-
-    const snapshot = intent.snapshot;
-    const title = intent.error
-      ? '任务状态暂时无法更新'
-      : intent.pending && snapshot?.status === IntentStatusCode.Ready
-        ? '正在更新解析结果'
-        : intent.resultExpired
-          ? '解析结果已过期'
-          : snapshot?.status === IntentStatusCode.Ready
-            ? intent.inspection
-              ? '正在打开解析结果'
-              : '正在加载解析结果'
-            : intentTitle(snapshot?.status);
-    const description =
-      intent.error ??
-      (intent.pending && snapshot?.status === IntentStatusCode.Ready
-        ? '正在更新解析结果，请稍候。'
-        : intent.resultExpired
-          ? '更新后请重新确认下载规格，无需再次粘贴原链接。'
-          : snapshot?.reason_code
-            ? localizedErrorMessage(snapshot.reason_code)
-            : !snapshot
-              ? '正在确认接单，请稍候，无需重复提交。'
-              : intent.pending
-                ? '任务在后台处理，切换页面不会中断解析。'
-                : snapshot.status === IntentStatusCode.Ready
-                  ? intent.inspection
-                    ? '解析已完成，正在打开结果页。'
-                    : '正在读取解析结果，请稍候。'
-                  : '本次解析已结束。');
-    const action: ExternalToast['action'] =
-      intent.resultExpired && !intent.pending ? (
-        {
-          label: '更新结果',
-          onClick: () => {
-            void intent.refresh();
-          },
-        }
-      ) : intentAuthorization ? (
-        <ProviderAuthorizationDialog
-          onAuthorized={() => inspect(intentAuthorization.accessPolicy)}
-          provider={{
-            authorization_action: intentAuthorization.authorizationAction,
-            display_name: intentAuthorization.displayName,
-            key: intentAuthorization.key,
-          }}
-        />
-      ) : intent.error ? (
-        { label: '恢复任务', onClick: () => void intent.retry() }
-      ) : undefined;
-    const cancel: ExternalToast['cancel'] =
-      snapshot &&
-      (intent.pending ||
-        snapshot.status === IntentStatusCode.ActionRequired) ? (
-        <Button
-          disabled={intent.cancelling}
-          onClick={() => void intent.cancel()}
-          size="sm"
-          variant="outline"
-        >
-          {intent.cancelling ? '正在取消…' : '取消解析'}
-        </Button>
-      ) : undefined;
-    const needsAction =
-      intent.pending ||
-      intent.resultExpired ||
-      !!intent.error ||
-      snapshot?.status === IntentStatusCode.Ready ||
-      snapshot?.status === IntentStatusCode.ActionRequired;
-    const options: ExternalToast = {
-      action,
-      cancel,
-      closeButton: !needsAction,
-      description,
-      dismissible: !needsAction,
-      duration: needsAction ? Number.POSITIVE_INFINITY : 10_000,
-      id: PARSE_STATUS_TOAST_ID,
-    };
-    if (
-      intent.error ||
-      snapshot?.status === IntentStatusCode.Failed ||
-      snapshot?.status === IntentStatusCode.Expired
-    ) {
-      toast.error(title, options);
-    } else if (
-      intent.resultExpired ||
-      snapshot?.status === IntentStatusCode.ActionRequired
-    ) {
-      toast.warning(title, options);
-    } else if (intent.pending || snapshot?.status === IntentStatusCode.Ready) {
-      toast.loading(title, options);
-    } else {
-      toast.info(title, options);
-    }
-  });
-
-  useEffect(
-    () => () => {
-      toast.dismiss(PARSE_STATUS_TOAST_ID);
-    },
-    [],
-  );
 
   function clearLinkResult() {
     if (!intent.pending) {
@@ -399,6 +323,65 @@ export default function DownloadWorkspace() {
           />
         }
       />
+      {showIntentStatus ? (
+        <Alert
+          className="mt-6"
+          data-slot="parse-intent-status"
+          role={intentStatusError ? 'alert' : 'status'}
+          variant={intentStatusError ? 'destructive' : 'default'}
+        >
+          <AlertTitle>{intentStatusTitle}</AlertTitle>
+          <AlertDescription>{intentStatusDescription}</AlertDescription>
+          {((intent.resultExpired && !intent.pending) ||
+            intentAuthorization ||
+            intent.error ||
+            (snapshot &&
+              (intent.pending ||
+                snapshot.status === IntentStatusCode.ActionRequired))) && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {intent.resultExpired && !intent.pending ? (
+                <Button
+                  onClick={() => void intent.refresh()}
+                  size="sm"
+                  variant="outline"
+                >
+                  更新结果
+                </Button>
+              ) : intentAuthorization ? (
+                <ProviderAuthorizationDialog
+                  onAuthorized={() => inspect(intentAuthorization.accessPolicy)}
+                  provider={{
+                    authorization_action:
+                      intentAuthorization.authorizationAction,
+                    display_name: intentAuthorization.displayName,
+                    key: intentAuthorization.key,
+                  }}
+                />
+              ) : intent.error ? (
+                <Button
+                  onClick={() => void intent.retry()}
+                  size="sm"
+                  variant="outline"
+                >
+                  恢复任务
+                </Button>
+              ) : null}
+              {snapshot &&
+              (intent.pending ||
+                snapshot.status === IntentStatusCode.ActionRequired) ? (
+                <Button
+                  disabled={intent.cancelling}
+                  onClick={() => void intent.cancel()}
+                  size="sm"
+                  variant="outline"
+                >
+                  {intent.cancelling ? '正在取消…' : '取消解析'}
+                </Button>
+              ) : null}
+            </div>
+          )}
+        </Alert>
+      ) : null}
       {(
         mode === 'link'
           ? error

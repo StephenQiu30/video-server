@@ -68,8 +68,25 @@ it('dismisses the loading notice once the parsed result has opened', async () =>
   await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
   expect(sessionStorage.getItem('framefetch-active-intent')).toBeNull();
   await waitFor(() =>
-    expect(screen.queryByText('正在加载解析结果')).not.toBeInTheDocument(),
+    expect(
+      document.querySelector('[data-slot="parse-intent-status"]'),
+    ).not.toBeInTheDocument(),
   );
+});
+
+it('keeps an active parse and its cancel action in the page content', async () => {
+  mockHttpResponses(
+    intentFixture({ status: 'resolving', inspection_id: null }),
+  );
+  renderEntry();
+  enter('https://youtu.be/owned');
+  await waitFor(() =>
+    expect(
+      document.querySelector('[data-slot="parse-intent-status"]'),
+    ).toHaveTextContent('正在读取媒体信息'),
+  );
+  expect(screen.getByRole('button', { name: '取消解析' })).toBeEnabled();
+  expect(push).not.toHaveBeenCalled();
 });
 
 it('retires a restored ready task after handing off its result', async () => {
@@ -98,6 +115,9 @@ it('keeps an expired inspection on home with a refresh action', async () => {
   renderEntry();
   enter('https://youtu.be/owned');
   expect(await screen.findByRole('button', { name: '更新结果' })).toBeEnabled();
+  expect(
+    document.querySelector('[data-slot="parse-intent-status"]'),
+  ).toHaveTextContent('解析结果已过期');
   expect(push).not.toHaveBeenCalled();
   expect(document.querySelector('[data-slot="media-result"]')).toBeNull();
 });

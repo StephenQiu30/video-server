@@ -52,10 +52,7 @@ export default function AnalysisResultView({
         </p>
       </div>
       <div className="mt-10 overflow-x-auto">
-        <TabsList
-          className="h-auto w-max gap-3 rounded-none p-0 sm:gap-7"
-          variant="line"
-        >
+        <TabsList className="w-max" variant="line">
           <ResultTab value="scenes">场景</ResultTab>
           <ResultTab value="shots">分镜</ResultTab>
           <ResultTab value="highlights">高光</ResultTab>
@@ -220,9 +217,5 @@ function ResultTab({
   children: ReactNode;
   value: string;
 }) {
-  return (
-    <TabsTrigger className="px-3 py-2" value={value}>
-      {children}
-    </TabsTrigger>
-  );
+  return <TabsTrigger value={value}>{children}</TabsTrigger>;
 }

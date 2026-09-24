@@ -37,24 +37,15 @@ export function PageErrorNotice({
     <Empty
       aria-atomic="true"
       aria-live="assertive"
-      className={cn(
-        compact
-          ? 'min-h-0 rounded-none border-0 px-0 py-8'
-          : 'min-h-80 rounded-none border-0 px-0 py-16',
-        className,
-      )}
+      className={cn(compact && 'flex-none', className)}
       role="alert"
     >
-      <EmptyMedia className="bg-destructive/10 text-destructive" variant="icon">
-        <WarningCircleIcon aria-hidden />
+      <EmptyMedia variant="icon">
+        <WarningCircleIcon aria-hidden className="text-destructive" />
       </EmptyMedia>
       <EmptyHeader className="max-w-md">
-        <EmptyTitle as={titleAs} className="text-base">
-          {title}
-        </EmptyTitle>
-        <EmptyDescription className="text-foreground/70">
-          {message}
-        </EmptyDescription>
+        <EmptyTitle as={titleAs}>{title}</EmptyTitle>
+        <EmptyDescription>{message}</EmptyDescription>
       </EmptyHeader>
       {onRetry || secondaryAction ? (
         <EmptyContent className="flex-row flex-wrap justify-center">

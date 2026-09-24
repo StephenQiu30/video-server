@@ -35,10 +35,7 @@ export default function AnalysisArticleResultView({
         </p>
       </div>
       <div className="mt-10 overflow-x-auto">
-        <TabsList
-          className="h-auto w-max gap-7 rounded-none p-0"
-          variant="line"
-        >
+        <TabsList className="w-max" variant="line">
           <Tab value="article">文章正文</Tab>
           <Tab value="points">核心观点</Tab>
           {reportMarkdown ? <Tab value="report">报告预览</Tab> : null}
@@ -113,11 +110,7 @@ export default function AnalysisArticleResultView({
 }
 
 function Tab({ children, value }: { children: string; value: string }) {
-  return (
-    <TabsTrigger className="px-3 py-2" value={value}>
-      {children}
-    </TabsTrigger>
-  );
+  return <TabsTrigger value={value}>{children}</TabsTrigger>;
 }
 
 function Metric({ label, value }: { label: string; value: string }) {

@@ -1,5 +1,3 @@
-import { cn } from 'cn';
-
 import {
   Table,
   TableBody,
@@ -62,10 +60,7 @@ function SourceHead({
 }) {
   return (
     <TableHead
-      className={cn(
-        'px-4 text-xs font-normal text-muted-foreground',
-        numeric && 'text-right tabular-nums',
-      )}
+      className={numeric ? 'text-right tabular-nums' : undefined}
       scope="col"
     >
       {children}
@@ -75,7 +70,7 @@ function SourceHead({
 
 function MetricCell({ value }: { value: string }) {
   return (
-    <TableCell className="text-right text-xs tabular-nums whitespace-normal">
+    <TableCell className="text-right tabular-nums whitespace-normal">
       {value}
     </TableCell>
   );

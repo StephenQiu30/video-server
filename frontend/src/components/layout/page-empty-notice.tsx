@@ -35,21 +35,13 @@ export function PageEmptyNotice({
   titleClassName?: string;
 }) {
   return (
-    <Empty
-      className={cn(
-        'rounded-none border-0 px-0 text-center',
-        compact ? 'min-h-48 py-12' : 'min-h-80 py-16',
-        className,
-      )}
-    >
-      <EmptyMedia className="bg-muted text-muted-foreground" variant="icon">
-        {icon ?? <InfoIcon aria-hidden />}
-      </EmptyMedia>
+    <Empty className={cn(compact && 'flex-none', className)}>
+      <EmptyMedia variant="icon">{icon ?? <InfoIcon aria-hidden />}</EmptyMedia>
       <EmptyHeader className="max-w-md">
         {eyebrow ? (
           <p className="font-mono text-sm text-muted-foreground">{eyebrow}</p>
         ) : null}
-        <EmptyTitle as={titleAs} className={cn('text-base', titleClassName)}>
+        <EmptyTitle as={titleAs} className={titleClassName}>
           {title}
         </EmptyTitle>
         <EmptyDescription>{description}</EmptyDescription>
