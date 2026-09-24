@@ -102,3 +102,23 @@ export async function listDownloadIntents(
     }
   );
 }
+
+/** 分页查询解析入口与视频内容分析记录 GET /api/download-intents/history/records */
+export async function listHistoryRecords(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.listHistoryRecordsParams,
+  options?: RequestOptions
+) {
+  return request<API.ApiResponseHistoryRecordPageResponse_>(
+    "/api/download-intents/history/records",
+    {
+      method: "GET",
+      params: {
+        // limit has a default value: 20
+        limit: "20",
+        ...params,
+      },
+      ...(options || {}),
+    }
+  );
+}

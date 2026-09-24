@@ -4,7 +4,13 @@ import { ArrowClockwise, Plus } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRef, useState } from 'react';
-import { listDownloadIntents } from '@/api/downloadIntents';
+import { listHistoryRecords } from '@/api/downloadIntents';
+import { useAnalysisSkills } from '@/components/analysis/use-analysis-skills';
+import {
+  analysisStatusVariant,
+  isActiveAnalysisStatus,
+  statusLabels,
+} from '@/components/analysis/analysis-panel-model';
 import { IntentHistoryDialog } from '@/components/intake/intent-history-dialog';
 import {
   IntentStatusCode,
@@ -37,18 +43,47 @@ export function IntentHistory({
 }: {
   onViewResult: (item: API.IntentHistoryItemResponse) => void;
 }) {
-  const [cursors, setCursors] = useState<(string | undefined)[]>([undefined]);
-  const [selected, setSelected] =
-    useState<API.IntentHistoryItemResponse | null>(null);
+  type ParseHistoryItem = API.ParseHistoryRecordResponse;
+  const [cursors, setCursors] = useState<
+    (API.HistoryRecordCursorResponse | undefined)[]
+  >([undefined]);
+  const [selected, setSelected] = useState<ParseHistoryItem | null>(null);
   const detailTrigger = useRef<HTMLButtonElement | null>(null);
   const before = cursors.at(-1);
   const history = useQuery({
-    queryKey: privateQueryKey('intent-history', before),
+    queryKey: privateQueryKey(
+      'intent-history',
+      before?.created_at,
+      before?.record_type,
+      before?.id,
+    ),
     queryFn: ({ signal }) =>
-      listDownloadIntents({ before, limit: 20 }, { signal }),
+      listHistoryRecords(
+        {
+          before_created_at: before?.created_at,
+          before_record_type: before?.record_type,
+          before_id: before?.id,
+          limit: 20,
+        },
+        { signal },
+      ),
     staleTime: 0,
+    refetchInterval: (query) =>
+      query.state.error
+        ? false
+        : query.state.data?.items.some(
+              (item) =>
+                isVideoAnalysisRecord(item) &&
+                isActiveAnalysisStatus(item.status),
+            )
+          ? 2_000
+          : false,
     refetchOnWindowFocus: true,
   });
+  const analysisSkills = useAnalysisSkills();
+  const skillNames = new Map(
+    analysisSkills.skills.map((skill) => [skill.id, skill.display_name]),
+  );
   return (
     <div className="inner-page">
       <BackLink className="mb-4" fallbackHref="/" />
@@ -61,7 +96,7 @@ export function IntentHistory({
             </Link>
           </Button>
         }
-        description="找回当前账户之前提交的解析任务，继续查看结果。"
+        description="查看之前提交的解析，以及针对视频运行过的 Skill 分析。"
         title="解析记录"
       />
       <section aria-label="已提交的解析" className="mt-12 lg:mt-16">
@@ -117,7 +152,7 @@ export function IntentHistory({
           <PageEmptyNotice
             compact
             title="暂无解析记录"
-            description="粘贴媒体链接并点击解析后，可在这里继续查看。"
+            description="提交媒体解析或运行视频 Skill 后，可在这里继续查看。"
           />
         ) : null}
         {history.data?.items.length ? (
@@ -134,7 +169,7 @@ export function IntentHistory({
             <ItemGroup className="mt-2 gap-2" aria-label="解析任务列表">
               {history.data.items.map((item) => (
                 <Item
-                  key={item.id}
+                  key={`${item.record_type}:${item.id}`}
                   role="listitem"
                   className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 rounded-none border-0 px-0 py-5 lg:grid-cols-[minmax(0,1fr)_11rem_10rem_7rem] lg:gap-x-6"
                 >
@@ -142,6 +177,12 @@ export function IntentHistory({
                     <ItemTitle className="line-clamp-2 w-auto break-words text-[15px]">
                       {item.title || '媒体解析'}
                     </ItemTitle>
+                    {isVideoAnalysisRecord(item) ? (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        视频分析 ·{' '}
+                        {skillNames.get(item.skill_id) ?? item.skill_id}
+                      </p>
+                    ) : null}
                   </ItemContent>
                   <time
                     className="text-xs text-muted-foreground sm:text-sm"
@@ -153,28 +194,48 @@ export function IntentHistory({
                   </time>
                   <Badge
                     className="justify-self-end rounded-md px-2 py-1 font-normal lg:justify-self-start"
-                    variant={intentStatusVariant(item.status)}
+                    variant={
+                      isVideoAnalysisRecord(item)
+                        ? analysisStatusVariant(item.status)
+                        : intentStatusVariant(item.status)
+                    }
                   >
-                    {intentTitle(item.status)}
+                    {isVideoAnalysisRecord(item)
+                      ? `${statusLabels[item.status]}${isActiveAnalysisStatus(item.status) ? ` · ${item.progress}%` : ''}`
+                      : intentTitle(item.status)}
                   </Badge>
                   <ItemActions className="col-span-2 justify-end lg:col-span-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(event) => {
-                        if (
-                          item.status === IntentStatusCode.Ready &&
-                          item.inspection_id
-                        ) {
-                          onViewResult(item);
-                          return;
-                        }
-                        detailTrigger.current = event.currentTarget;
-                        setSelected(item);
-                      }}
-                    >
-                      {intentHistoryActionLabel(item.status)}
-                    </Button>
+                    {isVideoAnalysisRecord(item) ? (
+                      <Button asChild variant="ghost" size="sm">
+                        <Link
+                          href={
+                            item.download_id
+                              ? `/downloads/detail?jobId=${encodeURIComponent(item.download_id)}&analysisId=${encodeURIComponent(item.id)}`
+                              : `/downloads/detail?analysisId=${encodeURIComponent(item.id)}`
+                          }
+                        >
+                          查看分析
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(event) => {
+                          if (
+                            item.status === IntentStatusCode.Ready &&
+                            item.inspection_id
+                          ) {
+                            onViewResult(item);
+                            return;
+                          }
+                          detailTrigger.current = event.currentTarget;
+                          setSelected(item);
+                        }}
+                      >
+                        {intentHistoryActionLabel(item.status)}
+                      </Button>
+                    )}
                   </ItemActions>
                 </Item>
               ))}
@@ -216,4 +277,10 @@ export function IntentHistory({
       />
     </div>
   );
+}
+
+function isVideoAnalysisRecord(
+  item: API.HistoryRecordPageResponse['items'][number],
+): item is API.VideoAnalysisHistoryRecordResponse {
+  return item.record_type === 'video_analysis';
 }

@@ -331,6 +331,15 @@ declare namespace API {
     data: EngineCatalogResponse;
   };
 
+  type ApiResponseHistoryRecordPageResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: HistoryRecordPageResponse;
+  };
+
   type ApiResponseInspectionResponse_ = {
     /** 稳定的业务结果码。 */
     code: ErrorCode;
@@ -1293,6 +1302,22 @@ declare namespace API {
     evidence_shot_ids: string[];
   };
 
+  type HistoryRecordCursorResponse = {
+    /** Created At */
+    created_at: string;
+    record_type: HistoryRecordKind;
+    /** Id */
+    id: string;
+  };
+
+  type HistoryRecordKind = "parse" | "video_analysis";
+
+  type HistoryRecordPageResponse = {
+    /** Items */
+    items: (ParseHistoryRecordResponse | VideoAnalysisHistoryRecordResponse)[];
+    next_cursor: HistoryRecordCursorResponse | null;
+  };
+
   type IdentityState = "verified" | "ambiguous" | "unknown";
 
   type ImportErrorCode =
@@ -1450,6 +1475,13 @@ declare namespace API {
     limit?: number;
   };
 
+  type listHistoryRecordsParams = {
+    before_created_at?: string | null;
+    before_record_type?: HistoryRecordKind | null;
+    before_id?: string | null;
+    limit?: number;
+  };
+
   type listStoredFilesParams = {
     page?: number;
     page_size?: number;
@@ -1575,6 +1607,32 @@ declare namespace API {
     access_expires_at: string;
     /** Refresh Expires At */
     refresh_expires_at: string;
+  };
+
+  type ParseHistoryRecordResponse = {
+    /** Id */
+    id: string;
+    /** Version */
+    version: number;
+    status: IntentStatus;
+    /** Reason Code */
+    reason_code: string | null;
+    /** Next Action */
+    next_action?: string;
+    /** Retry At */
+    retry_at: string | null;
+    /** Deadline */
+    deadline: string;
+    /** Inspection Id */
+    inspection_id: string | null;
+    /** Job Id */
+    job_id: string | null;
+    /** Created At */
+    created_at: string;
+    /** Title */
+    title: string | null;
+    /** Record Type */
+    record_type: string;
   };
 
   type ProblemDetails = {
@@ -2163,6 +2221,26 @@ declare namespace API {
   };
 
   type UserRole = "admin" | "user";
+
+  type VideoAnalysisHistoryRecordResponse = {
+    /** Record Type */
+    record_type: string;
+    /** Id */
+    id: string;
+    /** Download Id */
+    download_id: string | null;
+    /** Title */
+    title: string;
+    /** Skill Id */
+    skill_id: string;
+    /** Created At */
+    created_at: string;
+    status: AnalysisStatus;
+    /** Progress */
+    progress: number;
+    stage: AnalysisStage | null;
+    error_code: AnalysisErrorCode | null;
+  };
 
   type VideoAnalysisResultResponse = {
     /** Kind */

@@ -1,18 +1,31 @@
+from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 
 from app.api.admission import RateLimitAdmission
-from app.api.deps import IdempotencyKey, get_current_user, get_services, require_service
+from app.api.deps import (
+    IdempotencyKey,
+    get_current_user,
+    get_history_record_service,
+    get_services,
+    require_service,
+)
 from app.api.responses import ApiResponseRoute
 from app.schemas.download_intents import (
     IntentHistoryResponse,
     IntentRequest,
     IntentResponse,
 )
+from app.schemas.history_records import HistoryRecordPageResponse
 from app.services.auth.models import CurrentUser
 from app.services.downloads.intents import IntentService
+from app.services.history_records import (
+    HistoryRecordCursor,
+    HistoryRecordKind,
+    HistoryRecordService,
+)
 
 router = APIRouter(
     route_class=ApiResponseRoute, prefix="/download-intents", tags=["download-intents"]
@@ -25,6 +38,7 @@ def get_intent_service(request: Request) -> IntentService:
 
 User = Annotated[CurrentUser, Depends(get_current_user)]
 Service = Annotated[IntentService, Depends(get_intent_service)]
+HistoryService = Annotated[HistoryRecordService, Depends(get_history_record_service)]
 
 
 @router.get(
@@ -84,6 +98,51 @@ async def list_intents(
     response.headers["Cache-Control"] = "no-store"
     return IntentHistoryResponse.from_page(
         await service.history(user.owner_hash, before=before, limit=limit)
+    )
+
+
+@router.get(
+    "/history/records",
+    response_model=HistoryRecordPageResponse,
+    operation_id="listHistoryRecords",
+    summary="分页查询解析入口与视频内容分析记录",
+)
+async def list_history_records(
+    user: User,
+    service: HistoryService,
+    response: Response,
+    before_created_at: datetime | None = None,
+    before_record_type: HistoryRecordKind | None = None,
+    before_id: UUID | None = None,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+) -> HistoryRecordPageResponse:
+    response.headers["Cache-Control"] = "no-store"
+    cursor_parts = (before_created_at, before_record_type, before_id)
+    if any(part is not None for part in cursor_parts) and not all(
+        part is not None for part in cursor_parts
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "before_created_at, before_record_type and before_id "
+                "are required together"
+            ),
+        )
+    if before_created_at is None:
+        before = None
+    else:
+        if before_record_type is None or before_id is None:
+            raise HTTPException(
+                status_code=422,
+                detail="Incomplete history cursor",
+            )
+        before = HistoryRecordCursor(
+            created_at=before_created_at,
+            record_type=before_record_type,
+            id=before_id,
+        )
+    return HistoryRecordPageResponse.from_page(
+        await service.list(user.owner_hash, before=before, limit=limit)
     )
 
 

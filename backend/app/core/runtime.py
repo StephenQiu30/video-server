@@ -58,6 +58,7 @@ from app.services.downloads.thumbnail_use_cases import (
     GetDownloadThumbnail,
     GetThumbnail,
 )
+from app.services.history_records import HistoryRecordService
 from app.services.imports.service import (
     CancelImport,
     CompleteImportUpload,
@@ -140,6 +141,7 @@ class DocumentImportUseCases:
 class ApiServices:
     engine_catalog_reader: Callable[[], Awaitable[EngineCatalogResponse]] | None = None
     intent_service: IntentService | None = None
+    history_record_service: HistoryRecordService | None = None
     auth_service: AuthService | None = None
     web_session_service: WebSessionService | None = None
     user_service: UserService | None = None

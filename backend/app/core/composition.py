@@ -62,6 +62,7 @@ from app.repositories.documents.import_repository import (
 )
 from app.repositories.downloads.intent_repository import IntentRepository
 from app.repositories.downloads.repository import SqlAlchemyDownloadRepository
+from app.repositories.history_records import SqlAlchemyHistoryRecordRepository
 from app.repositories.imports.repository import SqlAlchemyMediaImportRepository
 from app.repositories.operational_metrics import OperationalMetrics
 from app.repositories.providers.authorizations import ProviderAuthorizationRepository
@@ -122,6 +123,7 @@ from app.services.downloads.thumbnail_use_cases import (
     GetThumbnail,
     PersistThumbnail,
 )
+from app.services.history_records import HistoryRecordService
 from app.services.imports.models import UploadLimits
 from app.services.imports.service import (
     CancelImport,
@@ -532,6 +534,9 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
                 now=clock,
                 new_id=uuid4,
                 select_policy=select_intent_policy,
+            ),
+            history_record_service=HistoryRecordService(
+                SqlAlchemyHistoryRecordRepository(sessions)
             ),
             auth_service=auth_service,
             web_session_service=WebSessionService(

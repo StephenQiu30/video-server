@@ -34,9 +34,11 @@ import { TaskSocketStatusCode } from '@/lib/task-socket';
 
 export default function DownloadJobView({
   jobId,
+  analysisId,
   pollIntervalMs = 1500,
 }: {
   jobId: string;
+  analysisId?: string;
   pollIntervalMs?: number;
 }) {
   const router = useRouter();
@@ -238,6 +240,7 @@ export default function DownloadJobView({
               <div className="mt-14 sm:mt-20">
                 <AnalysisPanel
                   downloadId={state.job.id}
+                  analysisId={analysisId}
                   onSelectTime={
                     state.job.file_available && previewReady
                       ? selectTime

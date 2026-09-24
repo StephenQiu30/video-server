@@ -25,6 +25,7 @@ from app.services.auth.service import AuthService
 from app.services.auth.user_service import UserService
 from app.services.auth.web_sessions import WebSessionGrant, WebSessionService
 from app.services.downloads.ports import DownloadArtifactStorage
+from app.services.history_records import HistoryRecordService
 from app.services.provider_authorization import ProviderAuthorizationService
 from app.services.provider_catalog import ProviderCatalogService
 from app.services.providers import ProviderStatusView
@@ -62,6 +63,12 @@ def get_source_discovery_use_cases(request: Request) -> SourceDiscoveryUseCases:
 
 def get_analysis_use_cases(request: Request) -> AnalysisUseCases:
     return require_service(get_services(request).analysis_use_cases, "analysis")
+
+
+def get_history_record_service(request: Request) -> HistoryRecordService:
+    return require_service(
+        get_services(request).history_record_service, "history records"
+    )
 
 
 def get_media_import_use_cases(request: Request) -> MediaImportUseCases:

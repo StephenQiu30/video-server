@@ -39,16 +39,18 @@ import { TaskSocketStatusCode } from '@/lib/task-socket';
 
 export default function AnalysisPanel({
   downloadId,
+  analysisId,
   onSelectTime,
   playbackUnavailableReason = '视频预览尚未就绪，请在上方播放器检查或重新加载。',
   pollIntervalMs = 1500,
 }: {
   downloadId: string;
+  analysisId?: string;
   onSelectTime?: (milliseconds: number) => void;
   playbackUnavailableReason?: string;
   pollIntervalMs?: number;
 }) {
-  const state = useAnalysisJob(downloadId, pollIntervalMs);
+  const state = useAnalysisJob(downloadId, pollIntervalMs, 'video', analysisId);
 
   if (state.loading && state.action !== 'start') {
     return (

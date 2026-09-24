@@ -33,32 +33,39 @@ export enum AnalysisStageCode {
 type AnalysisStatusPresentation = {
   label: string;
   active: boolean;
+  variant: 'default' | 'secondary' | 'destructive' | 'outline';
 };
 
 const analysisStatusPresentation = {
   [AnalysisStatusCode.Queued]: {
     label: '等待分析',
     active: true,
+    variant: 'secondary',
   },
   [AnalysisStatusCode.Running]: {
     label: '正在分析',
     active: true,
+    variant: 'secondary',
   },
   [AnalysisStatusCode.RetryWait]: {
     label: '等待重试',
     active: true,
+    variant: 'secondary',
   },
   [AnalysisStatusCode.Succeeded]: {
     label: '分析已完成',
     active: false,
+    variant: 'default',
   },
   [AnalysisStatusCode.Failed]: {
     label: '分析失败',
     active: false,
+    variant: 'destructive',
   },
   [AnalysisStatusCode.Cancelled]: {
     label: '分析已取消',
     active: false,
+    variant: 'outline',
   },
 } satisfies Record<API.AnalysisStatus, AnalysisStatusPresentation>;
 
@@ -79,6 +86,12 @@ export const statusLabels = {
 
 export function isActiveAnalysisStatus(status: API.AnalysisStatus): boolean {
   return analysisStatusPresentation[status].active;
+}
+
+export function analysisStatusVariant(
+  status: API.AnalysisStatus,
+): AnalysisStatusPresentation['variant'] {
+  return analysisStatusPresentation[status].variant;
 }
 
 export function isTerminalAnalysisStatus(status: API.AnalysisStatus): boolean {

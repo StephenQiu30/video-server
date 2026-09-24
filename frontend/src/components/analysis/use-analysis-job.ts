@@ -32,19 +32,32 @@ export function useAnalysisJob(
   inputId: string,
   pollIntervalMs: number,
   inputKind: API.AnalysisInputKind = 'video',
+  selectedAnalysisId?: string,
 ) {
   const queries = useQueryClient();
   const [socketStatus, setSocketStatus] = useState(
     TaskSocketStatusCode.Disconnected,
   );
-  const sourceKey = `${inputKind}:${inputId}`;
+  const sourceKey = `${inputKind}:${inputId}:${selectedAnalysisId ?? 'latest'}`;
   const queryKey = useMemo(
-    () => privateQueryKey('analysis', inputKind, inputId),
-    [inputKind, inputId],
+    () =>
+      privateQueryKey(
+        'analysis',
+        inputKind,
+        inputId,
+        selectedAnalysisId ?? 'latest',
+      ),
+    [inputKind, inputId, selectedAnalysisId],
   );
   const mutationKey = useMemo(
-    () => privateQueryKey('analysis-action', inputKind, inputId),
-    [inputKind, inputId],
+    () =>
+      privateQueryKey(
+        'analysis-action',
+        inputKind,
+        inputId,
+        selectedAnalysisId ?? 'latest',
+      ),
+    [inputKind, inputId, selectedAnalysisId],
   );
   const sourceKeyRef = useRef(sourceKey);
   const versionRef = useRef(0);
@@ -117,16 +130,23 @@ export function useAnalysisJob(
             { analysis_id: encodeURIComponent(previous.id) },
             { signal },
           )
-        : inputKind === 'screenplay'
-          ? await getLatestDocumentAnalysis(
-              { document_id: encodeURIComponent(inputId) },
+        : selectedAnalysisId
+          ? await getAnalysis(
+              { analysis_id: encodeURIComponent(selectedAnalysisId) },
               { signal },
             )
-          : await getLatestDownloadAnalysis(
-              { download_id: encodeURIComponent(inputId) },
-              { signal },
-            );
+          : inputKind === 'screenplay'
+            ? await getLatestDocumentAnalysis(
+                { document_id: encodeURIComponent(inputId) },
+                { signal },
+              )
+            : await getLatestDownloadAnalysis(
+                { download_id: encodeURIComponent(inputId) },
+                { signal },
+              );
       if (active && next?.id !== previous.id)
+        throw new Error('Unexpected analysis response');
+      if (selectedAnalysisId && next?.id !== selectedAnalysisId)
         throw new Error('Unexpected analysis response');
       const current = queries.getQueryData<API.AnalysisResponse | null>(
         queryKey,
