@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { deleteUser, listUsers, updateUserAccess } from '@/api/admin';
 import { AdminUsersScreen } from '@/components/admin/admin-users/admin-users-screen';
 import {
@@ -37,7 +38,6 @@ export function AdminUsersView() {
   const [active, setActive] = useState<ActiveFilter>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [editing, setEditing] = useState<API.ManagedUserResponse | null>(null);
   const [editRole, setEditRole] = useState<API.UserRole>('user');
   const [editActive, setEditActive] = useState(true);
@@ -112,7 +112,7 @@ export function AdminUsersView() {
         },
       );
       setEditing(null);
-      setNotice(`已更新 ${editing.username} 的账户权限。`);
+      toast.success(`已更新 ${editing.username} 的账户权限。`);
       await loadUsers();
     } catch (reason) {
       setEditError(
@@ -133,7 +133,7 @@ export function AdminUsersView() {
     try {
       await deleteUser({ user_id: encodeURIComponent(target.id) });
       setDeleteTarget(null);
-      setNotice(`已删除账户“${target.username}”。`);
+      toast.success(`已删除账户“${target.username}”。`);
       if (page > 1 && items.length === 1) {
         setPage(page - 1);
       } else {
@@ -167,7 +167,6 @@ export function AdminUsersView() {
         error: editError,
         saving,
       }}
-      notice={notice}
       actions={{
         onDraftSearch: setDraftSearch,
         onSearch: applySearch,

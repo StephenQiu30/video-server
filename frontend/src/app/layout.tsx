@@ -75,7 +75,11 @@ export default async function RootLayout({
                 <TooltipProvider delayDuration={300}>
                   <BasicLayout>{children}</BasicLayout>
                 </TooltipProvider>
-                <Toaster closeButton position="bottom-right" />
+                <Toaster
+                  mobileOffset={{ top: 72 }}
+                  offset={{ top: 80 }}
+                  position="top-center"
+                />
               </IntakeDraftProvider>
             </QueryProvider>
           </AuthProvider>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import {
   createProviderCatalogEntry,
   deleteProviderCatalogEntry,
@@ -29,7 +30,6 @@ export function AdminProviderCatalogView() {
   const [items, setItems] = useState<API.ProviderCatalogEntryResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [editor, setEditor] = useState<CatalogEditorState>(EMPTY_EDITOR);
   const [deleting, setDeleting] = useState<CatalogDeleteState>(EMPTY_DELETE);
   const requestId = useRef(0);
@@ -56,12 +56,10 @@ export function AdminProviderCatalogView() {
   }, [loadCatalog]);
 
   function openCreate() {
-    setNotice('');
     setEditor({ ...EMPTY_EDITOR, mode: 'create' });
   }
 
   function openEdit(item: API.ProviderCatalogEntryResponse) {
-    setNotice('');
     setEditor({
       mode: 'edit',
       key: item.key,
@@ -95,7 +93,7 @@ export function AdminProviderCatalogView() {
           sort_order: sortOrder,
           is_visible: editor.visible,
         });
-        setNotice(`已新增平台“${displayName}”。`);
+        toast.success(`已新增平台“${displayName}”。`);
       } else {
         await updateProviderCatalogEntry(
           { provider_key: encodeURIComponent(key) },
@@ -105,7 +103,7 @@ export function AdminProviderCatalogView() {
             is_visible: editor.visible,
           },
         );
-        setNotice(`已更新平台“${displayName}”。`);
+        toast.success(`已更新平台“${displayName}”。`);
       }
       setEditor(EMPTY_EDITOR);
       await loadCatalog();
@@ -127,7 +125,7 @@ export function AdminProviderCatalogView() {
         provider_key: encodeURIComponent(target.key),
       });
       setDeleting(EMPTY_DELETE);
-      setNotice(`已删除平台“${target.display_name}”。`);
+      toast.success(`已删除平台“${target.display_name}”。`);
       await loadCatalog();
     } catch (reason) {
       setDeleting((current) => ({
@@ -141,7 +139,6 @@ export function AdminProviderCatalogView() {
   return (
     <>
       <ProviderCatalogScreen
-        notice={notice}
         onCreate={openCreate}
         onDelete={(target) => setDeleting({ ...EMPTY_DELETE, target })}
         onEdit={openEdit}

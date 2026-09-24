@@ -1,9 +1,4 @@
-import {
-  ArrowClockwise,
-  CheckCircle,
-  FolderOpen,
-  Trash,
-} from '@phosphor-icons/react';
+import { ArrowClockwise, FolderOpen, Trash } from '@phosphor-icons/react';
 
 import { BackLink } from '@/components/layout/back-link';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
@@ -11,7 +6,6 @@ import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -26,7 +20,6 @@ type AdminStorageScreenProps = {
   page: number;
   loading: boolean;
   error: string;
-  notice: string;
   cleanup: {
     open: boolean;
     days: number;
@@ -55,7 +48,6 @@ export function AdminStorageScreen({
   page,
   loading,
   error,
-  notice,
   cleanup,
   deletion,
   onPageChange,
@@ -88,12 +80,6 @@ export function AdminStorageScreen({
         />
       </div>
 
-      {notice ? (
-        <Alert variant="default">
-          <CheckCircle aria-hidden />
-          <AlertDescription>{notice}</AlertDescription>
-        </Alert>
-      ) : null}
       {error && items.length > 0 ? (
         <FeedbackNotice
           action={

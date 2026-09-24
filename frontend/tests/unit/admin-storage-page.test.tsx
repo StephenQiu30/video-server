@@ -10,6 +10,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminStorageView } from '@/components/admin/admin-storage-view';
 
 const runtime = vi.hoisted(() => ({
+  toastSuccess: vi.fn(),
+  toastWarning: vi.fn(),
   cleanupStoredFiles: vi.fn(),
   deleteStoredFile: vi.fn(),
   listStoredFiles: vi.fn(),
@@ -23,6 +25,10 @@ const runtime = vi.hoisted(() => ({
   },
 }));
 
+vi.mock('sonner', () => ({
+  toast: { success: runtime.toastSuccess, warning: runtime.toastWarning },
+}));
+
 vi.mock('@/components/auth/auth-provider', async (importOriginal) => ({
   ...(await importOriginal()),
   useAuth: () => ({ loading: false, user: runtime.user }),
@@ -33,6 +39,8 @@ describe('administrator storage management', () => {
     runtime.cleanupStoredFiles.mockReset();
     runtime.deleteStoredFile.mockReset();
     runtime.listStoredFiles.mockReset();
+    runtime.toastSuccess.mockReset();
+    runtime.toastWarning.mockReset();
   });
 
   it('paginates persistent files and cleans files older than 30 days by default', async () => {
@@ -80,9 +88,11 @@ describe('administrator storage management', () => {
         older_than_days: 30,
       }),
     );
-    expect(
-      await screen.findByText('已清理 1 项资源、2 个对象；0 项清理失败。'),
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(runtime.toastSuccess).toHaveBeenCalledWith(
+        '已清理 1 项资源、2 个对象；0 项清理失败。',
+      ),
+    );
     await waitFor(() =>
       expect(runtime.listStoredFiles).toHaveBeenLastCalledWith({
         page: 1,
@@ -107,7 +117,9 @@ describe('administrator storage management', () => {
         file_id: 'file-1',
       }),
     );
-    expect(await screen.findByText('已删除文件“视频 1”。')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(runtime.toastSuccess).toHaveBeenCalledWith('已删除文件“视频 1”。'),
+    );
   });
 
   it('keeps the current table mounted when a refresh fails', async () => {
@@ -130,6 +142,36 @@ describe('administrator storage management', () => {
     expect(screen.getByText('视频 1')).toBeInTheDocument();
     expect(screen.getByText('文件列表刷新失败')).toBeInTheDocument();
     expect(screen.getByText('文件服务暂不可用')).toBeInTheDocument();
+  });
+
+  it('shows a warning when cleanup only partially succeeds', async () => {
+    runtime.listStoredFiles.mockResolvedValue({
+      items: [],
+      page: 1,
+      page_size: 20,
+      total: 0,
+    });
+    runtime.cleanupStoredFiles.mockResolvedValue({
+      failed_resources: 1,
+      freed_bytes: 0,
+      older_than_days: 30,
+      removed_objects: 2,
+      removed_resources: 1,
+    });
+    render(<AdminStorageView />);
+
+    fireEvent.click(screen.getByRole('button', { name: '清理历史文件' }));
+    const dialog = await screen.findByRole('alertdialog', {
+      name: '清理历史文件？',
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: '确认清理' }));
+
+    await waitFor(() =>
+      expect(runtime.toastWarning).toHaveBeenCalledWith(
+        '已清理 1 项资源、2 个对象；1 项清理失败。',
+      ),
+    );
+    expect(runtime.toastSuccess).not.toHaveBeenCalled();
   });
 });
 

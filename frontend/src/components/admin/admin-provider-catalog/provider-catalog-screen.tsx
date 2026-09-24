@@ -1,6 +1,5 @@
 import {
   ArrowClockwise,
-  CheckCircle,
   FunnelX,
   PlugsConnected,
   Plus,
@@ -13,7 +12,6 @@ import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -28,7 +26,6 @@ const CATALOG_PAGE_SIZE = 10;
 
 type ProviderCatalogScreenProps = {
   result: CatalogResultState;
-  notice: string;
   onCreate: () => void;
   onDelete: (item: API.ProviderCatalogEntryResponse) => void;
   onEdit: (item: API.ProviderCatalogEntryResponse) => void;
@@ -37,7 +34,6 @@ type ProviderCatalogScreenProps = {
 
 export function ProviderCatalogScreen({
   result,
-  notice,
   onCreate,
   onDelete,
   onEdit,
@@ -81,12 +77,6 @@ export function ProviderCatalogScreen({
         <p>“仅目录”条目不会获得真实下载能力。</p>
       </div>
 
-      {notice ? (
-        <Alert variant="default">
-          <CheckCircle aria-hidden />
-          <AlertDescription>{notice}</AlertDescription>
-        </Alert>
-      ) : null}
       {result.error && result.items.length === 0 ? (
         <PageErrorNotice
           message={result.error}

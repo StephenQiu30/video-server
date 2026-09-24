@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminUsersView } from '@/components/admin/admin-users-view';
 
 const runtime = vi.hoisted(() => ({
+  toastSuccess: vi.fn(),
   deleteUser: vi.fn(),
   listUsers: vi.fn(),
   updateUserAccess: vi.fn(),
@@ -24,6 +25,8 @@ const runtime = vi.hoisted(() => ({
   },
 }));
 
+vi.mock('sonner', () => ({ toast: { success: runtime.toastSuccess } }));
+
 vi.mock('@/components/auth/auth-provider', async (importOriginal) => ({
   ...(await importOriginal()),
   useAuth: () => ({ loading: false, user: runtime.user }),
@@ -34,6 +37,7 @@ describe('administrator user management', () => {
     runtime.deleteUser.mockReset();
     runtime.listUsers.mockReset();
     runtime.updateUserAccess.mockReset();
+    runtime.toastSuccess.mockReset();
     runtime.deleteUser.mockResolvedValue(undefined);
     runtime.updateUserAccess.mockResolvedValue(managedUser());
   });
@@ -111,6 +115,9 @@ describe('administrator user management', () => {
           },
         },
       ),
+    );
+    expect(runtime.toastSuccess).toHaveBeenCalledWith(
+      '已更新 editor 的账户权限。',
     );
 
     const pagination = screen.getByRole('navigation', { name: '用户列表分页' });
@@ -224,7 +231,9 @@ describe('administrator user management', () => {
         user_id: 'editor-id',
       }),
     );
-    expect(await screen.findByText('已删除账户“editor”。')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(runtime.toastSuccess).toHaveBeenCalledWith('已删除账户“editor”。'),
+    );
   });
 });
 

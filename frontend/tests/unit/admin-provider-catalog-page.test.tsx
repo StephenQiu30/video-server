@@ -115,7 +115,6 @@ describe('administrator provider catalog management', () => {
     const { rerender } = render(
       <ProviderCatalogScreen
         {...actions}
-        notice=""
         result={{ error: '', items: [youtube(), custom()], loading: false }}
       />,
     );
@@ -123,7 +122,6 @@ describe('administrator provider catalog management', () => {
     rerender(
       <ProviderCatalogScreen
         {...actions}
-        notice=""
         result={{ error: '', items: [youtube(), custom()], loading: true }}
       />,
     );
@@ -155,7 +153,6 @@ describe('administrator provider catalog management', () => {
     render(
       <ProviderCatalogScreen
         {...actions}
-        notice=""
         result={{ error: '', items, loading: false }}
       />,
     );

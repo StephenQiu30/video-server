@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import {
   cleanupStoredFiles,
   deleteStoredFile,
@@ -18,7 +19,6 @@ export function AdminStorageView() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [cleanupOpen, setCleanupOpen] = useState(false);
   const [cleanupDays, setCleanupDays] = useState(30);
   const [cleaning, setCleaning] = useState(false);
@@ -63,9 +63,9 @@ export function AdminStorageView() {
     try {
       const result = await cleanupStoredFiles({ older_than_days: cleanupDays });
       setCleanupOpen(false);
-      setNotice(
-        `已清理 ${result.removed_resources} 项资源、${result.removed_objects} 个对象；${result.failed_resources} 项清理失败。`,
-      );
+      const message = `已清理 ${result.removed_resources} 项资源、${result.removed_objects} 个对象；${result.failed_resources} 项清理失败。`;
+      if (result.failed_resources > 0) toast.warning(message);
+      else toast.success(message);
       if (page === 1) await loadFiles();
       else setPage(1);
     } catch (reason) {
@@ -83,7 +83,7 @@ export function AdminStorageView() {
     try {
       await deleteStoredFile({ category: target.category, file_id: target.id });
       setDeleteTarget(null);
-      setNotice(`已删除文件“${target.name}”。`);
+      toast.success(`已删除文件“${target.name}”。`);
       if (page > 1 && items.length === 1) {
         setPage(page - 1);
       } else {
@@ -108,7 +108,6 @@ export function AdminStorageView() {
       error={error}
       items={items}
       loading={loading || authLoading}
-      notice={notice}
       onCleanupDaysChange={setCleanupDays}
       onCloseCleanup={() => {
         if (!cleaning) setCleanupOpen(false);

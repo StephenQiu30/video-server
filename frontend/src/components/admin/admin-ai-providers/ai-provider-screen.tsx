@@ -1,16 +1,10 @@
-import {
-  ArrowClockwise,
-  CheckCircle,
-  PlugsConnected,
-  Plus,
-} from '@phosphor-icons/react';
+import { ArrowClockwise, PlugsConnected, Plus } from '@phosphor-icons/react';
 
 import { BackLink } from '@/components/layout/back-link';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -22,7 +16,6 @@ type Props = {
   error: string;
   items: API.AiProviderProfileResponse[];
   loading: boolean;
-  notice: string;
   onActivate: (item: API.AiProviderProfileResponse) => void;
   onCreate: () => void;
   onDelete: (item: API.AiProviderProfileResponse) => void;
@@ -35,7 +28,6 @@ export function AiProviderScreen({
   error,
   items,
   loading,
-  notice,
   onActivate,
   onCreate,
   onDelete,
@@ -59,12 +51,6 @@ export function AiProviderScreen({
         />
       </div>
 
-      {notice ? (
-        <Alert variant="default">
-          <CheckCircle aria-hidden />
-          <AlertDescription>{notice}</AlertDescription>
-        </Alert>
-      ) : null}
       {error ? (
         items.length === 0 ? (
           <PageErrorNotice

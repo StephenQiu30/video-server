@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import {
   activateAiProviderProfile,
   createAiProviderProfile,
@@ -23,7 +24,6 @@ export function AdminAiProvidersView() {
   const [agentAvailable, setAgentAvailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [editor, setEditor] = useState<AiProviderEditorState>(
     EMPTY_AI_PROVIDER_EDITOR,
   );
@@ -62,7 +62,6 @@ export function AdminAiProvidersView() {
       document.activeElement instanceof HTMLElement
         ? document.activeElement
         : null;
-    setNotice('');
     setEditor({ ...EMPTY_AI_PROVIDER_EDITOR, mode: 'create' });
   }
 
@@ -71,7 +70,6 @@ export function AdminAiProvidersView() {
       document.activeElement instanceof HTMLElement
         ? document.activeElement
         : null;
-    setNotice('');
     setEditor({
       mode: 'edit',
       key: item.key,
@@ -119,7 +117,7 @@ export function AdminAiProvidersView() {
           model,
           api_key: apiKey || null,
         });
-        setNotice(`已新增 AI Provider“${displayName}”。`);
+        toast.success(`已新增 AI Provider“${displayName}”。`);
       } else {
         await updateAiProviderProfile(
           { provider_key: encodeURIComponent(key) },
@@ -134,7 +132,7 @@ export function AdminAiProvidersView() {
                 ...(apiKey ? { api_key: apiKey } : {}),
               },
         );
-        setNotice(`已更新 AI Provider“${displayName}”。`);
+        toast.success(`已更新 AI Provider“${displayName}”。`);
       }
       setEditor(EMPTY_AI_PROVIDER_EDITOR);
       await load();
@@ -149,12 +147,11 @@ export function AdminAiProvidersView() {
 
   async function activate(item: API.AiProviderProfileResponse) {
     setError('');
-    setNotice('');
     try {
       await activateAiProviderProfile({
         provider_key: encodeURIComponent(item.key),
       });
-      setNotice(`“${item.display_name}”已成为当前分析线路。`);
+      toast.success(`“${item.display_name}”已成为当前分析线路。`);
       await load();
     } catch (reason) {
       setError(displayError(reason));
@@ -168,7 +165,7 @@ export function AdminAiProvidersView() {
       await deleteAiProviderProfile({
         provider_key: encodeURIComponent(deleteTarget.key),
       });
-      setNotice(`已删除 AI Provider“${deleteTarget.display_name}”。`);
+      toast.success(`已删除 AI Provider“${deleteTarget.display_name}”。`);
       setDeleteTarget(null);
       await load();
     } catch (reason) {
@@ -185,7 +182,6 @@ export function AdminAiProvidersView() {
         error={error}
         items={items}
         loading={loading}
-        notice={notice}
         onActivate={(item) => void activate(item)}
         onCreate={openCreate}
         onDelete={setDeleteTarget}

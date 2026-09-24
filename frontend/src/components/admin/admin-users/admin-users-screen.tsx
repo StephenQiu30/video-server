@@ -1,10 +1,9 @@
-import { ArrowClockwise, CheckCircle } from '@phosphor-icons/react';
+import { ArrowClockwise } from '@phosphor-icons/react';
 
 import { BackLink } from '@/components/layout/back-link';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
 import {
@@ -48,7 +47,6 @@ type AdminUsersScreenProps = {
   result: UserResultState;
   editor: UserEditorState;
   deletion: UserDeletionState;
-  notice: string;
   actions: ScreenActions;
 };
 
@@ -58,7 +56,6 @@ export function AdminUsersScreen({
   result,
   editor,
   deletion,
-  notice,
   actions,
 }: AdminUsersScreenProps) {
   const pages = Math.max(1, Math.ceil(result.total / PAGE_SIZE));
@@ -94,12 +91,6 @@ export function AdminUsersScreen({
         />
       </div>
 
-      {notice && (
-        <Alert variant="default">
-          <CheckCircle aria-hidden />
-          <AlertDescription>{notice}</AlertDescription>
-        </Alert>
-      )}
       {result.error && result.items.length > 0 ? (
         <FeedbackNotice
           action={
