@@ -33,7 +33,7 @@ export function ScreenplayDocumentDeleteDialog({
           aria-label={compact ? '删除剧本文档' : undefined}
           className={compact ? undefined : 'w-full sm:w-auto'}
           disabled={busy}
-          size={compact ? 'icon-sm' : 'xl'}
+          size={compact ? 'icon-sm' : 'lg'}
           variant="ghost"
         >
           {busy ? (

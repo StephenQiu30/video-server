@@ -46,9 +46,7 @@ export function PagePagination({
             aria-live="polite"
             className={cn(
               'flex min-w-20 items-center justify-center font-normal text-muted-foreground tabular-nums',
-              compact
-                ? 'min-h-control-sm bg-background'
-                : 'min-h-control-lg text-sm',
+              compact ? 'min-h-7 bg-background' : 'min-h-9 text-sm',
             )}
           >
             {page} / {pages}

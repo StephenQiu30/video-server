@@ -23,7 +23,7 @@ export function MobileNavigationLink({
           active={active}
           asChild
           className={cn(
-            'h-control-lg w-full justify-start rounded-md px-4 py-2 text-sm font-medium',
+            'h-9 w-full justify-start rounded-md px-4 py-2 text-sm font-medium',
             active && 'bg-accent text-accent-foreground',
           )}
         >

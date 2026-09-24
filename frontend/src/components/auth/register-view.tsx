@@ -215,7 +215,7 @@ export function RegisterView() {
           <Button
             className="w-full text-[15px]"
             disabled={loading || submitting || sendingCode}
-            size="xl"
+            size="lg"
             type="submit"
           >
             {submitting ? (

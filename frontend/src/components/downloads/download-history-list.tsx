@@ -212,7 +212,7 @@ function LoadingRows() {
               <Skeleton className="h-4 w-2/5" />
               <Skeleton className="h-3 w-3/5" />
             </div>
-            <Skeleton className="col-span-2 h-control-sm w-28 justify-self-end sm:col-auto" />
+            <Skeleton className="col-span-2 h-7 w-28 justify-self-end sm:col-auto" />
           </div>
         ))}
       </div>

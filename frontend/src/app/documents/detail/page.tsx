@@ -21,7 +21,7 @@ function RouteFallback() {
     <div className="inner-page" role="status">
       <span className="sr-only">正在读取剧本文档</span>
       <BackLink fallbackHref="/documents" />
-      <Skeleton className="mt-8 h-placeholder-chip w-24" />
+      <Skeleton className="mt-8 h-6 w-24" />
       <Skeleton className="mt-4 h-12 w-2/5" />
       <Skeleton className="mt-3 h-4 w-1/3" />
       <div className="mt-12 grid gap-12 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-0">

@@ -58,7 +58,7 @@ export function ContentIntakeHero({
       >
         <TabsList
           aria-label="选择内容来源"
-          className="grid h-control-lg w-full grid-cols-3 gap-0 p-0 lg:inline-flex lg:w-fit lg:gap-6 lg:p-0"
+          className="grid h-9 w-full grid-cols-3 gap-0 p-0 lg:inline-flex lg:w-fit lg:gap-6 lg:p-0"
           variant="line"
         >
           <TabsTrigger

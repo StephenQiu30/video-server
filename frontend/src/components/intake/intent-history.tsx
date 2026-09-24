@@ -154,7 +154,7 @@ export function IntentHistory({
                     <Skeleton className="h-4 w-1/2" />
                     <Skeleton className="h-3 w-1/3" />
                   </div>
-                  <Skeleton className="h-placeholder-chip w-24" />
+                  <Skeleton className="h-6 w-24" />
                 </div>
               ))}
             </div>

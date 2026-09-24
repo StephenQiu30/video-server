@@ -44,47 +44,10 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
-  --spacing-control-xs: var(--control-size-xs);
-  --spacing-control-sm: var(--control-size-sm);
-  --spacing-control-default: var(--control-size-default);
-  --spacing-control-lg: var(--control-size-lg);
-  --spacing-control-xl: var(--control-size-xl);
-  --spacing-control-prominent: var(--control-size-prominent);
-  --spacing-control-upload: var(--control-size-upload);
-  --spacing-placeholder-chip: var(--placeholder-chip-size);
-  --spacing-switch-track-default-height: var(--switch-track-default-height);
-  --spacing-switch-track-default-width: var(--switch-track-default-width);
-  --spacing-switch-track-sm-height: var(--switch-track-sm-height);
-  --spacing-switch-track-sm-width: var(--switch-track-sm-width);
-  --spacing-switch-thumb-default: var(--switch-thumb-default);
-  --spacing-switch-thumb-sm: var(--switch-thumb-sm);
-  --spacing-indicator: var(--indicator-size);
-  --spacing-indicator-dot: var(--indicator-dot-size);
 }
 
 :root {
   --radius: 0.625rem;
-  --control-size-xs: clamp(2rem, calc(2.5rem - 0.45vw), 2.5rem);
-  --control-size-sm: clamp(2.25rem, calc(2.75rem - 0.45vw), 2.75rem);
-  --control-size-default: clamp(2.5rem, calc(3rem - 0.45vw), 3rem);
-  --control-size-lg: clamp(2.75rem, calc(3.25rem - 0.45vw), 3.25rem);
-  --control-size-xl: clamp(3rem, calc(3.5rem - 0.45vw), 3.5rem);
-  --control-size-prominent: clamp(3.5rem, calc(3.5rem + 1vw), 4.25rem);
-  --control-size-upload: clamp(4.5rem, calc(4.5rem + 0.75vw), 5rem);
-  --placeholder-chip-size: clamp(1.5rem, calc(1.5rem + 0.15vw), 1.75rem);
-  --switch-track-default-height: clamp(
-    1.125rem,
-    calc(1.125rem + 0.2vw),
-    1.25rem
-  );
-  --switch-track-default-width: clamp(2rem, calc(2rem + 0.35vw), 2.25rem);
-  --switch-track-sm-height: clamp(0.875rem, calc(0.875rem + 0.2vw), 1rem);
-  --switch-track-sm-width: clamp(1.5rem, calc(1.5rem + 0.25vw), 1.625rem);
-  --switch-thumb-default: clamp(0.875rem, calc(0.875rem + 0.2vw), 1rem);
-  --switch-thumb-sm: clamp(0.75rem, calc(0.75rem + 0.2vw), 0.875rem);
-  --switch-thumb-inset: clamp(0.0625rem, calc(0.0625rem + 0.1vw), 0.125rem);
-  --indicator-size: clamp(1rem, calc(1rem + 0.2vw), 1.25rem);
-  --indicator-dot-size: clamp(0.375rem, calc(0.375rem + 0.1vw), 0.5rem);
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -215,10 +178,10 @@
   }
 
   .editorial-title {
-    font-size: clamp(3.2rem, 5.4vw, 4.25rem);
+    font-size: clamp(2.5rem, 4vw, 3rem);
     font-weight: 500;
-    line-height: 0.96;
-    letter-spacing: -0.06em;
+    line-height: 1;
+    letter-spacing: -0.04em;
     text-wrap: balance;
   }
 

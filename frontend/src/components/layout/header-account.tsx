@@ -55,10 +55,7 @@ export function HeaderAccount({
       data-slot="header-account"
     >
       {loading ? (
-        <Skeleton
-          aria-hidden
-          className="h-control-lg w-[clamp(4.5rem,5vw,5.5rem)]"
-        />
+        <Skeleton aria-hidden className="h-9 w-[clamp(4.5rem,5vw,5.5rem)]" />
       ) : user ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

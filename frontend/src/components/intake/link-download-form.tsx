@@ -1,19 +1,17 @@
 'use client';
 
 import { DownloadSimple, LinkSimple, X } from '@phosphor-icons/react';
-import { cn } from 'cn';
 import type { FormEvent } from 'react';
 import {
   IntakeControlRow,
   IntakeSubmitButton,
-  intakeControlHeightClassName,
 } from '@/components/intake/intake-control-row';
 import { Form } from '@/components/ui/form';
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
-  InputGroupTextarea,
+  InputGroupInput,
 } from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
 import {
@@ -47,18 +45,17 @@ export function LinkDownloadForm({
   return (
     <Form onSubmit={submit}>
       <IntakeControlRow>
-        <InputGroup className={cn(intakeControlHeightClassName)}>
-          <InputGroupTextarea
+        <InputGroup className="h-12">
+          <InputGroupInput
             aria-describedby={invalid ? 'download-workspace-error' : undefined}
             aria-invalid={invalid ? true : undefined}
             aria-label="公开视频地址"
             autoComplete="url"
-            className="flex-1 field-sizing-fixed h-full min-h-0 max-h-full overflow-y-auto px-2 py-5 text-[15px] leading-6 sm:py-6"
+            className="h-full min-w-0 px-2 text-sm"
             disabled={disabled}
             maxLength={4096}
             onChange={(event) => onUrlChange(event.target.value)}
             placeholder="粘贴媒体链接或平台分享文案"
-            rows={1}
             value={url}
           />
           <InputGroupAddon align="inline-start" className="gap-2 pl-4">

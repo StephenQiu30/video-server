@@ -66,7 +66,7 @@ export function ScreenplayUploadForm({
         <IntakePickerButton
           aria-describedby={error ? 'screenplay-upload-error' : undefined}
           aria-invalid={fileInvalid || undefined}
-          className={workspace ? undefined : 'h-control-upload w-full'}
+          className={workspace ? undefined : 'h-12 w-full'}
           disabled={busy}
           onClick={() => inputRef.current?.click()}
         >
@@ -125,7 +125,7 @@ export function ScreenplayUploadForm({
 
       {busy ? (
         <div className="mt-4 py-4">
-          <div className="mb-3 flex min-h-control-lg items-center justify-between gap-4">
+          <div className="mb-3 flex min-h-9 items-center justify-between gap-4">
             <p aria-live="polite" className="text-sm" role="status">
               {phaseLabels[phase]}
             </p>

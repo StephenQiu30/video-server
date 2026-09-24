@@ -20,7 +20,7 @@ export function BrandLink({ className }: { className?: string }) {
     <Link
       aria-label="帧取首页"
       className={cn(
-        'focus-ring inline-flex min-h-control-lg items-center gap-3 rounded-md text-[17px] font-semibold tracking-[-0.02em]',
+        'focus-ring inline-flex min-h-9 items-center gap-3 rounded-md text-[17px] font-semibold tracking-[-0.02em]',
         className,
       )}
       href="/"
@@ -87,7 +87,7 @@ export function SiteHeader() {
           {headerAuthPending ? (
             <div
               aria-hidden
-              className="h-control-lg w-[clamp(7rem,9vw,12rem)]"
+              className="h-9 w-[clamp(7rem,9vw,12rem)]"
               data-slot="header-auth-pending"
             />
           ) : (

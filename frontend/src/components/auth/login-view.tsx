@@ -126,7 +126,7 @@ export function LoginView() {
         <Button
           className="w-full text-[15px]"
           disabled={loading || submitting}
-          size="xl"
+          size="lg"
           type="submit"
         >
           {submitting ? (

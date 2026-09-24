@@ -2,8 +2,6 @@ import { cn } from 'cn';
 import type * as React from 'react';
 import { Button } from '@/components/ui/button';
 
-export const intakeControlHeightClassName = 'h-control-prominent';
-
 export function IntakeControlRow({
   className,
   ...props
@@ -26,10 +24,10 @@ export function IntakePickerButton({
   return (
     <Button
       className={cn(
-        intakeControlHeightClassName,
-        'min-w-0 justify-start px-4 text-left font-normal',
+        'h-12 min-w-0 justify-start px-4 text-left font-normal',
         className,
       )}
+      size="lg"
       type="button"
       variant="secondary"
       {...props}
@@ -43,11 +41,8 @@ export function IntakeSubmitButton({
 }: React.ComponentProps<typeof Button>) {
   return (
     <Button
-      className={cn(
-        intakeControlHeightClassName,
-        'px-6 text-[15px]',
-        className,
-      )}
+      className={cn('h-12 px-4', className)}
+      size="lg"
       type="submit"
       {...props}
     />
