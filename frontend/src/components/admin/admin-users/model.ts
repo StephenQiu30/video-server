@@ -1,5 +1,3 @@
-export const PAGE_SIZE = 20;
-
 export type RoleFilter = 'all' | API.UserRole;
 export type ActiveFilter = 'all' | 'true' | 'false';
 
@@ -13,6 +11,7 @@ export type UserResultState = {
   items: API.ManagedUserResponse[];
   total: number;
   page: number;
+  pageSize: number;
   loading: boolean;
   error: string;
 };

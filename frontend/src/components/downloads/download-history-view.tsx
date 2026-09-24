@@ -3,18 +3,28 @@
 import { ArrowClockwise, MagnifyingGlass, Plus } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { DownloadDeleteDialog } from '@/components/downloads/download-delete-dialog';
 import DownloadHistoryList from '@/components/downloads/download-history-list';
 import { DownloadHistorySummary } from '@/components/downloads/download-history-summary';
-import { downloadStatusLabels } from '@/components/downloads/download-state-model';
+import {
+  DownloadStatusCode,
+  downloadRecovery,
+  downloadStatusLabels,
+  isActiveDownloadStatus,
+} from '@/components/downloads/download-state-model';
 import { useDownloadActions } from '@/components/downloads/use-download-actions';
 import { useDownloadHistory } from '@/components/downloads/use-download-history';
 import { BackLink } from '@/components/layout/back-link';
+import { BulkSelectionBar } from '@/components/layout/bulk-selection-bar';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { markNavigationPush } from '@/components/layout/navigation-history';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
-import { PagePagination } from '@/components/layout/page-pagination';
+import {
+  DEFAULT_PAGE_SIZE,
+  PagePagination,
+} from '@/components/layout/page-pagination';
 import { useWorkspaceState } from '@/components/layout/workspace-state-provider';
 import { Button } from '@/components/ui/button';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
@@ -32,20 +42,65 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { usePageSelection } from '@/hooks/use-page-selection';
 import { useRequestScope } from '@/hooks/use-request-scope';
 export default function DownloadHistoryView() {
   const router = useRouter();
   const { history, setHistory } = useWorkspaceState();
   const { page, searchInput, search, status } = history;
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const operations = useDownloadActions();
   const actionError = operations.error;
   const scope = useRequestScope('download-history');
   const state = useDownloadHistory({
     page,
-    page_size: 20,
+    page_size: pageSize,
     search: search || undefined,
     status,
   });
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkMessage, setBulkMessage] = useState('');
+  const items = state.data?.items ?? [];
+  const selection = usePageSelection(
+    JSON.stringify([page, pageSize, search, status]),
+    items.map((item) => item.id),
+  );
+  const selectedItems = items.filter((item) =>
+    selection.selected.includes(item.id),
+  );
+  const downloadable = selectedItems.filter(
+    (item) =>
+      item.status === DownloadStatusCode.Succeeded && item.file_available,
+  );
+  const retryable = selectedItems.filter(
+    (item) => downloadRecovery(item) === 'retry',
+  );
+  async function runBulk(action: 'download' | 'retry' | 'delete') {
+    if (bulkBusy || state.refreshing) return;
+    const targets =
+      action === 'download'
+        ? downloadable
+        : action === 'retry'
+          ? retryable
+          : selectedItems;
+    if (!targets.length) return;
+    const request = scope.capture();
+    setBulkBusy(true);
+    setBulkMessage('');
+    const done: string[] = [];
+    for (const item of targets) {
+      if (!request.current()) break;
+      const result = await operations.execute(item.id, action);
+      if (result) done.push(item.id);
+    }
+    if (request.current()) {
+      selection.remove(done);
+      setBulkMessage(
+        `${action === 'download' ? '已发起文件下载' : action === 'retry' ? '已提交重试' : '已删除'} ${done.length} 项，失败 ${targets.length - done.length} 项。${action === 'download' ? '浏览器可能要求允许下载多个文件。' : ''}`,
+      );
+      setBulkBusy(false);
+    }
+  }
   const responsePage = state.data?.page;
   const lastPage = state.data
     ? Math.max(1, Math.ceil(state.data.total / state.data.page_size))
@@ -205,7 +260,46 @@ export default function DownloadHistoryView() {
         />
       ) : null}
 
+      {items.length > 0 ? (
+        <BulkSelectionBar
+          all={selection.all}
+          some={selection.some}
+          count={selection.selected.length}
+          busy={bulkBusy || state.refreshing}
+          onSelectAll={selection.toggleAll}
+        >
+          <Button
+            variant="outline"
+            disabled={bulkBusy || state.refreshing || !downloadable.length}
+            onClick={() => void runBulk('download')}
+          >
+            批量下载（{downloadable.length}）
+          </Button>
+          <Button
+            variant="outline"
+            disabled={bulkBusy || state.refreshing || !retryable.length}
+            onClick={() => void runBulk('retry')}
+          >
+            批量重试（{retryable.length}）
+          </Button>
+          <DownloadDeleteDialog
+            active={selectedItems.some((item) =>
+              isActiveDownloadStatus(item.status),
+            )}
+            busy={bulkBusy || state.refreshing || !selectedItems.length}
+            count={selectedItems.length}
+            onDelete={() => runBulk('delete')}
+          />
+        </BulkSelectionBar>
+      ) : null}
+      {bulkBusy ? <p role="status">正在处理所选记录…</p> : null}
+      {bulkMessage ? <p role="status">{bulkMessage}</p> : null}
       <DownloadHistoryList
+        selection={{
+          ids: selection.selected,
+          toggle: selection.toggle,
+          busy: bulkBusy || state.refreshing,
+        }}
         data={state.data}
         loading={state.loading}
         onDownload={(item) => void download(item)}
@@ -214,8 +308,14 @@ export default function DownloadHistoryView() {
         pendingActions={operations.pendingActions}
       />
 
-      {state.data && state.data.total > state.data.page_size ? (
+      {state.data && state.data.total > 0 ? (
         <PagePagination
+          pageSize={pageSize}
+          busy={state.refreshing}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setHistory((current) => ({ ...current, page: 1 }));
+          }}
           ariaLabel="下载记录分页"
           className="mt-10 justify-end"
           onPageChange={(page) =>

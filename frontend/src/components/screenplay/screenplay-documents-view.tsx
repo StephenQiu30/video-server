@@ -8,7 +8,10 @@ import { BackLink } from '@/components/layout/back-link';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
-import { PagePagination } from '@/components/layout/page-pagination';
+import {
+  DEFAULT_PAGE_SIZE,
+  PagePagination,
+} from '@/components/layout/page-pagination';
 import { ScreenplayDocumentList } from '@/components/screenplay/screenplay-document-list';
 import { ScreenplayUploadDialog } from '@/components/screenplay/screenplay-upload-dialog';
 import { useScreenplayDocuments } from '@/components/screenplay/use-screenplay-documents';
@@ -20,9 +23,10 @@ import { displayError } from '@/lib/request-error';
 export default function ScreenplayDocumentsView() {
   const queries = useQueryClient();
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const state = useScreenplayDocuments({ page, page_size: 20 });
+  const state = useScreenplayDocuments({ page, page_size: pageSize });
 
   async function remove(document: API.DocumentResponse) {
     setActionError(null);
@@ -110,8 +114,14 @@ export default function ScreenplayDocumentsView() {
         onDelete={remove}
         pendingDeleteId={pendingDeleteId}
       />
-      {state.data && state.data.total > state.data.page_size ? (
+      {state.data && state.data.total > 0 ? (
         <PagePagination
+          pageSize={pageSize}
+          busy={state.refreshing}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
           ariaLabel="剧本文档分页"
           className="mt-10 justify-end"
           onPageChange={setPage}

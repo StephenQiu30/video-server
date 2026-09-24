@@ -47,8 +47,8 @@ describe('administrator user management', () => {
       items:
         page === 1 ? [owner(), managedUser()] : [managedUser({ id: 'next' })],
       page,
-      page_size: 20,
-      total: 21,
+      page_size: 10,
+      total: 11,
     }));
     render(<AdminUsersView />);
 
@@ -60,7 +60,7 @@ describe('administrator user management', () => {
     expect(runtime.listUsers).toHaveBeenLastCalledWith({
       is_active: undefined,
       page: 1,
-      page_size: 20,
+      page_size: 10,
       role: undefined,
       search: undefined,
     });
@@ -269,7 +269,7 @@ function managedUser(
 }
 
 function result(items: API.ManagedUserResponse[]): API.ManagedUserListResponse {
-  return { items, page: 1, page_size: 20, total: items.length };
+  return { items, page: 1, page_size: 10, total: items.length };
 }
 
 function deferred<T>() {

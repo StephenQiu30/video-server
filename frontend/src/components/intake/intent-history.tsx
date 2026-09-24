@@ -24,14 +24,17 @@ import {
   IntentStatusCode,
   intentHistoryActionLabel,
 } from '@/components/intake/intent-status';
+import { useBulkParseDownload } from '@/components/intake/use-bulk-parse-download';
 import { BackLink } from '@/components/layout/back-link';
-import { CursorPagination } from '@/components/layout/cursor-pagination';
+import { BulkSelectionBar } from '@/components/layout/bulk-selection-bar';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
+import { PagePagination } from '@/components/layout/page-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,6 +49,7 @@ import {
   ItemTitle,
 } from '@/components/ui/item';
 import { Skeleton } from '@/components/ui/skeleton';
+import { usePageSelection } from '@/hooks/use-page-selection';
 import { privateQueryKey } from '@/lib/query-keys';
 import { displayError } from '@/lib/request-error';
 
@@ -76,6 +80,17 @@ export function IntentHistory({
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
   });
+  const bulk = useBulkParseDownload();
+  const eligible = (history.data?.items ?? []).filter(
+    (item): item is API.ParseHistoryRecordResponse =>
+      item.record_type === 'parse' &&
+      item.status === IntentStatusCode.Ready &&
+      !!item.inspection_id,
+  );
+  const selection = usePageSelection(
+    JSON.stringify(filters.filters),
+    eligible.map((item) => item.id),
+  );
   const analysisSkills = useAnalysisSkills();
   const screenplaySkills = useAnalysisSkills('screenplay');
   const skills = [...analysisSkills.skills, ...screenplaySkills.skills];
@@ -187,6 +202,35 @@ export function IntentHistory({
             }
           />
         ) : null}
+        {eligible.length > 0 ? (
+          <BulkSelectionBar
+            all={selection.all}
+            some={selection.some}
+            count={selection.selected.length}
+            busy={bulk.busy || history.isFetching}
+            onSelectAll={selection.toggleAll}
+          >
+            <Button
+              variant="outline"
+              disabled={bulk.busy || history.isFetching || !selection.some}
+              onClick={async () => {
+                const done = await bulk.execute(
+                  eligible.filter((item) =>
+                    selection.selected.includes(item.id),
+                  ),
+                );
+                selection.remove(done);
+              }}
+            >
+              批量下载（{selection.selected.length}）
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              按默认画质创建下载任务
+            </span>
+          </BulkSelectionBar>
+        ) : null}
+        {bulk.busy ? <p role="status">正在创建下载任务…</p> : null}
+        {bulk.message ? <p role="status">{bulk.message}</p> : null}
         {history.data?.items.length ? (
           <>
             <div
@@ -206,6 +250,19 @@ export function IntentHistory({
                   className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 rounded-none border-0 px-0 py-5 lg:grid-cols-[minmax(0,1fr)_11rem_10rem_7rem] lg:gap-x-6"
                 >
                   <ItemContent className="col-span-2 min-w-0 lg:col-span-1">
+                    {eligible.some(
+                      (entry) =>
+                        entry.id === item.id && item.record_type === 'parse',
+                    ) ? (
+                      <Checkbox
+                        aria-label={`选择 ${item.title || '媒体解析'}`}
+                        checked={selection.selected.includes(item.id)}
+                        disabled={bulk.busy || history.isFetching}
+                        onCheckedChange={(checked) =>
+                          selection.toggle(item.id, checked === true)
+                        }
+                      />
+                    ) : null}
                     <ItemTitle className="line-clamp-2 w-auto break-words text-[15px]">
                       {item.title || '媒体解析'}
                     </ItemTitle>
@@ -271,7 +328,11 @@ export function IntentHistory({
           </>
         ) : null}
         {history.data ? (
-          <CursorPagination
+          <PagePagination
+            pageSize={filters.pageSize}
+            onPageSizeChange={(size) =>
+              filters.update({ pageSize: String(size) })
+            }
             ariaLabel="解析记录分页"
             page={filters.page}
             hasNext={Boolean(history.data.next_cursor)}

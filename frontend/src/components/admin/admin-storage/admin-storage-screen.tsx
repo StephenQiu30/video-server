@@ -9,7 +9,6 @@ import { PagePagination } from '@/components/layout/page-pagination';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
-import { STORAGE_PAGE_SIZE } from './model';
 import { StorageCleanupDialog } from './storage-cleanup-dialog';
 import { StorageFileDeleteDialog } from './storage-file-delete-dialog';
 import { StorageFileList } from './storage-file-list';
@@ -18,6 +17,8 @@ type AdminStorageScreenProps = {
   items: API.StoredFileResponse[];
   total: number;
   page: number;
+  pageSize: number;
+  onPageSizeChange: (size: number) => void;
   loading: boolean;
   error: string;
   cleanup: {
@@ -46,6 +47,8 @@ export function AdminStorageScreen({
   items,
   total,
   page,
+  pageSize,
+  onPageSizeChange,
   loading,
   error,
   cleanup,
@@ -60,9 +63,9 @@ export function AdminStorageScreen({
   onCloseDelete,
   onConfirmDelete,
 }: AdminStorageScreenProps) {
-  const pages = Math.max(1, Math.ceil(total / STORAGE_PAGE_SIZE));
-  const first = total === 0 ? 0 : (page - 1) * STORAGE_PAGE_SIZE + 1;
-  const last = Math.min(page * STORAGE_PAGE_SIZE, total);
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  const first = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const last = Math.min(page * pageSize, total);
 
   return (
     <div aria-busy={loading} className="flex flex-col gap-10">
@@ -110,7 +113,6 @@ export function AdminStorageScreen({
           />
         ) : (
           <PageEmptyNotice
-            compact
             description="完成下载、剧本解析或报告生成后，文件会显示在这里。"
             icon={<FolderOpen aria-hidden />}
             title="暂无持久文件"
@@ -126,9 +128,11 @@ export function AdminStorageScreen({
             显示 {first}–{last}，共 {total} 项
           </span>
           <PagePagination
+            pageSize={pageSize}
+            busy={loading}
+            onPageSizeChange={onPageSizeChange}
             ariaLabel="文件列表分页"
             className="w-auto justify-end"
-            compact
             onPageChange={onPageChange}
             page={page}
             pages={pages}

@@ -47,8 +47,8 @@ describe('administrator storage management', () => {
     runtime.listStoredFiles.mockImplementation(async ({ page = 1 }) => ({
       items: [storedFile({ id: `file-${page}`, name: `视频 ${page}` })],
       page,
-      page_size: 20,
-      total: 21,
+      page_size: 10,
+      total: 11,
     }));
     runtime.cleanupStoredFiles.mockResolvedValue({
       failed_resources: 0,
@@ -63,7 +63,7 @@ describe('administrator storage management', () => {
     expect(await screen.findByText('视频 1')).toBeInTheDocument();
     expect(runtime.listStoredFiles).toHaveBeenLastCalledWith({
       page: 1,
-      page_size: 20,
+      page_size: 10,
     });
 
     const pagination = screen.getByRole('navigation', { name: '文件列表分页' });
@@ -71,7 +71,7 @@ describe('administrator storage management', () => {
     await waitFor(() =>
       expect(runtime.listStoredFiles).toHaveBeenLastCalledWith({
         page: 2,
-        page_size: 20,
+        page_size: 10,
       }),
     );
     expect(await screen.findByText('视频 2')).toBeInTheDocument();
@@ -96,7 +96,7 @@ describe('administrator storage management', () => {
     await waitFor(() =>
       expect(runtime.listStoredFiles).toHaveBeenLastCalledWith({
         page: 1,
-        page_size: 20,
+        page_size: 10,
       }),
     );
 
@@ -127,8 +127,8 @@ describe('administrator storage management', () => {
       .mockResolvedValueOnce({
         items: [storedFile()],
         page: 1,
-        page_size: 20,
-        total: 21,
+        page_size: 10,
+        total: 11,
       })
       .mockRejectedValueOnce(new Error('文件服务暂不可用'));
     render(<AdminStorageView />);
@@ -148,7 +148,7 @@ describe('administrator storage management', () => {
     runtime.listStoredFiles.mockResolvedValue({
       items: [],
       page: 1,
-      page_size: 20,
+      page_size: 10,
       total: 0,
     });
     runtime.cleanupStoredFiles.mockResolvedValue({

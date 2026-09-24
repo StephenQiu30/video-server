@@ -6,13 +6,12 @@ import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
 import { Button } from '@/components/ui/button';
 
-import {
-  PAGE_SIZE,
-  type UserDeletionState,
-  type UserEditorState,
-  type UserQueryState,
-  type UserQuotaDraft,
-  type UserResultState,
+import type {
+  UserDeletionState,
+  UserEditorState,
+  UserQueryState,
+  UserQuotaDraft,
+  UserResultState,
 } from './model';
 import { UserDeleteDialog } from './user-delete-dialog';
 import { UserEditor } from './user-editor';
@@ -26,6 +25,7 @@ type ScreenActions = {
   onRoleChange: (value: UserQueryState['role']) => void;
   onActiveChange: (value: UserQueryState['active']) => void;
   onRetry: () => void;
+  onPageSizeChange: (size: number) => void;
   onPageChange: (value: number) => void;
   onEdit: (user: API.ManagedUserResponse) => void;
   onDelete: (user: API.ManagedUserResponse) => void;
@@ -58,9 +58,10 @@ export function AdminUsersScreen({
   deletion,
   actions,
 }: AdminUsersScreenProps) {
-  const pages = Math.max(1, Math.ceil(result.total / PAGE_SIZE));
-  const first = result.total === 0 ? 0 : (result.page - 1) * PAGE_SIZE + 1;
-  const last = Math.min(result.page * PAGE_SIZE, result.total);
+  const pages = Math.max(1, Math.ceil(result.total / result.pageSize));
+  const first =
+    result.total === 0 ? 0 : (result.page - 1) * result.pageSize + 1;
+  const last = Math.min(result.page * result.pageSize, result.total);
 
   return (
     <div aria-busy={result.loading} className="flex flex-col gap-10">
@@ -127,9 +128,11 @@ export function AdminUsersScreen({
             显示 {first}–{last}，共 {result.total} 项
           </span>
           <PagePagination
+            pageSize={result.pageSize}
+            busy={result.loading}
+            onPageSizeChange={actions.onPageSizeChange}
             ariaLabel="用户列表分页"
             className="w-auto justify-end"
-            compact
             onPageChange={actions.onPageChange}
             page={result.page}
             pages={pages}

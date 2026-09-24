@@ -1,6 +1,5 @@
 import { ArrowClockwise, DownloadSimple } from '@phosphor-icons/react';
 import Link from 'next/link';
-
 import { DownloadDeleteDialog } from '@/components/downloads/download-delete-dialog';
 import {
   DownloadStatusCode,
@@ -14,6 +13,7 @@ import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import MediaCover from '@/components/media/media-cover';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Item,
   ItemActions,
@@ -33,12 +33,18 @@ export default function DownloadHistoryList({
   onDelete,
   onRetry,
   pendingActions,
+  selection,
 }: {
   data: API.DownloadHistoryResponse | null;
   loading: boolean;
   onDownload: (item: API.DownloadHistoryItemResponse) => void;
   onDelete: (item: API.DownloadHistoryItemResponse) => Promise<void>;
   onRetry: (item: API.DownloadHistoryItemResponse) => void;
+  selection?: {
+    ids: string[];
+    busy: boolean;
+    toggle: (id: string, checked: boolean) => void;
+  };
   pendingActions: Array<{ id: string; type: DownloadAction }>;
 }) {
   return (
@@ -48,6 +54,7 @@ export default function DownloadHistoryList({
         <ItemGroup className="gap-2">
           {data.items.map((item) => (
             <HistoryRow
+              selection={selection}
               item={item}
               key={item.id}
               onDownload={onDownload}
@@ -78,18 +85,24 @@ function HistoryRow({
   onDelete,
   onRetry,
   pendingAction,
+  selection,
 }: {
   item: API.DownloadHistoryItemResponse;
   onDownload: (item: API.DownloadHistoryItemResponse) => void;
   onDelete: (item: API.DownloadHistoryItemResponse) => Promise<void>;
   onRetry: (item: API.DownloadHistoryItemResponse) => void;
+  selection?: {
+    ids: string[];
+    busy: boolean;
+    toggle: (id: string, checked: boolean) => void;
+  };
   pendingAction: { id: string; type: DownloadAction } | null;
 }) {
   const detailHref = `/downloads/detail?jobId=${encodeURIComponent(item.id)}`;
   const canDownload =
     item.status === DownloadStatusCode.Succeeded && item.file_available;
   const recovery = downloadRecovery(item);
-  const busy = pendingAction?.id === item.id;
+  const busy = selection?.busy || pendingAction?.id === item.id;
 
   return (
     <Item
@@ -146,6 +159,16 @@ function HistoryRow({
           {isActiveDownloadStatus(item.status) ? ` · ${item.progress}%` : ''}
         </Badge>
         <div className="flex items-center gap-1">
+          {selection ? (
+            <Checkbox
+              aria-label={`选择 ${item.title}`}
+              checked={selection.ids.includes(item.id)}
+              disabled={busy}
+              onCheckedChange={(checked) =>
+                selection.toggle(item.id, checked === true)
+              }
+            />
+          ) : null}
           {canDownload ? (
             <Button
               disabled={busy}

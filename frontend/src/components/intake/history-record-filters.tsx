@@ -1,6 +1,10 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
+import {
+  DEFAULT_PAGE_SIZE,
+  PAGE_SIZE_OPTIONS,
+} from '@/components/layout/page-pagination';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -14,6 +18,10 @@ import {
 export function useHistoryRecordFilters() {
   const search = useSearchParams();
   const cursors = search.getAll('cursor');
+  const requestedSize = Number(search.get('pageSize'));
+  const pageSize =
+    PAGE_SIZE_OPTIONS.find((size) => size === requestedSize) ??
+    DEFAULT_PAGE_SIZE;
   const cursor = cursors.at(-1)?.split('|');
   const category = search.get('category') ?? 'all';
   const subkind = search.get('subkind') ?? 'all';
@@ -49,7 +57,7 @@ export function useHistoryRecordFilters() {
     before_created_at: cursor?.[0],
     before_record_type: cursor?.[1] as API.HistoryRecordKind | undefined,
     before_id: cursor?.[2],
-    limit: 20,
+    limit: pageSize,
   };
   function navigate(params: URLSearchParams) {
     window.history.pushState(
@@ -69,12 +77,15 @@ export function useHistoryRecordFilters() {
   }
   return {
     filters,
+    pageSize,
     category,
     subkind,
     page: cursors.length + 1,
     search,
     update,
-    hasFilters: Boolean(search.size - cursors.length),
+    hasFilters: Array.from(search.keys()).some(
+      (key) => key !== 'cursor' && key !== 'pageSize',
+    ),
     reset: () => navigate(new URLSearchParams()),
     first: () => {
       const params = new URLSearchParams(search.toString());

@@ -40,7 +40,7 @@ describe('download history', () => {
     runtime.getDownloadHistory.mockResolvedValue(history());
     const initialQuery: API.getDownloadHistoryParams = {
       page: 1,
-      page_size: 20,
+      page_size: 10,
     };
     const { result, rerender } = renderHook(
       ({ query }: { query: API.getDownloadHistoryParams }) =>
@@ -52,7 +52,7 @@ describe('download history', () => {
     expect(runtime.getDownloadHistory).toHaveBeenLastCalledWith(
       {
         page: 1,
-        page_size: 20,
+        page_size: 10,
         search: undefined,
         status: undefined,
       },
@@ -62,7 +62,7 @@ describe('download history', () => {
     rerender({
       query: {
         page: 3,
-        page_size: 20,
+        page_size: 10,
         search: '示例视频',
         status: 'succeeded',
       },
@@ -71,7 +71,7 @@ describe('download history', () => {
       expect(runtime.getDownloadHistory).toHaveBeenLastCalledWith(
         {
           page: 3,
-          page_size: 20,
+          page_size: 10,
           search: '示例视频',
           status: 'succeeded',
         },
@@ -211,16 +211,21 @@ describe('download history', () => {
   });
 
   it('returns to the last available page after deleting its final record', async () => {
-    let total = 21;
+    let total = 11;
     runtime.getDownloadHistory.mockImplementation(({ page }) =>
       Promise.resolve(history({ page, total })),
     );
     runtime.deleteDownload.mockImplementation(async () => {
-      total = 20;
+      total = 10;
     });
     render(<DownloadHistoryView />);
     fireEvent.click(await screen.findByRole('button', { name: '下一页' }));
     await screen.findByText('2 / 2');
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: '删除下载记录' }),
+      ).toBeEnabled(),
+    );
     fireEvent.click(screen.getByRole('button', { name: '删除下载记录' }));
     fireEvent.click(await screen.findByRole('button', { name: '确认删除' }));
     await waitFor(() =>
@@ -298,7 +303,7 @@ describe('download history', () => {
         history({
           items: [historyItem({ id: `history-job-${page}` })],
           page,
-          total: 21,
+          total: 11,
         }),
     );
     render(<DownloadHistoryView />);
@@ -339,7 +344,7 @@ describe('download history', () => {
       expect(runtime.getDownloadHistory).toHaveBeenLastCalledWith(
         {
           page: 1,
-          page_size: 20,
+          page_size: 10,
           search: '示例视频',
           status: undefined,
         },
@@ -379,13 +384,133 @@ describe('download history', () => {
       expect(runtime.getDownloadHistory).toHaveBeenLastCalledWith(
         {
           page: 1,
-          page_size: 20,
+          page_size: 10,
           search: '夹克',
           status: undefined,
         },
         { signal: expect.any(AbortSignal) },
       ),
     );
+  });
+  it('changes page size and clears page selection on navigation', async () => {
+    runtime.getDownloadHistory.mockImplementation(async ({ page, page_size }) =>
+      history({ page, page_size, total: 31 }),
+    );
+    render(<DownloadHistoryView />);
+    await screen.findByRole('checkbox', { name: '全选本页' });
+    await waitFor(() =>
+      expect(screen.getByRole('checkbox', { name: '全选本页' })).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByRole('checkbox', { name: '全选本页' }));
+    expect(screen.getByText('已选 1 项')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: '下一页' }));
+    await screen.findByText('2 / 4');
+    expect(screen.getByText('已选 0 项')).toBeVisible();
+    const select = screen.getByRole('combobox', {
+      name: '下载记录分页每页条数',
+    });
+    await waitFor(() => expect(select).toBeEnabled());
+    fireEvent.click(select);
+    fireEvent.click(await screen.findByRole('option', { name: '每页 20 条' }));
+    await waitFor(() =>
+      expect(runtime.getDownloadHistory).toHaveBeenLastCalledWith(
+        expect.objectContaining({ page: 1, page_size: 20 }),
+        expect.anything(),
+      ),
+    );
+  });
+
+  it('downloads only available files and retains failed selections', async () => {
+    runtime.getDownloadHistory.mockResolvedValue(
+      history({
+        items: [
+          historyItem(),
+          historyItem({ id: 'second', title: '第二项' }),
+          historyItem({
+            id: 'failed',
+            title: '失败任务',
+            status: 'failed',
+            file_available: false,
+          }),
+        ],
+      }),
+    );
+    runtime.issueDownloadUrl
+      .mockResolvedValueOnce({
+        url: 'https://example.com/file',
+        filename: 'file.mp4',
+      })
+      .mockRejectedValueOnce(new Error('无法获取文件'));
+    render(<DownloadHistoryView />);
+    await screen.findByRole('checkbox', { name: '全选本页' });
+    await waitFor(() =>
+      expect(screen.getByRole('checkbox', { name: '全选本页' })).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByRole('checkbox', { name: '全选本页' }));
+    fireEvent.click(screen.getByRole('button', { name: '批量下载（2）' }));
+    await screen.findByText(/已发起文件下载 1 项，失败 1 项/);
+    expect(runtime.issueDownloadUrl).toHaveBeenCalledTimes(2);
+    expect(runtime.triggerBrowserDownload).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole('checkbox', { name: '选择 示例视频' }),
+    ).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: '选择 第二项' })).toBeChecked();
+  });
+
+  it('retries eligible tasks in bulk without navigating away', async () => {
+    const items = [
+      historyItem({
+        id: 'failed-one',
+        status: 'failed',
+        file_available: false,
+      }),
+      historyItem({
+        id: 'failed-two',
+        status: 'failed',
+        file_available: false,
+      }),
+      historyItem({ id: 'running', status: 'running', file_available: false }),
+    ];
+    runtime.getDownloadHistory.mockResolvedValue(history({ items }));
+    runtime.retryDownload.mockImplementation(async ({ job_id }) => ({
+      id: job_id,
+      status: 'queued',
+      version: 2,
+    }));
+    render(<DownloadHistoryView />);
+    await screen.findByRole('checkbox', { name: '全选本页' });
+    await waitFor(() =>
+      expect(screen.getByRole('checkbox', { name: '全选本页' })).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByRole('checkbox', { name: '全选本页' }));
+    fireEvent.click(screen.getByRole('button', { name: '批量重试（2）' }));
+    await screen.findByText(/已提交重试 2 项，失败 0 项/);
+    expect(runtime.retryDownload).toHaveBeenCalledTimes(2);
+    expect(runtime.push).not.toHaveBeenCalled();
+  });
+
+  it('confirms bulk deletion and reports partial failure', async () => {
+    runtime.getDownloadHistory.mockResolvedValue(
+      history({
+        items: [historyItem(), historyItem({ id: 'second', title: '第二项' })],
+      }),
+    );
+    runtime.deleteDownload
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('删除失败'));
+    render(<DownloadHistoryView />);
+    await screen.findByRole('checkbox', { name: '全选本页' });
+    await waitFor(() =>
+      expect(screen.getByRole('checkbox', { name: '全选本页' })).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByRole('checkbox', { name: '全选本页' }));
+    fireEvent.click(screen.getByRole('button', { name: '批量删除（2）' }));
+    expect(runtime.deleteDownload).not.toHaveBeenCalled();
+    expect(screen.getByText('删除选中的 2 项任务与文件？')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: '确认删除' }));
+    await screen.findByText(/已删除 1 项，失败 1 项/);
+    expect(runtime.deleteDownload).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole('checkbox', { name: '选择 第二项' })).toBeChecked();
   });
 });
 
@@ -416,7 +541,7 @@ function history(
   return {
     items: [historyItem()],
     page: 1,
-    page_size: 20,
+    page_size: 10,
     summary: { active: 0, failed: 0, succeeded: 1, total: 1 },
     total: 1,
     ...overrides,

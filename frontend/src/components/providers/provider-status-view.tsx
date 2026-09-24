@@ -8,7 +8,10 @@ import { BackLink } from '@/components/layout/back-link';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
-import { PagePagination } from '@/components/layout/page-pagination';
+import {
+  DEFAULT_PAGE_SIZE,
+  PagePagination,
+} from '@/components/layout/page-pagination';
 import { isCurrentlyAvailable } from '@/components/providers/provider-availability';
 import { ProviderStatusItem } from '@/components/providers/provider-status-item';
 import { useProviderStatuses } from '@/components/providers/use-provider-statuses';
@@ -26,7 +29,6 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 type StatusFilter = 'all' | 'available' | 'attention';
 const STATUS_FILTERS: StatusFilter[] = ['all', 'available', 'attention'];
-const STATUS_PAGE_SIZE = 8;
 const EMPTY_PROVIDERS: API.ProviderListResponse['items'][number][] = [];
 const PROVIDER_STATUS_ERROR_TOAST_ID = 'provider-status-refresh-error';
 
@@ -34,17 +36,18 @@ export function ProviderStatusView() {
   const state = useProviderStatuses();
   const [filter, setFilter] = useState<StatusFilter>('all');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const providers = state.data?.items ?? EMPTY_PROVIDERS;
   const available = providers.filter(isCurrentlyAvailable).length;
   const filtered = useMemo(
     () => providers.filter((item) => matchesFilter(item, filter)),
     [filter, providers],
   );
-  const pages = Math.max(1, Math.ceil(filtered.length / STATUS_PAGE_SIZE));
+  const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pages);
   const visibleProviders = filtered.slice(
-    (currentPage - 1) * STATUS_PAGE_SIZE,
-    currentPage * STATUS_PAGE_SIZE,
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
   );
 
   useEffect(() => {
@@ -167,9 +170,13 @@ export function ProviderStatusView() {
                     显示 {visibleProviders.length} 项，共 {filtered.length} 项
                   </span>
                   <PagePagination
+                    pageSize={pageSize}
+                    onPageSizeChange={(size) => {
+                      setPageSize(size);
+                      setPage(1);
+                    }}
                     ariaLabel="平台状态分页"
                     className="w-auto justify-end"
-                    compact
                     onPageChange={setPage}
                     page={currentPage}
                     pages={pages}
@@ -178,7 +185,6 @@ export function ProviderStatusView() {
               </div>
             ) : (
               <PageEmptyNotice
-                compact
                 description="切换状态筛选，查看其他平台。"
                 icon={<FunnelX aria-hidden />}
                 title="没有匹配的平台"

@@ -5,7 +5,10 @@ import { useMemo, useState } from 'react';
 import { getAdminEngineCatalog } from '@/api/admin';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
-import { PagePagination } from '@/components/layout/page-pagination';
+import {
+  DEFAULT_PAGE_SIZE,
+  PagePagination,
+} from '@/components/layout/page-pagination';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,11 +16,10 @@ import { Spinner } from '@/components/ui/spinner';
 import { privateQueryKey } from '@/lib/query-keys';
 import { displayError } from '@/lib/request-error';
 
-const PAGE_SIZE = 20;
-
 export function EngineCatalogPanel() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const result = useQuery({
     queryKey: privateQueryKey('engine-catalog'),
     queryFn: ({ signal }) => getAdminEngineCatalog({ signal }),
@@ -30,11 +32,11 @@ export function EngineCatalogPanel() {
       `${item.key} ${item.name}`.toLowerCase().includes(query),
     );
   }, [data, search]);
-  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pages);
   const visible = filtered.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
   );
 
   return (
@@ -118,7 +120,6 @@ export function EngineCatalogPanel() {
             </ul>
           ) : (
             <PageEmptyNotice
-              compact
               title="没有匹配的提取器"
               description="调整搜索词后重试。"
             />
@@ -128,9 +129,13 @@ export function EngineCatalogPanel() {
               显示 {visible.length} 项，共 {filtered.length} 项
             </p>
             <PagePagination
+              pageSize={pageSize}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
               ariaLabel="引擎候选分页"
               className="w-auto justify-end"
-              compact
               onPageChange={setPage}
               page={currentPage}
               pages={pages}

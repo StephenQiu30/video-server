@@ -4,17 +4,18 @@ import { useState } from 'react';
 
 import AnalysisReportPreview from '@/components/analysis/analysis-report-preview';
 import {
+  DEFAULT_PAGE_SIZE,
+  PagePagination,
+} from '@/components/layout/page-pagination';
+import {
   Detail,
   FindingList,
   languageLabel,
   Metric,
   ResultTab,
 } from '@/components/screenplay/screenplay-result-primitives';
-import { Button } from '@/components/ui/button';
 import { ItemGroup } from '@/components/ui/item';
 import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs';
-
-const SCENES_PER_PAGE = 20;
 
 function SceneReviewList({
   scenes,
@@ -22,10 +23,11 @@ function SceneReviewList({
   scenes: API.ScreenplaySceneResponse[];
 }) {
   const [page, setPage] = useState(0);
-  const pageCount = Math.ceil(scenes.length / SCENES_PER_PAGE);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const pageCount = Math.ceil(scenes.length / pageSize);
   const visiblePage = Math.min(page, Math.max(pageCount - 1, 0));
-  const first = visiblePage * SCENES_PER_PAGE;
-  const visibleScenes = scenes.slice(first, first + SCENES_PER_PAGE);
+  const first = visiblePage * pageSize;
+  const visibleScenes = scenes.slice(first, first + pageSize);
 
   return (
     <div className="space-y-6">
@@ -55,31 +57,18 @@ function SceneReviewList({
           </li>
         ))}
       </ol>
-      {pageCount > 1 && (
-        <nav
-          aria-label="场景分页"
-          className="flex items-center justify-between gap-4"
-        >
-          <Button
-            type="button"
-            variant="outline"
-            disabled={visiblePage === 0}
-            onClick={() => setPage(visiblePage - 1)}
-          >
-            上一页
-          </Button>
-          <span className="text-muted-foreground text-sm">
-            第 {visiblePage + 1} / {pageCount} 页
-          </span>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={visiblePage + 1 >= pageCount}
-            onClick={() => setPage(visiblePage + 1)}
-          >
-            下一页
-          </Button>
-        </nav>
+      {scenes.length > 0 && (
+        <PagePagination
+          ariaLabel="场景分页"
+          page={visiblePage + 1}
+          pages={pageCount}
+          onPageChange={(value) => setPage(value - 1)}
+          pageSize={pageSize}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(0);
+          }}
+        />
       )}
     </div>
   );

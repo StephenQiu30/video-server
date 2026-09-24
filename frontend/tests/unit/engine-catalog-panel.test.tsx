@@ -45,7 +45,7 @@ describe('installed engine candidates', () => {
     expect(runtime.read).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: '读取引擎候选' }));
     const list = await screen.findByRole('list', { name: '引擎候选清单' });
-    expect(within(list).getAllByRole('listitem')).toHaveLength(20);
+    expect(within(list).getAllByRole('listitem')).toHaveLength(10);
     expect(
       screen.getByText(/候选数量不代表可下载的平台数量/),
     ).toBeInTheDocument();

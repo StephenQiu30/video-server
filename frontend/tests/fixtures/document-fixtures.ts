@@ -50,7 +50,7 @@ export function screenplayDocumentPage(
   return {
     items: [screenplayDocumentSummary()],
     page: 1,
-    page_size: 20,
+    page_size: 10,
     total: 1,
     ...overrides,
   };

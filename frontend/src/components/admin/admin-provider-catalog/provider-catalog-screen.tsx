@@ -11,7 +11,10 @@ import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
-import { PagePagination } from '@/components/layout/page-pagination';
+import {
+  DEFAULT_PAGE_SIZE,
+  PagePagination,
+} from '@/components/layout/page-pagination';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -21,8 +24,6 @@ import {
   ProviderCatalogFilters,
 } from './provider-catalog-filters';
 import { ProviderCatalogList } from './provider-catalog-list';
-
-const CATALOG_PAGE_SIZE = 10;
 
 type ProviderCatalogScreenProps = {
   result: CatalogResultState;
@@ -42,15 +43,16 @@ export function ProviderCatalogScreen({
   const [query, setQuery] = useState('');
   const [visibility, setVisibility] = useState<CatalogVisibility>('all');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const filtered = useMemo(
     () => filterCatalog(result.items, query, visibility),
     [query, result.items, visibility],
   );
-  const pages = Math.max(1, Math.ceil(filtered.length / CATALOG_PAGE_SIZE));
+  const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pages);
   const visibleItems = filtered.slice(
-    (currentPage - 1) * CATALOG_PAGE_SIZE,
-    currentPage * CATALOG_PAGE_SIZE,
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
   );
 
   return (
@@ -136,7 +138,6 @@ export function ProviderCatalogScreen({
             />
           ) : (
             <PageEmptyNotice
-              compact
               description="调整搜索词或公开状态后重试。"
               icon={<FunnelX aria-hidden />}
               title="没有匹配的平台"
@@ -147,9 +148,13 @@ export function ProviderCatalogScreen({
               显示 {visibleItems.length} 项，共 {filtered.length} 项
             </span>
             <PagePagination
+              pageSize={pageSize}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
               ariaLabel="平台目录分页"
               className="w-auto justify-end"
-              compact
               onPageChange={setPage}
               page={currentPage}
               pages={pages}

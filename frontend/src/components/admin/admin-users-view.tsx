@@ -4,17 +4,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { deleteUser, listUsers, updateUserAccess } from '@/api/admin';
 import { AdminUsersScreen } from '@/components/admin/admin-users/admin-users-screen';
-import {
-  type ActiveFilter,
-  PAGE_SIZE,
-  type RoleFilter,
-  type UserQuotaDraft,
+import type {
+  ActiveFilter,
+  RoleFilter,
+  UserQuotaDraft,
 } from '@/components/admin/admin-users/model';
 import {
   AdminSkeleton,
   UnauthenticatedUsers,
 } from '@/components/admin/admin-users/user-states';
 import { useAuth } from '@/components/auth/auth-provider';
+import { DEFAULT_PAGE_SIZE } from '@/components/layout/page-pagination';
 import { ApiError, displayError } from '@/lib/request-error';
 
 const GIB = 1024 ** 3;
@@ -32,6 +32,7 @@ export function AdminUsersView() {
   const [items, setItems] = useState<API.ManagedUserResponse[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [draftSearch, setDraftSearch] = useState('');
   const [search, setSearch] = useState('');
   const [role, setRole] = useState<RoleFilter>('all');
@@ -58,7 +59,7 @@ export function AdminUsersView() {
     try {
       const result = await listUsers({
         page,
-        page_size: PAGE_SIZE,
+        page_size: pageSize,
         search: search || undefined,
         role: role === 'all' ? undefined : role,
         is_active: active === 'all' ? undefined : active === 'true',
@@ -72,7 +73,7 @@ export function AdminUsersView() {
     } finally {
       if (current === requestId.current) setLoading(false);
     }
-  }, [active, page, role, search]);
+  }, [active, page, pageSize, role, search]);
 
   useEffect(() => {
     if (authLoading || !currentUserId) return;
@@ -153,7 +154,7 @@ export function AdminUsersView() {
     <AdminUsersScreen
       currentUserId={user.id}
       query={{ draftSearch, role, active }}
-      result={{ items, total, page, loading, error }}
+      result={{ items, total, page, pageSize, loading, error }}
       deletion={{
         user: deleteTarget,
         deleting,
@@ -180,6 +181,10 @@ export function AdminUsersView() {
         },
         onRetry: () => void loadUsers(),
         onPageChange: setPage,
+        onPageSizeChange: (size) => {
+          setPageSize(size);
+          setPage(1);
+        },
         onEdit: openEditor,
         onDelete: (target) => {
           if (target.id === user.id) return;

@@ -82,7 +82,7 @@ it('keeps pagination read-only and sends a ready result to its dedicated page', 
     before_id: item.id,
     before_created_at: item.created_at,
     before_record_type: 'parse',
-    limit: 20,
+    limit: 10,
   });
   fireEvent.click(screen.getByRole('button', { name: '查看结果' }));
   expect(push).toHaveBeenCalledWith(
@@ -144,7 +144,7 @@ it('shows numbered pages and resets to page one when the category changes', asyn
   expect(window.location.search).toBe('');
 
   mockHttpResponses({ items: [], next_cursor: null });
-  fireEvent.click(screen.getByRole('button', { name: '视频 AI' }));
+  fireEvent.click(screen.getByRole('radio', { name: '视频 AI' }));
   expect(await screen.findByText('没有匹配的解析记录')).toBeVisible();
   expect(window.location.search).toBe('?category=video');
 });

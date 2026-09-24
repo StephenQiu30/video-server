@@ -21,11 +21,13 @@ export function DownloadDeleteDialog({
   active,
   busy,
   compact = false,
+  count,
   onDelete,
 }: {
   active: boolean;
   busy: boolean;
   compact?: boolean;
+  count?: number;
   onDelete: () => Promise<void>;
 }) {
   return (
@@ -49,7 +51,13 @@ export function DownloadDeleteDialog({
               data-icon={compact ? undefined : 'inline-start'}
             />
           )}
-          {compact ? <span className="sr-only">删除</span> : '删除任务'}
+          {compact ? (
+            <span className="sr-only">删除</span>
+          ) : count !== undefined ? (
+            `批量删除（${count}）`
+          ) : (
+            '删除任务'
+          )}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent size="sm">
@@ -57,7 +65,11 @@ export function DownloadDeleteDialog({
           <AlertDialogMedia>
             <Warning aria-hidden />
           </AlertDialogMedia>
-          <AlertDialogTitle>删除任务与文件？</AlertDialogTitle>
+          <AlertDialogTitle>
+            {count !== undefined
+              ? `删除选中的 ${count} 项任务与文件？`
+              : '删除任务与文件？'}
+          </AlertDialogTitle>
           <AlertDialogDescription>
             {active ? '当前任务会先被取消。' : ''}
             下载记录、视频文件、本地上传源文件和私有封面将永久删除。此操作不可撤销。

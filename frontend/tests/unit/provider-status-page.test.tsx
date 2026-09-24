@@ -370,7 +370,7 @@ describe('provider status page', () => {
   it('paginates long status lists instead of rendering every diagnostic row', async () => {
     const template = statuses().items[1];
     runtime.listProviders.mockResolvedValue({
-      items: Array.from({ length: 9 }, (_, index) => ({
+      items: Array.from({ length: 11 }, (_, index) => ({
         ...template,
         display_name: `平台 ${index + 1}`,
         key: `provider_${index + 1}`,
@@ -380,10 +380,12 @@ describe('provider status page', () => {
 
     await screen.findByRole('heading', { name: '平台 1' });
     expect(
-      screen.queryByRole('heading', { name: '平台 9' }),
+      screen.queryByRole('heading', { name: '平台 11' }),
     ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '下一页' }));
-    expect(screen.getByRole('heading', { name: '平台 9' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: '平台 11' }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('navigation', { name: '平台状态分页' }),
     ).toHaveTextContent('2 / 2');

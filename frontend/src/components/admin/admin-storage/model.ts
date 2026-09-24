@@ -1,5 +1,3 @@
-export const STORAGE_PAGE_SIZE = 20;
-
 export const storageCategoryLabels: Record<API.StoredFileCategory, string> = {
   video: '视频文件',
   screenplay: '剧本文档',

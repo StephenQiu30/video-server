@@ -8,8 +8,8 @@ import {
   listStoredFiles,
 } from '@/api/admin';
 import { AdminStorageScreen } from '@/components/admin/admin-storage/admin-storage-screen';
-import { STORAGE_PAGE_SIZE } from '@/components/admin/admin-storage/model';
 import { useAuth } from '@/components/auth/auth-provider';
+import { DEFAULT_PAGE_SIZE } from '@/components/layout/page-pagination';
 import { displayError } from '@/lib/request-error';
 
 export function AdminStorageView() {
@@ -17,6 +17,7 @@ export function AdminStorageView() {
   const [items, setItems] = useState<API.StoredFileResponse[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [cleanupOpen, setCleanupOpen] = useState(false);
@@ -36,7 +37,7 @@ export function AdminStorageView() {
     try {
       const result = await listStoredFiles({
         page,
-        page_size: STORAGE_PAGE_SIZE,
+        page_size: pageSize,
       });
       if (current === requestId.current) {
         setItems(result.items);
@@ -47,7 +48,7 @@ export function AdminStorageView() {
     } finally {
       if (current === requestId.current) setLoading(false);
     }
-  }, [page]);
+  }, [page, pageSize]);
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -128,6 +129,11 @@ export function AdminStorageView() {
       onPageChange={setPage}
       onRetry={() => void loadFiles()}
       page={page}
+      pageSize={pageSize}
+      onPageSizeChange={(size) => {
+        setPageSize(size);
+        setPage(1);
+      }}
       total={total}
     />
   );

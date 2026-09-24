@@ -17,11 +17,14 @@ import { useAnalysisJob } from '@/components/analysis/use-analysis-job';
 import { useAnalysisSkills } from '@/components/analysis/use-analysis-skills';
 import { historyRecordLabel } from '@/components/intake/history-record-presentation';
 import { BackLink } from '@/components/layout/back-link';
-import { CursorPagination } from '@/components/layout/cursor-pagination';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
+import {
+  DEFAULT_PAGE_SIZE,
+  PagePagination,
+} from '@/components/layout/page-pagination';
 import { ScreenplayResultView } from '@/components/screenplay/screenplay-result-view';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -270,12 +273,13 @@ function AnalysisRuns({
   active: boolean;
 }) {
   const [cursors, setCursors] = useState<(number | undefined)[]>([undefined]);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const before = cursors.at(-1);
   const runs = useQuery({
-    queryKey: privateQueryKey('analysis-runs', id, runNo, before),
+    queryKey: privateQueryKey('analysis-runs', id, runNo, before, pageSize),
     queryFn: ({ signal }) =>
       listAnalysisRuns(
-        { analysis_id: id, before_run_no: before, limit: 20 },
+        { analysis_id: id, before_run_no: before, limit: pageSize },
         { signal },
       ),
     refetchInterval: (query) => (active && !query.state.error ? 3000 : false),
@@ -308,7 +312,12 @@ function AnalysisRuns({
         ))}
       </ol>
       {runs.data ? (
-        <CursorPagination
+        <PagePagination
+          pageSize={pageSize}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCursors([undefined]);
+          }}
           ariaLabel="运行记录分页"
           page={cursors.length}
           hasNext={Boolean(runs.data.next_before_run_no)}

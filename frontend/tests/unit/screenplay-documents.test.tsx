@@ -43,7 +43,7 @@ describe('screenplay documents', () => {
         screenplayDocumentPage({
           items: [screenplayDocumentSummary()],
           page,
-          total: 21,
+          total: 11,
         }),
     );
     render(<ScreenplayDocumentsView />);
@@ -62,7 +62,7 @@ describe('screenplay documents', () => {
       expect(runtime.listScreenplayDocuments).toHaveBeenLastCalledWith(
         {
           page: 2,
-          page_size: 20,
+          page_size: 10,
         },
         { signal: expect.any(AbortSignal) },
       ),
