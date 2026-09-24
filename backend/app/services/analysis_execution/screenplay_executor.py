@@ -41,6 +41,8 @@ from app.services.analysis_execution.screenplay_rewrite_result import (
     read_screenplay_text,
 )
 
+_SKILL_INSTRUCTION_ALLOWANCE = 8_000
+
 
 class ScreenplayAnalysisExecutor:
     def __init__(
@@ -91,15 +93,16 @@ class ScreenplayAnalysisExecutor:
                 stage=AnalysisStage.ANALYZING,
                 progress=15,
             )
-            if _fits_single_call(
-                source.character_count, len(source.scenes), self._maximum
-            ):
+            maximum = _source_character_budget(
+                self._maximum, job.skill_instructions, job.custom_prompt
+            )
+            if _fits_single_call(source.character_count, len(source.scenes), maximum):
                 result = await self._single_call(
                     job, source, local, text, selection, monitor
                 )
             else:
                 result = await self._chunked(
-                    job, source, local, text, selection, monitor
+                    job, source, local, text, selection, monitor, maximum
                 )
             return AnalysisExecutionOutput(
                 result=result,
@@ -141,11 +144,12 @@ class ScreenplayAnalysisExecutor:
         text: str,
         selection: ScreenplayAnalyzerSelection,
         monitor: AnalysisLeaseMonitor,
+        maximum: int,
     ) -> ScreenplayAnalysisResult:
         plan = plan_screenplay_analysis(
             text,
             source.scenes,
-            max_chunk_characters=self._maximum,
+            max_chunk_characters=maximum,
             max_chunk_scenes=SCREENPLAY_SINGLE_CALL_SCENE_LIMIT,
             max_chunks=self._max_chunks,
         )
@@ -197,3 +201,17 @@ class ScreenplayAnalysisExecutor:
 
 def _fits_single_call(characters: int, scenes: int, maximum: int) -> bool:
     return characters <= maximum and scenes <= SCREENPLAY_SINGLE_CALL_SCENE_LIMIT
+
+
+def _source_character_budget(
+    maximum: int, skill_instructions: str, custom_prompt: str | None
+) -> int:
+    available = (
+        maximum
+        + _SKILL_INSTRUCTION_ALLOWANCE
+        - len(skill_instructions)
+        - len(custom_prompt or "")
+    )
+    if available <= 0:
+        raise AnalysisArtifactError("analysis_resource_limit")
+    return min(maximum, available)

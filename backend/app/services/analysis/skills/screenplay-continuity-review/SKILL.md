@@ -8,12 +8,13 @@ metadata:
   video-server-order: "75"
   video-server-input-kinds: screenplay
   video-server-output-contract: screenplay-analysis
+  video-server-modules: drama-review-method, drama-story-script
   video-server-references: references/continuity-rules.md
 ---
 
 # 剧本连续性审阅
 
-按源场景顺序建立人物、信息、物件、时间与空间状态，再检查后续场景是否有可追溯的变化。审阅的是上传剧本的 editorial coverage；不要修改原文、生成分镜、估算镜头数量或宣布制作资产已确认。
+按源场景顺序建立人物、信息、物件、时间与空间状态，再检查后续场景是否有可追溯的变化。直接加载上游短剧审稿方法与故事剧本量表的指定章节；其跨文档、owner 和文件交付流程不适用于本任务。审阅的是上传剧本的 editorial coverage；不要修改原文、生成分镜、估算镜头数量或宣布制作资产已确认。
 
 ## 工作方法
 

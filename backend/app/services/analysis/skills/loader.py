@@ -12,6 +12,7 @@ from app.services.analysis.skills.frontmatter import (
     string_mapping,
 )
 from app.services.analysis.skills.models import AnalysisSkill
+from app.services.analysis.skills.modules import compile_source_module
 
 _SKILL_ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _REFERENCE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.md$")
@@ -23,7 +24,7 @@ _REQUIRED_PRODUCT_FIELDS = {
     "video-server-input-kinds",
     "video-server-output-contract",
 }
-_OPTIONAL_PRODUCT_FIELDS = {"video-server-references"}
+_OPTIONAL_PRODUCT_FIELDS = {"video-server-references", "video-server-modules"}
 
 
 def load_skill(path: Path) -> AnalysisSkill:
@@ -47,8 +48,14 @@ def load_skill(path: Path) -> AnalysisSkill:
     input_kinds = _input_kinds(product["video-server-input-kinds"], path)
     result_contract = _result_contract(product["video-server-output-contract"], path)
     _validate_contract(input_kinds, result_contract, path)
+    raw_modules = product.get("video-server-modules")
+    if (
+        raw_modules is not None
+        and result_contract != AnalysisResultContract.SCREENPLAY_ANALYSIS
+    ):
+        raise ValueError(f"analysis source modules require screenplay analysis: {path}")
     instructions = _compile_instructions(
-        body, product.get("video-server-references"), path
+        body, product.get("video-server-references"), raw_modules, path
     )
     return AnalysisSkill(
         id=skill_id,
@@ -119,8 +126,20 @@ def _order(value: str, path: Path) -> int:
     return result
 
 
-def _compile_instructions(body: str, raw_refs: str | None, path: Path) -> str:
-    parts = [bounded(body, path, 64_000)]
+def _compile_instructions(
+    body: str, raw_refs: str | None, raw_modules: str | None, path: Path
+) -> str:
+    parts: list[str] = []
+    modules = (
+        ()
+        if raw_modules is None
+        else tuple(item.strip() for item in raw_modules.split(","))
+    )
+    if any(not item for item in modules) or len(set(modules)) != len(modules):
+        raise ValueError(f"invalid analysis source modules: {path}")
+    for module_id in modules:
+        parts.append(compile_source_module(module_id, path.parent.parent / "modules"))
+    parts.append(bounded(body, path, 64_000))
     references_dir = path.parent / "references"
     requested = (
         () if raw_refs is None else tuple(item.strip() for item in raw_refs.split(","))

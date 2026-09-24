@@ -8,7 +8,8 @@ metadata:
   video-server-order: "60"
   video-server-input-kinds: screenplay
   video-server-output-contract: screenplay-analysis
-  video-server-references: references/review-method.md, references/analysis-rules.md, references/output-contract.md
+  video-server-modules: drama-review-method, drama-story-script, drama-anti-template, sw-story-structure, sw-character-conflict, sw-scene-craft, sw-dialogue
+  video-server-references: references/output-contract.md
 ---
 
 # 剧本故事审稿
@@ -22,7 +23,7 @@ metadata:
 3. 从逐场观察综合结构、人物、对白和跨场因果。人物变化要经过压力、选择与后果；重复问题必须说明重复了什么策略，以及下一次是否改变了代价或意义。
 4. 最后写审稿重点。`priority_revisions` 只保留独立且影响大的问题，按“具体表现 → 造成的影响 → 修改后应达到的结果”描述；`strengths` 写清值得保留的机制及其效果。没有充分依据时留空，不凑数量。
 
-详细诊断顺序见 [审稿方法](references/review-method.md)；结构、人物、场景和对白的专项判断见 [文本分析规则](references/analysis-rules.md)。这些是审阅方法，不是要求创作者遵守的固定剧情配方。
+下方直接加载两个固定版本上游 Skill 库的审稿、结构、人物、场景和对白模块章节。它们是诊断工具箱，不是硬性剧情公式：固定页码、幕数、场场反转、主角必须成长、反派必须更坏等示例，只在上传文本自身的目标适用时参考。与本任务输入、输出契约或执行权限冲突的上游流程一律不执行。
 
 ## 长剧本执行
 

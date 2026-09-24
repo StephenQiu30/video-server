@@ -1,6 +1,6 @@
 # Analysis Skill third-party notices
 
-The built-in analysis skills are original, project-specific rewrites. They do not vendor or execute upstream scripts, prompts, examples, assets, MCP definitions, plugins, network calls, or sub-agent workflows.
+Most built-in analysis skills are original, project-specific rewrites. The screenplay source modules listed below vendor exact upstream Markdown files and compile named sections into the selected skill snapshot. No upstream scripts, MCP definitions, plugins, network calls, file writes, or sub-agent workflows execute in the analysis worker.
 
 ## Agent Skills specification
 
@@ -79,26 +79,21 @@ The built-in analysis skills are original, project-specific rewrites. They do no
 - License: MIT; copyright 2026 drama-skills contributors.
 - Local use: the opening-hook review independently separates bounded evidence, viewer or production impact, and the required revision outcome. Upstream review wording, templates, rubrics, scripts, examples, production adapters, assets, generation workflow, and cross-Skill orchestration were excluded.
 
-## drama-skills screenplay continuity review (2026-09-24 refresh)
-
-- Source: https://github.com/zenstory-ai/drama-skills/tree/b71cb3ca9343eaf6c0375725ccc9261a4e79021e/skills/short-drama-review
-- Reviewed commit: `b71cb3ca9343eaf6c0375725ccc9261a4e79021e`.
-- License: MIT; copyright 2026 drama-skills contributors.
-- Local use: the new `screenplay-continuity-review` independently expresses source-scene evidence, information permissions, physical handoffs and actionable revision outcomes inside the existing screenplay result contract. Upstream text, scripts, templates, review files, production workflow and tool permissions were not copied or executed.
-
 ## drama-skills screenplay story review (2026-09-24)
 
 - Source: https://github.com/zenstory-ai/drama-skills/tree/b71cb3ca9343eaf6c0375725ccc9261a4e79021e/skills/short-drama-review
 - Reviewed commit: `b71cb3ca9343eaf6c0375725ccc9261a4e79021e`.
 - License: MIT; copyright 2026 drama-skills contributors.
-- Local use: `screenplay-analysis` independently expresses issue-first coverage, consequence-based priority, actionable revision goals, and separation of structural problems from craft preferences. Its `review-method.md`, `rubric-story-script.md` and `anti-template-repair.md` informed the review. Upstream text, fixed rubric, file publication, scripts, examples and agent workflow were not copied or executed.
+- Local use: `screenplay-analysis`, `screenplay-drama-review`, `screenplay-character-review`, `screenplay-scene-review`, `screenplay-dialogue-review`, and `screenplay-continuity-review` compile named sections directly from vendored upstream `review-method.md`, `rubric-story-script.md`, and `anti-template-repair.md`. The upstream `SKILL.md` is retained for provenance. File publication, scripts, examples, other media rubrics, and agent workflow are not executed.
 
 ## screenwriting-skills screenplay story review (2026-09-24)
 
 - Source: https://github.com/jtydhr88/screenwriting-skills/tree/357d1348ccaa1ab75f2f51ef7c90a7f00a686c76/plugins/screenwriting/skills
 - Reviewed commit: `357d1348ccaa1ab75f2f51ef7c90a7f00a686c76`.
 - License: MIT; copyright 2026 Terry Jia.
-- Local use: `screenplay-analysis` independently applies selected scene state, character choice, dialogue action and story progression checks from `sw-scene-craft`, `sw-character-conflict`, `sw-dialogue` and `sw-story-structure`. Upstream prose, templates, examples, scripts and fixed structural formulas were not copied or executed.
+- Local use: `screenplay-analysis`, `screenplay-character-review`, `screenplay-scene-review`, `screenplay-dialogue-review`, and `screenplay-structure-review` compile named diagnostic sections directly from the four vendored upstream `SKILL.md` files. Their fixed page counts, required beat shapes, authoring exercises, examples, and other Skill links are reference material, not product acceptance criteria or executable workflow.
+
+Both repositories' original MIT licenses are included beside their vendored files. `modules.py` pins each source file SHA-256, and `loader.py` embeds only explicitly named sections in each task's immutable instruction snapshot. A source change requires a deliberate hash and section review; no runtime GitHub fetch occurs.
 
 ## video-shotcraft
 

@@ -66,6 +66,10 @@ def test_builtin_skills_are_filtered_ordered_and_contract_bound() -> None:
     ]
     assert [skill.id for skill in screenplay] == [
         "screenplay-analysis",
+        "screenplay-drama-review",
+        "screenplay-character-review",
+        "screenplay-scene-review",
+        "screenplay-dialogue-review",
         "screenplay-structure-review",
         "screenplay-continuity-review",
         "screenplay-rewrite",
@@ -75,9 +79,7 @@ def test_builtin_skills_are_filtered_ordered_and_contract_bound() -> None:
         AnalysisResultContract.VIDEO_ARTICLE,
     }
     assert [skill.result_contract for skill in screenplay] == [
-        AnalysisResultContract.SCREENPLAY_ANALYSIS,
-        AnalysisResultContract.SCREENPLAY_ANALYSIS,
-        AnalysisResultContract.SCREENPLAY_ANALYSIS,
+        *([AnalysisResultContract.SCREENPLAY_ANALYSIS] * 7),
         AnalysisResultContract.SCREENPLAY_REWRITE,
     ]
 
@@ -88,7 +90,8 @@ def test_builtin_resolution_compiles_allowlisted_reference_and_sha256() -> None:
     resolved = catalog.resolve("screenplay-analysis", AnalysisInputKind.SCREENPLAY)
 
     assert resolved is not None
-    assert "# Reference: references/evidence-rules.md" in resolved.instructions
+    assert "# Source module: drama-review-method" in resolved.instructions
+    assert "# Source module: sw-story-structure" in resolved.instructions
     assert "# Reference: references/output-contract.md" in resolved.instructions
     assert "完整场景调用必须返回以下字段" in resolved.instructions
     assert "汇总调用" in resolved.instructions

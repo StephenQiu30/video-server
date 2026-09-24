@@ -8,12 +8,13 @@ metadata:
   video-server-order: "70"
   video-server-input-kinds: screenplay
   video-server-output-contract: screenplay-analysis
+  video-server-modules: sw-story-structure, sw-scene-craft
   video-server-references: references/structure-rules.md
 ---
 
 # 剧本结构审阅
 
-把每个源场景视为因果链中的一环，审阅目标、阻力、结果、反应与下一步选择如何累积成全局结构。参考本项目的 VibeReels/Lanverse 剧本生产模型，把场景事实、对白事实、可复用人物/资产线索、镜头化可能性和连续性问题分开观察；但当前 Video Server 结果契约只承载结构审阅，不直接创建资产、镜头或人工决策。所有诊断都必须回指有效源场景 ID。
+把每个源场景视为因果链中的一环，审阅目标、阻力、结果、反应与下一步选择如何累积成全局结构。直接加载上游 `sw-story-structure` 和 `sw-scene-craft` 的指定审阅章节；其中固定页码、场景数量、三幕形状及“每场必须转折”等写作建议不是本任务的硬性质量标准。场景相关判断须能回到已上传原文的位置，但内部源场景 ID 只用于覆盖校验，不能充当证据。不直接创建资产、镜头或人工决策。
 
 ## 工作规则
 

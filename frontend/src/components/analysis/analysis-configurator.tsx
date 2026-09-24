@@ -146,7 +146,7 @@ export default function AnalysisConfigurator({
             </SelectContent>
           </Select>
           <FieldDescription>
-            {inputKind === 'screenplay'
+            {selected?.result_contract === 'screenplay-rewrite'
               ? '与原文语言相同表示润色，不同表示跨语言改写。'
               : '分析结构保持一致，仅改变模型输出文字。'}
           </FieldDescription>
