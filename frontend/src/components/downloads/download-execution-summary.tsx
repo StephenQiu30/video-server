@@ -29,7 +29,7 @@ export function DownloadExecutionSummary({
   const cancelled = job.status === DownloadStatusCode.Cancelled;
 
   return (
-    <Item className="mt-7 items-start rounded-none px-0 py-0" size="sm">
+    <Item className="mt-7 items-start" size="sm">
       <ItemMedia variant="icon">
         {complete ? (
           <ShieldCheck aria-hidden />

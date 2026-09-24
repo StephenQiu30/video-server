@@ -164,7 +164,7 @@ export function ScreenplayDocumentPreview({
                   <strong className="font-semibold">{children}</strong>
                 ),
                 table: ({ children }) => (
-                  <Table className="my-5 min-w-full border-collapse text-left text-sm">
+                  <Table className="my-5 min-w-full text-left">
                     {children}
                   </Table>
                 ),

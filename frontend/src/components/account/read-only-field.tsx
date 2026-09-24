@@ -20,7 +20,6 @@ export function ReadOnlyField({
       <Input
         aria-describedby={`${id}-help`}
         aria-readonly="true"
-        className="bg-muted text-muted-foreground"
         id={id}
         readOnly
         value={value}

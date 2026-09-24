@@ -124,7 +124,7 @@ export function LoginView() {
           </AuthField>
         </FieldGroup>
         <Button
-          className="w-full text-[15px]"
+          className="w-full"
           disabled={loading || submitting}
           size="lg"
           type="submit"

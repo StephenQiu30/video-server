@@ -35,7 +35,7 @@ export function ProviderCatalogDelete({
     >
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogMedia className="text-destructive">
+          <AlertDialogMedia>
             <Trash aria-hidden />
           </AlertDialogMedia>
           <AlertDialogTitle>

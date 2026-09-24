@@ -139,7 +139,7 @@ export function IntentHistory({
               : skills
         }
       />
-      <section aria-label="已提交的解析" className="mt-12 lg:mt-16">
+      <section aria-label="已提交的解析" className="mt-6">
         <div className="flex items-center justify-between gap-4">
           <h2 className="text-base font-medium">解析任务</h2>
           <Button
@@ -229,14 +229,25 @@ export function IntentHistory({
             </span>
           </BulkSelectionBar>
         ) : null}
-        {bulk.busy ? <p role="status">正在创建下载任务…</p> : null}
-        {bulk.message ? <p role="status">{bulk.message}</p> : null}
+        {bulk.busy ? (
+          <p role="status">
+            正在创建下载任务：{bulk.progress.completed} / {bulk.progress.total}
+          </p>
+        ) : null}
+        {bulk.message ? (
+          <FeedbackNotice
+            className="my-4"
+            title="批量下载结果"
+            description={bulk.message}
+          />
+        ) : null}
         {history.data?.items.length ? (
           <>
             <div
               aria-hidden
-              className="mt-6 hidden grid-cols-[minmax(0,1fr)_11rem_10rem_7rem] gap-6 text-xs text-muted-foreground lg:grid"
+              className="mt-6 hidden px-3 grid-cols-[1rem_minmax(0,1fr)_11rem_10rem_7rem] gap-6 text-xs text-muted-foreground lg:grid"
             >
+              <span className="w-4" />
               <span>内容</span>
               <span>提交时间</span>
               <span>状态</span>
@@ -247,9 +258,10 @@ export function IntentHistory({
                 <Item
                   key={`${item.record_type}:${item.id}`}
                   role="listitem"
-                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 rounded-none border-0 px-0 py-5 lg:grid-cols-[minmax(0,1fr)_11rem_10rem_7rem] lg:gap-x-6"
+                  className="grid grid-cols-[1rem_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 lg:grid-cols-[1rem_minmax(0,1fr)_11rem_10rem_7rem] lg:gap-x-6"
                 >
-                  <ItemContent className="col-span-2 min-w-0 lg:col-span-1">
+                  <div className="row-span-2 self-start lg:row-span-1">
+                    {' '}
                     {eligible.some(
                       (entry) =>
                         entry.id === item.id && item.record_type === 'parse',
@@ -263,7 +275,9 @@ export function IntentHistory({
                         }
                       />
                     ) : null}
-                    <ItemTitle className="line-clamp-2 w-auto break-words text-[15px]">
+                  </div>
+                  <ItemContent className="col-span-2 min-w-0 lg:col-span-1">
+                    <ItemTitle className="line-clamp-2 w-auto break-words">
                       {item.title || '媒体解析'}
                     </ItemTitle>
                     <p className="mt-1 text-xs text-muted-foreground">
@@ -293,7 +307,7 @@ export function IntentHistory({
                   >
                     {historyRecordStatus(item)}
                   </Badge>
-                  <ItemActions className="col-span-2 justify-end lg:col-span-1">
+                  <ItemActions className="col-span-2 col-start-2 justify-end lg:col-span-1 lg:col-start-auto">
                     {item.record_type !== 'parse' ? (
                       <Button asChild variant="ghost" size="sm">
                         <Link href={historyRecordHref(item)}>

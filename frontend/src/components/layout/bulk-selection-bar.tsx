@@ -1,5 +1,11 @@
 import { type ReactNode, useId } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Field,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from '@/components/ui/field';
 
 export function BulkSelectionBar({
   all,
@@ -18,11 +24,12 @@ export function BulkSelectionBar({
 }) {
   const id = useId();
   return (
-    <fieldset
-      className="my-4 flex flex-wrap items-center gap-3"
+    <FieldSet
+      className="my-4 flex-row flex-wrap items-center gap-3"
       aria-label="批量操作"
     >
-      <label htmlFor={id} className="flex items-center gap-2 text-sm">
+      <FieldLegend className="sr-only">批量操作</FieldLegend>
+      <Field orientation="horizontal" className="w-auto">
         <Checkbox
           id={id}
           aria-label="全选本页"
@@ -30,12 +37,12 @@ export function BulkSelectionBar({
           disabled={busy}
           onCheckedChange={(checked) => onSelectAll(checked === true)}
         />
-        全选本页
-      </label>
+        <FieldLabel htmlFor={id}>全选本页</FieldLabel>
+      </Field>
       <span className="text-sm text-muted-foreground" aria-live="polite">
         已选 {count} 项
       </span>
-      {children}
-    </fieldset>
+      <div className="flex flex-wrap items-center gap-2">{children}</div>
+    </FieldSet>
   );
 }

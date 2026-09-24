@@ -44,7 +44,7 @@ export function StorageCleanupDialog({
     >
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogMedia className="text-destructive">
+          <AlertDialogMedia>
             <Trash aria-hidden />
           </AlertDialogMedia>
           <AlertDialogTitle>清理历史文件？</AlertDialogTitle>

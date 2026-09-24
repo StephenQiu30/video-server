@@ -13,7 +13,7 @@ export function DownloadHistorySummary({
     <div
       aria-busy={loading}
       aria-live="polite"
-      className="mt-12 h-[1.125rem] text-xs leading-[1.125rem] text-muted-foreground tabular-nums"
+      className="mt-6 text-sm text-muted-foreground tabular-nums"
       data-slot="download-history-summary"
     >
       {data ? (

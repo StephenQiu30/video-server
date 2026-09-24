@@ -71,13 +71,9 @@ export function SourceDiscoveryWorkspace({
           {discovery.items.map((item, index) => {
             const busy = busyItemRef === item.item_ref;
             return (
-              <Item
-                asChild
-                className="-mx-3 gap-4 rounded-md border-0 px-3 py-5 hover:bg-muted/50"
-                key={item.item_ref}
-              >
+              <Item asChild className="-mx-3 gap-4" key={item.item_ref}>
                 <li>
-                  <ItemMedia className="self-start pt-0.5">
+                  <ItemMedia className="self-start">
                     <FilmStrip
                       aria-hidden
                       className="text-muted-foreground"
@@ -88,7 +84,7 @@ export function SourceDiscoveryWorkspace({
                     <h3 className="truncate">
                       {item.title || `文章视频 ${index + 1}`}
                     </h3>
-                    <ItemDescription className="mt-0 text-xs leading-5">
+                    <ItemDescription className="mt-0">
                       {itemKindLabel(item.kind)} · {decisionLabel(item)}
                     </ItemDescription>
                   </ItemContent>

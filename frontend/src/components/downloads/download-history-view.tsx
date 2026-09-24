@@ -42,6 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
 import { usePageSelection } from '@/hooks/use-page-selection';
 import { useRequestScope } from '@/hooks/use-request-scope';
 export default function DownloadHistoryView() {
@@ -58,7 +59,11 @@ export default function DownloadHistoryView() {
     search: search || undefined,
     status,
   });
-  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkAction, setBulkAction] = useState<
+    'download' | 'retry' | 'delete' | null
+  >(null);
+  const bulkBusy = bulkAction !== null;
+  const [bulkProgress, setBulkProgress] = useState({ completed: 0, total: 0 });
   const [bulkMessage, setBulkMessage] = useState('');
   const items = state.data?.items ?? [];
   const selection = usePageSelection(
@@ -85,20 +90,29 @@ export default function DownloadHistoryView() {
           : selectedItems;
     if (!targets.length) return;
     const request = scope.capture();
-    setBulkBusy(true);
+    setBulkAction(action);
+    setBulkProgress({ completed: 0, total: targets.length });
     setBulkMessage('');
     const done: string[] = [];
-    for (const item of targets) {
-      if (!request.current()) break;
-      const result = await operations.execute(item.id, action);
-      if (result) done.push(item.id);
-    }
-    if (request.current()) {
-      selection.remove(done);
-      setBulkMessage(
-        `${action === 'download' ? '已发起文件下载' : action === 'retry' ? '已提交重试' : '已删除'} ${done.length} 项，失败 ${targets.length - done.length} 项。${action === 'download' ? '浏览器可能要求允许下载多个文件。' : ''}`,
-      );
-      setBulkBusy(false);
+    try {
+      for (const item of targets) {
+        if (!request.current()) break;
+        const result = await operations.execute(item.id, action);
+        if (result) done.push(item.id);
+        if (request.current())
+          setBulkProgress((value) => ({
+            ...value,
+            completed: value.completed + 1,
+          }));
+      }
+      if (request.current()) {
+        selection.remove(done);
+        setBulkMessage(
+          `${action === 'download' ? '已发起文件下载' : action === 'retry' ? '已提交重试' : '已删除'} ${done.length} 项，失败 ${targets.length - done.length} 项。${action === 'download' ? '浏览器可能要求允许下载多个文件。' : ''}`,
+        );
+      }
+    } finally {
+      if (request.current()) setBulkAction(null);
     }
   }
   const responsePage = state.data?.page;
@@ -152,7 +166,7 @@ export default function DownloadHistoryView() {
         title="下载记录"
       />
 
-      <FieldGroup className="mt-12 grid gap-3 sm:grid-cols-[minmax(0,1fr)_11rem_auto] sm:items-end lg:mt-16">
+      <FieldGroup className="mt-6 grid gap-3 sm:grid-cols-[minmax(0,1fr)_11rem_auto] sm:items-end">
         <Field>
           <FieldLabel className="sr-only" htmlFor="history-search">
             搜索下载记录
@@ -273,6 +287,9 @@ export default function DownloadHistoryView() {
             disabled={bulkBusy || state.refreshing || !downloadable.length}
             onClick={() => void runBulk('download')}
           >
+            {bulkAction === 'download' ? (
+              <Spinner aria-hidden data-icon="inline-start" />
+            ) : null}
             批量下载（{downloadable.length}）
           </Button>
           <Button
@@ -280,20 +297,34 @@ export default function DownloadHistoryView() {
             disabled={bulkBusy || state.refreshing || !retryable.length}
             onClick={() => void runBulk('retry')}
           >
+            {bulkAction === 'retry' ? (
+              <Spinner aria-hidden data-icon="inline-start" />
+            ) : null}
             批量重试（{retryable.length}）
           </Button>
           <DownloadDeleteDialog
             active={selectedItems.some((item) =>
               isActiveDownloadStatus(item.status),
             )}
-            busy={bulkBusy || state.refreshing || !selectedItems.length}
+            busy={bulkAction === 'delete'}
+            disabled={bulkBusy || state.refreshing || !selectedItems.length}
             count={selectedItems.length}
             onDelete={() => runBulk('delete')}
           />
         </BulkSelectionBar>
       ) : null}
-      {bulkBusy ? <p role="status">正在处理所选记录…</p> : null}
-      {bulkMessage ? <p role="status">{bulkMessage}</p> : null}
+      {bulkBusy ? (
+        <p role="status">
+          正在处理所选记录：{bulkProgress.completed} / {bulkProgress.total}
+        </p>
+      ) : null}
+      {bulkMessage ? (
+        <FeedbackNotice
+          className="my-4"
+          title="批量操作结果"
+          description={bulkMessage}
+        />
+      ) : null}
       <DownloadHistoryList
         selection={{
           ids: selection.selected,

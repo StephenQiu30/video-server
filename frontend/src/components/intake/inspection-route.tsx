@@ -265,7 +265,7 @@ export function InspectionSkeleton() {
     >
       <div>
         <AspectRatio ratio={mediaFrameAspectRatio}>
-          <Skeleton className="size-full rounded-none" />
+          <Skeleton className="size-full" />
         </AspectRatio>
         <Skeleton className="mt-5 h-8 w-3/4" />
         <Skeleton className="mt-2 h-4 w-1/2" />

@@ -45,12 +45,7 @@ export function UserFilters({
       className="grid items-end gap-4 md:grid-cols-2 lg:grid-cols-[minmax(220px,1fr)_160px_160px_auto]"
     >
       <Field>
-        <FieldLabel
-          className="text-xs text-muted-foreground"
-          htmlFor="user-search"
-        >
-          搜索用户名或邮箱
-        </FieldLabel>
+        <FieldLabel htmlFor="user-search">搜索用户名或邮箱</FieldLabel>
         <InputGroup>
           <InputGroupInput
             className="h-full"
@@ -65,12 +60,7 @@ export function UserFilters({
         </InputGroup>
       </Field>
       <Field>
-        <FieldLabel
-          className="text-xs text-muted-foreground"
-          htmlFor="user-role-filter"
-        >
-          账户身份
-        </FieldLabel>
+        <FieldLabel htmlFor="user-role-filter">账户身份</FieldLabel>
         <Select
           value={query.role}
           onValueChange={(value) => onRoleChange(value as RoleFilter)}
@@ -86,12 +76,7 @@ export function UserFilters({
         </Select>
       </Field>
       <Field>
-        <FieldLabel
-          className="text-xs text-muted-foreground"
-          htmlFor="user-active-filter"
-        >
-          账户状态
-        </FieldLabel>
+        <FieldLabel htmlFor="user-active-filter">账户状态</FieldLabel>
         <Select
           value={query.active}
           onValueChange={(value) => onActiveChange(value as ActiveFilter)}

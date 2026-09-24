@@ -111,17 +111,11 @@ function MetadataGrid({
   return (
     <ItemGroup className={cn(className, 'items-stretch')}>
       {fields.map(([label, value]) => (
-        <Item
-          className="min-w-0 items-start rounded-none border-0 px-0 py-0"
-          key={label}
-          role="listitem"
-        >
+        <Item className="min-w-0 items-start" key={label} role="listitem">
           <ItemContent className="gap-1">
-            <ItemTitle className="text-xs font-normal text-muted-foreground">
-              {label}
-            </ItemTitle>
+            <ItemTitle>{label}</ItemTitle>
             <ItemDescription
-              className="line-clamp-none truncate tabular-nums text-foreground"
+              className="line-clamp-none truncate tabular-nums"
               title={value}
             >
               {value}

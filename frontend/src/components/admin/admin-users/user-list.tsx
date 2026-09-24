@@ -39,7 +39,6 @@ export function UserList({
           <DropdownMenuTrigger asChild>
             <Button
               aria-label={`管理用户 ${item.username}`}
-              className="text-muted-foreground hover:text-foreground"
               disabled={self}
               size="sm"
               title={self ? '不能修改或删除当前登录管理员' : '管理用户'}
@@ -91,7 +90,7 @@ export function UserList({
       <Table className="min-w-[760px] table-fixed">
         <TableCaption className="sr-only">用户账户列表</TableCaption>
         <TableHeader>
-          <TableRow className="hover:bg-transparent">
+          <TableRow>
             <TableHead>用户名</TableHead>
             <TableHead>邮箱</TableHead>
             <TableHead>身份与状态</TableHead>
@@ -102,14 +101,12 @@ export function UserList({
         <TableBody>
           {items.map((item) => (
             <TableRow key={item.id}>
-              <TableCell className="max-w-0 truncate font-medium">
+              <TableCell className="max-w-0 truncate">
                 {item.username}
               </TableCell>
-              <TableCell className="max-w-0 truncate text-muted-foreground">
-                {item.email}
-              </TableCell>
+              <TableCell className="max-w-0 truncate">{item.email}</TableCell>
               <TableCell>{badges(item)}</TableCell>
-              <TableCell className="text-xs text-muted-foreground tabular-nums">
+              <TableCell className="tabular-nums">
                 {formatUserDate(item.created_at)}
               </TableCell>
               <TableCell className="text-right whitespace-nowrap">

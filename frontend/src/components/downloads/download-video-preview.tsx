@@ -44,10 +44,7 @@ export default function DownloadVideoPreview({
   if (preview.loading) {
     return (
       <AspectRatio ratio={mediaFrameAspectRatio}>
-        <Skeleton
-          aria-label="正在准备视频预览"
-          className="size-full rounded-none"
-        />
+        <Skeleton aria-label="正在准备视频预览" className="size-full" />
       </AspectRatio>
     );
   }

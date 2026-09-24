@@ -59,10 +59,7 @@ export default function DownloadState({
 
   return (
     <div className="self-start">
-      <Badge
-        className="data-[variant=destructive]:text-foreground"
-        variant={statusVariant(job.status)}
-      >
+      <Badge variant={statusVariant(job.status)}>
         {statusLabels[job.status]}
       </Badge>
       <h2

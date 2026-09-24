@@ -49,10 +49,10 @@ export function ProviderCatalogEditor({
       <DialogContent className="max-h-[calc(100svh-2rem)] overflow-y-auto sm:max-w-[540px]">
         <DialogHeader>
           <p className="mb-4 text-sm font-medium">平台目录</p>
-          <DialogTitle className="text-xl font-medium tracking-[-0.025em]">
+          <DialogTitle>
             {creating ? '新增平台' : `编辑 ${editor.displayName}`}
           </DialogTitle>
-          <DialogDescription className="max-w-md leading-6">
+          <DialogDescription className="max-w-md">
             此处只维护状态页名称、排序与可见性，不会新增下载域名或执行能力。
           </DialogDescription>
         </DialogHeader>
@@ -116,13 +116,10 @@ export function ProviderCatalogEditor({
                 数值越小，在平台状态页越靠前。
               </FieldDescription>
             </Field>
-            <Field
-              className="rounded-md bg-surface px-4 py-4"
-              orientation="horizontal"
-            >
+            <Field orientation="horizontal">
               <FieldContent>
                 <FieldLabel htmlFor="catalog-visible">公开显示</FieldLabel>
-                <FieldDescription className="text-xs">
+                <FieldDescription>
                   关闭后从平台状态页隐藏，但保留目录配置。
                 </FieldDescription>
               </FieldContent>
@@ -134,7 +131,7 @@ export function ProviderCatalogEditor({
               />
             </Field>
             {!creating ? (
-              <Alert className="border-0 bg-surface">
+              <Alert>
                 <AlertDescription className="flex items-center gap-2">
                   <Badge
                     variant={editor.systemRegistered ? 'default' : 'secondary'}

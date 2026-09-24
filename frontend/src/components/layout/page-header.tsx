@@ -29,7 +29,7 @@ export function PageHeader({
       <div className="min-w-0 max-w-4xl">
         <h1
           className={cn(
-            'text-balance text-[clamp(2rem,4vw,3rem)] font-semibold leading-none tracking-[-0.05em]',
+            'text-balance text-2xl font-semibold tracking-tight sm:text-3xl',
             titleClassName,
           )}
           id={titleId}
@@ -37,7 +37,7 @@ export function PageHeader({
           {title}
         </h1>
         {description ? (
-          <p className="mt-3 text-base leading-6 text-muted-foreground">
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
             {description}
           </p>
         ) : null}

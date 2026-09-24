@@ -32,7 +32,7 @@ export function SourcePerformance({ sources }: { sources: Source[] }) {
           </div>
           <CollapsibleTrigger asChild>
             <Button
-              className="group w-full justify-between bg-muted sm:w-auto"
+              className="group w-full justify-between sm:w-auto"
               type="button"
               variant="ghost"
             >

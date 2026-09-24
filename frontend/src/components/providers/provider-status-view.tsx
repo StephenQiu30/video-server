@@ -94,7 +94,7 @@ export function ProviderStatusView() {
         titleId="provider-status-title"
       />
 
-      <div className="mt-10 flex flex-col gap-6 sm:mt-12">
+      <div className="mt-6 flex flex-col gap-6">
         {state.loading && !state.data ? (
           <StatusMessage label="正在加载平台状态" />
         ) : null}
@@ -149,7 +149,7 @@ export function ProviderStatusView() {
                 <Table className="min-w-[980px] table-fixed">
                   <TableCaption className="sr-only">平台能力状态</TableCaption>
                   <TableHeader>
-                    <TableRow className="hover:bg-transparent">
+                    <TableRow>
                       <TableHead className="w-[27%]">平台</TableHead>
                       <TableHead className="w-[24%]">状态与接入</TableHead>
                       <TableHead className="w-[34%]">已登记能力</TableHead>

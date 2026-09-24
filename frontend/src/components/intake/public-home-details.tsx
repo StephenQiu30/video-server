@@ -51,7 +51,7 @@ export function PublicHomeSafeguards({ items }: { items: readonly string[] }) {
     <ItemGroup className="gap-4">
       {items.map((item) => (
         <Item
-          className="flex-nowrap items-start gap-3 rounded-none p-0"
+          className="flex-nowrap items-start gap-3"
           key={item}
           role="listitem"
         >
@@ -79,11 +79,11 @@ export function PublicHomeWorkflow({
       {items.map(([title, description], index) => (
         <Item
           asChild
-          className="grid grid-cols-[2rem_1fr] items-start gap-3 rounded-none p-0"
+          className="grid grid-cols-[2rem_1fr] items-start gap-3"
           key={title}
         >
           <li>
-            <ItemMedia className="mb-0 font-mono text-xs text-muted-foreground">
+            <ItemMedia className="mb-0">
               {String(index + 1).padStart(2, '0')}
             </ItemMedia>
             <ItemContent>

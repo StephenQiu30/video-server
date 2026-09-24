@@ -63,15 +63,9 @@ export function ContentIntakeHero({
             剧本文档
           </TabsTrigger>
         </TabsList>
-        <TabsContent className="pt-4" value="link">
-          {linkForm}
-        </TabsContent>
-        <TabsContent className="pt-4" value="video">
-          {videoForm}
-        </TabsContent>
-        <TabsContent className="pt-4" value="screenplay">
-          {screenplayForm}
-        </TabsContent>
+        <TabsContent value="link">{linkForm}</TabsContent>
+        <TabsContent value="video">{videoForm}</TabsContent>
+        <TabsContent value="screenplay">{screenplayForm}</TabsContent>
       </Tabs>
     </div>
   );

@@ -102,22 +102,33 @@ function HistoryRow({
   const canDownload =
     item.status === DownloadStatusCode.Succeeded && item.file_available;
   const recovery = downloadRecovery(item);
-  const busy = selection?.busy || pendingAction?.id === item.id;
+  const busy = Boolean(selection?.busy || pendingAction);
 
   return (
     <Item
-      className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 rounded-none border-0 px-0 py-5 sm:grid-cols-[128px_minmax(0,1fr)_auto] sm:gap-x-6 sm:py-6"
+      className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[auto_minmax(0,1fr)_auto]"
       role="listitem"
     >
+      {selection ? (
+        <Checkbox
+          className="self-start"
+          aria-label={`选择 ${item.title}`}
+          checked={selection.ids.includes(item.id)}
+          disabled={busy}
+          onCheckedChange={(checked) =>
+            selection.toggle(item.id, checked === true)
+          }
+        />
+      ) : null}
       <Link
         aria-label={item.title}
-        className="focus-ring group/summary col-span-2 grid min-w-0 grid-cols-[96px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 rounded-md sm:col-span-2 sm:grid-cols-[128px_minmax(0,1fr)] sm:gap-x-6"
+        className="focus-ring grid min-w-0 grid-cols-[64px_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[96px_minmax(0,1fr)]"
         href={detailHref}
       >
-        <ItemMedia className="!translate-y-0 shrink-0 self-center group-has-data-[slot=item-description]/item:translate-y-0 group-has-data-[slot=item-description]/item:self-center">
+        <ItemMedia>
           <MediaCover
             alt={`${item.title} 媒体封面`}
-            className="w-24 rounded-md ring-0 sm:w-32"
+            className="w-16 sm:w-24"
             compact
             fallback={{
               detail: item.format_name,
@@ -129,46 +140,31 @@ function HistoryRow({
         </ItemMedia>
         <ItemContent className="min-w-0 gap-1.5">
           <ItemTitle className="line-clamp-2">
-            <span className="line-clamp-2 text-[15px] leading-snug text-foreground transition-colors group-hover/summary:text-muted-foreground">
-              {item.title}
-            </span>
+            <span className="line-clamp-2">{item.title}</span>
           </ItemTitle>
-          <ItemDescription className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+          <ItemDescription>
             <span>{item.source_label}</span>
-            <span aria-hidden>·</span>
+            <span aria-hidden> · </span>
             <span>{item.format_name}</span>
-            <span aria-hidden>·</span>
+            <span aria-hidden> · </span>
             <time dateTime={item.created_at}>
               {formatDate(item.created_at)}
             </time>
             {item.status === DownloadStatusCode.Succeeded ? (
               <>
-                <span aria-hidden>·</span>
+                <span aria-hidden> · </span>
                 <span>{fileAvailabilityLabel(item)}</span>
               </>
             ) : null}
           </ItemDescription>
         </ItemContent>
       </Link>
-      <ItemActions className="col-span-2 w-full justify-between gap-1 sm:col-auto sm:w-auto sm:justify-end">
-        <Badge
-          className="rounded-md px-2 py-1 font-normal data-[variant=destructive]:text-foreground"
-          variant={statusVariant(item.status)}
-        >
+      <ItemActions className="col-start-2 w-full flex-wrap justify-between gap-2 sm:col-start-auto sm:w-auto sm:justify-end">
+        <Badge variant={statusVariant(item.status)}>
           {downloadStatusLabels[item.status]}
           {isActiveDownloadStatus(item.status) ? ` · ${item.progress}%` : ''}
         </Badge>
         <div className="flex items-center gap-1">
-          {selection ? (
-            <Checkbox
-              aria-label={`选择 ${item.title}`}
-              checked={selection.ids.includes(item.id)}
-              disabled={busy}
-              onCheckedChange={(checked) =>
-                selection.toggle(item.id, checked === true)
-              }
-            />
-          ) : null}
           {canDownload ? (
             <Button
               disabled={busy}
@@ -208,7 +204,8 @@ function HistoryRow({
           )}
           <DownloadDeleteDialog
             active={isActiveDownloadStatus(item.status)}
-            busy={busy}
+            busy={pendingAction?.type === 'delete'}
+            disabled={busy}
             compact
             onDelete={() => onDelete(item)}
           />
@@ -230,7 +227,7 @@ function LoadingRows() {
             className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-4 py-5 sm:grid-cols-[128px_minmax(0,1fr)_auto] sm:gap-6 sm:py-6"
             key={key}
           >
-            <Skeleton className="h-16 w-24 rounded-md sm:w-32" />
+            <Skeleton className="h-16 w-24 sm:w-32" />
             <div className="flex flex-col gap-2">
               <Skeleton className="h-4 w-2/5" />
               <Skeleton className="h-3 w-3/5" />

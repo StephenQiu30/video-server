@@ -20,12 +20,14 @@ import { Spinner } from '@/components/ui/spinner';
 export function DownloadDeleteDialog({
   active,
   busy,
+  disabled = false,
   compact = false,
   count,
   onDelete,
 }: {
   active: boolean;
   busy: boolean;
+  disabled?: boolean;
   compact?: boolean;
   count?: number;
   onDelete: () => Promise<void>;
@@ -35,10 +37,10 @@ export function DownloadDeleteDialog({
       <AlertDialogTrigger asChild>
         <Button
           aria-label={compact ? '删除下载记录' : undefined}
-          className={compact ? '-mr-2' : undefined}
-          disabled={busy}
+          disabled={disabled || busy}
+          aria-busy={busy}
           size={compact ? 'icon-sm' : 'default'}
-          variant="ghost"
+          variant={compact ? 'ghost' : 'outline'}
         >
           {busy ? (
             <Spinner

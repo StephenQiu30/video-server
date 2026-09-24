@@ -68,7 +68,7 @@ export function MobileNavigation({
         {user ? (
           <div className="flex items-center gap-3 px-5 py-4">
             <Avatar size="lg">
-              <AvatarFallback className="bg-muted text-foreground">
+              <AvatarFallback>
                 {user.username.slice(0, 1).toUpperCase()}
               </AvatarFallback>
             </Avatar>
@@ -82,7 +82,7 @@ export function MobileNavigation({
         ) : null}
         <NavigationMenu
           aria-label="移动导航"
-          className="block max-w-none flex-none px-3"
+          className="block max-w-none flex-none"
           orientation="vertical"
           viewport={false}
         >
@@ -92,7 +92,7 @@ export function MobileNavigation({
           <SheetFooter>
             <SheetClose asChild>
               <Button
-                className="w-full justify-start text-destructive hover:text-destructive"
+                className="w-full justify-start"
                 disabled={signingOut}
                 onClick={() => void onSignOut()}
                 variant="ghost"

@@ -143,7 +143,7 @@ export default function ScreenplayDocumentDetailView({
                 <ScreenplayUploadDialog label="重新上传" />
               ) : null}
               <Button
-                className="w-full bg-surface sm:w-auto"
+                className="w-full sm:w-auto"
                 disabled={state.loading}
                 onClick={state.refresh}
                 size="lg"
@@ -231,7 +231,7 @@ function DocumentDetailSkeleton() {
             <Skeleton className="h-6 w-28" />
             <Skeleton className="h-4 w-20" />
           </div>
-          <Skeleton className="min-h-0 w-full flex-1 rounded-none" />
+          <Skeleton className="min-h-0 w-full flex-1" />
         </div>
         <div className={`${tocColumnClassName} flex flex-col gap-4`}>
           <Skeleton className="h-5 w-16" />

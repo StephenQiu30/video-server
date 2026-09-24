@@ -15,11 +15,13 @@ export function useBulkParseDownload() {
   const running = useRef(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [progress, setProgress] = useState({ completed: 0, total: 0 });
   async function execute(items: API.ParseHistoryRecordResponse[]) {
     if (running.current) return [];
     running.current = true;
     setBusy(true);
     setMessage('');
+    setProgress({ completed: 0, total: items.length });
     const request = scope.capture();
     const done: string[] = [];
     const failures: string[] = [];
@@ -63,6 +65,12 @@ export function useBulkParseDownload() {
           done.push(item.id);
         } catch (error) {
           failures.push(`${item.title || '媒体解析'}：${displayError(error)}`);
+        } finally {
+          if (request.current())
+            setProgress((value) => ({
+              ...value,
+              completed: value.completed + 1,
+            }));
         }
       }
       if (request.current()) {
@@ -82,5 +90,5 @@ export function useBulkParseDownload() {
       if (request.current()) setBusy(false);
     }
   }
-  return { busy, message, execute };
+  return { busy, message, progress, execute };
 }

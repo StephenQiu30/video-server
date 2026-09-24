@@ -51,7 +51,7 @@ export default function ScreenplayRewriteResultView({
           ) : null}
         </TabsList>
       </div>
-      <TabsContent className="pt-7" value="summary">
+      <TabsContent value="summary">
         <div>
           <h3
             className="text-xl font-medium tracking-[-0.02em]"
@@ -60,12 +60,12 @@ export default function ScreenplayRewriteResultView({
             统一术语
           </h3>
           {result.glossary.length ? (
-            <Table className="mt-4 border-collapse text-left text-sm">
+            <Table className="mt-4 text-left">
               <TableCaption className="sr-only">
                 剧本改写统一术语表
               </TableCaption>
               <TableHeader>
-                <TableRow className="text-muted-foreground hover:bg-transparent">
+                <TableRow>
                   <TableHead className="whitespace-normal">原文</TableHead>
                   <TableHead className="whitespace-normal">统一写法</TableHead>
                   <TableHead className="whitespace-normal">类别</TableHead>
@@ -74,13 +74,13 @@ export default function ScreenplayRewriteResultView({
               <TableBody>
                 {result.glossary.map((term) => (
                   <TableRow key={`${term.category}:${term.source}`}>
-                    <TableCell className="font-medium whitespace-normal">
+                    <TableCell className="whitespace-normal">
                       {term.source}
                     </TableCell>
                     <TableCell className="whitespace-normal">
                       {term.target}
                     </TableCell>
-                    <TableCell className="text-muted-foreground whitespace-normal">
+                    <TableCell className="whitespace-normal">
                       {categoryLabels[term.category] ?? term.category}
                     </TableCell>
                   </TableRow>
@@ -108,7 +108,7 @@ export default function ScreenplayRewriteResultView({
         </div>
       </TabsContent>
       {reportMarkdown ? (
-        <TabsContent className="pt-7" value="report">
+        <TabsContent value="report">
           <p className="mb-6 max-w-3xl text-sm leading-6 text-muted-foreground">
             以下正文由受限 AI 按源场景顺序确定性合并，仅用于改写与本地化参考。
           </p>

@@ -41,7 +41,7 @@ function SceneReviewList({
               <summary className="cursor-pointer font-medium marker:text-muted-foreground">
                 场景 {first + index + 1} · {scene.purpose || '未说明场景作用'}
               </summary>
-              <ItemGroup className="grid gap-4 pt-4 text-sm sm:grid-cols-3">
+              <ItemGroup className="grid gap-4 sm:grid-cols-3">
                 <Detail label="冲突">{scene.conflict}</Detail>
                 <Detail label="变化">{scene.turn}</Detail>
                 <Detail label="节奏">{scene.pacing}</Detail>

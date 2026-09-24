@@ -59,14 +59,9 @@ export function HeaderAccount({
       ) : user ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              aria-label="打开账户菜单"
-              className="px-2.5 text-foreground"
-              size="lg"
-              variant="ghost"
-            >
+            <Button aria-label="打开账户菜单" size="lg" variant="ghost">
               <Avatar>
-                <AvatarFallback className="text-foreground">
+                <AvatarFallback>
                   {user.username.slice(0, 1).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
@@ -146,12 +141,7 @@ export function HeaderAccount({
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
-        <Button
-          asChild
-          className="w-full px-3.5 text-[15px]"
-          size="lg"
-          variant="ghost"
-        >
+        <Button asChild className="w-full" size="lg" variant="ghost">
           <Link href={`/user/login?redirect=${encodeURIComponent(pathname)}`}>
             <UserCircleIcon aria-hidden className="size-[21px]" />
             <span>账户</span>

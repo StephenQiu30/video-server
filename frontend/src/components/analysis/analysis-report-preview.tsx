@@ -74,9 +74,7 @@ export default function AnalysisReportPreview({
             <p className="my-3 text-muted-foreground">{children}</p>
           ),
           table: ({ children }) => (
-            <Table className="my-6 w-full border-collapse text-left text-sm">
-              {children}
-            </Table>
+            <Table className="my-6 w-full text-left">{children}</Table>
           ),
           thead: ({ children }) => <TableHeader>{children}</TableHeader>,
           tbody: ({ children }) => <TableBody>{children}</TableBody>,

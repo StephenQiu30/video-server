@@ -40,10 +40,7 @@ export function SiteFooter({ className }: { className?: string }) {
 function FooterLink({ children, href }: { children: string; href: string }) {
   return (
     <NavigationMenuItem>
-      <NavigationMenuLink
-        asChild
-        className="focus-ring rounded-sm p-0 text-sm text-muted-foreground hover:bg-transparent hover:text-foreground focus:bg-transparent"
-      >
+      <NavigationMenuLink asChild className="focus-ring">
         <Link href={href}>{children}</Link>
       </NavigationMenuLink>
     </NavigationMenuItem>

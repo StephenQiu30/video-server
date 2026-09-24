@@ -41,14 +41,10 @@ export default function AnalysisArticleResultView({
           {reportMarkdown ? <Tab value="report">报告预览</Tab> : null}
         </TabsList>
       </div>
-      <TabsContent className="pt-7" value="article">
+      <TabsContent value="article">
         <ol className={cn('gap-2')}>
           {result.sections.map((section, index) => (
-            <Item
-              asChild
-              className="block rounded-md border-0 px-0 py-7"
-              key={section.id}
-            >
+            <Item asChild className="block" key={section.id}>
               <li>
                 <p className="text-xs text-muted-foreground">
                   章节 {index + 1}
@@ -63,7 +59,7 @@ export default function AnalysisArticleResultView({
                       key={`${evidence.start_ms}-${evidence.end_ms}-${evidence.note}`}
                     >
                       <Button
-                        className="px-0 text-xs tabular-nums"
+                        className="tabular-nums"
                         disabled={!onSelectTime}
                         onClick={() => onSelectTime?.(evidence.start_ms)}
                         type="button"
@@ -82,7 +78,7 @@ export default function AnalysisArticleResultView({
           ))}
         </ol>
       </TabsContent>
-      <TabsContent className="pt-7" value="points">
+      <TabsContent value="points">
         <ul className="flex flex-col gap-3 list-disc py-4 pl-5 leading-7 text-muted-foreground">
           {result.key_points.map((point) => (
             <li key={point}>{point}</li>
@@ -101,7 +97,7 @@ export default function AnalysisArticleResultView({
         <p className="mt-8 leading-7 text-muted-foreground">{result.closing}</p>
       </TabsContent>
       {reportMarkdown ? (
-        <TabsContent className="pt-7" value="report">
+        <TabsContent value="report">
           <AnalysisReportPreview markdown={reportMarkdown} />
         </TabsContent>
       ) : null}

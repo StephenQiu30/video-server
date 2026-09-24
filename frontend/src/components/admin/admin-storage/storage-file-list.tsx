@@ -29,7 +29,7 @@ export function StorageFileList({
       <Table className="table-fixed">
         <TableCaption className="sr-only">持久文件列表</TableCaption>
         <TableHeader>
-          <TableRow className="hover:bg-transparent">
+          <TableRow>
             <TableHead>文件</TableHead>
             <TableHead>类型</TableHead>
             <TableHead className="text-right">对象数</TableHead>
@@ -41,27 +41,24 @@ export function StorageFileList({
         <TableBody>
           {items.map((item) => (
             <TableRow key={`${item.category}-${item.id}`}>
-              <TableCell className="max-w-0 truncate font-medium">
+              <TableCell className="max-w-0 truncate">
                 <span className="block truncate" title={item.name}>
                   {item.name}
                 </span>
               </TableCell>
-              <TableCell className="text-muted-foreground">
-                {storageCategoryLabels[item.category]}
-              </TableCell>
-              <TableCell className="text-right text-xs tabular-nums">
+              <TableCell>{storageCategoryLabels[item.category]}</TableCell>
+              <TableCell className="text-right tabular-nums">
                 {item.object_count}
               </TableCell>
-              <TableCell className="text-xs text-muted-foreground tabular-nums">
+              <TableCell className="tabular-nums">
                 {formatStorageDate(item.created_at)}
               </TableCell>
-              <TableCell className="text-right text-sm font-medium tabular-nums">
+              <TableCell className="text-right tabular-nums">
                 {formatStorageSize(item.size_bytes)}
               </TableCell>
               <TableCell className="text-right">
                 <Button
                   aria-label={`删除文件 ${item.name}`}
-                  className="text-destructive hover:text-destructive"
                   onClick={() => onDelete(item)}
                   size="icon-lg"
                   type="button"

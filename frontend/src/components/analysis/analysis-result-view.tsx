@@ -62,15 +62,15 @@ export default function AnalysisResultView({
           ) : null}
         </TabsList>
       </div>
-      <TabsContent className="pt-7" value="scenes">
+      <TabsContent value="scenes">
         <AnalysisSceneList onSelectTime={onSelectTime} scenes={result.scenes} />
       </TabsContent>
-      <TabsContent className="pt-7" value="shots">
+      <TabsContent value="shots">
         <ol className={cn('gap-2')}>
           {result.shots.map((shot) => (
             <Item
               asChild
-              className="grid gap-4 rounded-md border-0 px-0 py-6 sm:grid-cols-[72px_minmax(0,1fr)]"
+              className="grid gap-4 sm:grid-cols-[72px_minmax(0,1fr)]"
               key={shot.id}
             >
               <li>
@@ -99,15 +99,11 @@ export default function AnalysisResultView({
           ))}
         </ol>
       </TabsContent>
-      <TabsContent className="pt-7" value="highlights">
+      <TabsContent value="highlights">
         {result.highlights.length ? (
           <ul className={cn('gap-2')}>
             {result.highlights.map((highlight) => (
-              <Item
-                asChild
-                className="block rounded-md border-0 px-0 py-6"
-                key={highlight.id}
-              >
+              <Item asChild className="block" key={highlight.id}>
                 <li>
                   <div className="flex items-start justify-between gap-4">
                     <strong className="font-medium">{highlight.title}</strong>
@@ -136,15 +132,11 @@ export default function AnalysisResultView({
           />
         )}
       </TabsContent>
-      <TabsContent className="pt-7" value="assets">
+      <TabsContent value="assets">
         {result.assets.length ? (
           <ul className={cn('gap-2')}>
             {result.assets.map((asset) => (
-              <Item
-                asChild
-                className="block rounded-md border-0 px-0 py-6"
-                key={asset.id}
-              >
+              <Item asChild className="block" key={asset.id}>
                 <li>
                   <p className="text-xs text-muted-foreground">
                     {assetTypeLabels[asset.type] ?? asset.type}
@@ -173,7 +165,7 @@ export default function AnalysisResultView({
         )}
       </TabsContent>
       {reportMarkdown ? (
-        <TabsContent className="pt-7" value="report">
+        <TabsContent value="report">
           <AnalysisReportPreview markdown={reportMarkdown} />
         </TabsContent>
       ) : null}
@@ -190,7 +182,7 @@ function TimeButton({
 }) {
   return (
     <Button
-      className="h-auto w-fit p-0 text-xs font-mono text-muted-foreground tabular-nums self-baseline justify-start hover:text-foreground hover:no-underline"
+      className="h-auto w-fit tabular-nums self-baseline justify-start hover:no-underline"
       disabled={!onSelect}
       onClick={() => onSelect?.(milliseconds)}
       type="button"

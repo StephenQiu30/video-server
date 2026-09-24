@@ -21,19 +21,17 @@ export function HomeStartup() {
         className="w-full max-w-md items-start gap-0"
         data-home-boot-copy
       >
-        <EmptyDescription className="font-mono text-xs uppercase tracking-[0.2em]">
+        <EmptyDescription className="uppercase">
           FrameFetch / Session
         </EmptyDescription>
-        <EmptyTitle className="mt-4 text-xl tracking-[-0.025em]">
-          正在确认当前会话
-        </EmptyTitle>
-        <EmptyDescription className="mt-2 leading-6">
+        <EmptyTitle className="mt-4">正在确认当前会话</EmptyTitle>
+        <EmptyDescription className="mt-2">
           工作区准备完成后，只呈现与你登录状态匹配的页面。
         </EmptyDescription>
       </EmptyHeader>
       <Progress
         aria-label="正在确认当前会话"
-        className="mt-6 h-px max-w-md origin-left rounded-none bg-foreground"
+        className="mt-6 h-px max-w-md origin-left"
         data-home-boot-line
         value={null}
       />

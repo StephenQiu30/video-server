@@ -38,7 +38,7 @@ export function StorageFileDeleteDialog({
     >
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogMedia className="text-destructive">
+          <AlertDialogMedia>
             <Trash aria-hidden />
           </AlertDialogMedia>
           <AlertDialogTitle>删除文件？</AlertDialogTitle>

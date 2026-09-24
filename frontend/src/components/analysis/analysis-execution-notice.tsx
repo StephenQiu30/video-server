@@ -22,15 +22,12 @@ export function AnalysisExecutionNotice({
   resultContract?: API.AnalysisResultContract;
 }) {
   return (
-    <Item
-      className="items-start rounded-none px-0 py-0 sm:flex-nowrap"
-      size="sm"
-    >
+    <Item className="items-start sm:flex-nowrap" size="sm">
       <ItemMedia variant="icon">
         <ShieldCheck aria-hidden />
       </ItemMedia>
       <ItemContent>
-        <ItemDescription className="line-clamp-none max-w-3xl leading-6">
+        <ItemDescription className="line-clamp-none max-w-3xl">
           {inputKind === 'screenplay' ? (
             <>
               规范化剧本文本、任务指令，以及改写时必要的术语表和有界相邻上下文会发送到所选云端模型处理。受限剧本执行器不能使用文件、Shell、网络、浏览器、插件或其他

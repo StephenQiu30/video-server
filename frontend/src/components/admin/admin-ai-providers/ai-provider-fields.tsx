@@ -36,7 +36,7 @@ export function AiProviderFields({
   return (
     <FieldGroup className="gap-6">
       {localCodex ? (
-        <Alert className="border-0 bg-surface">
+        <Alert>
           <AlertDescription>
             这是服务端始终保留的本机 Codex
             兜底线路。只能修改显示名称和模型，执行引擎、认证方式、服务地址与凭据不可修改。
@@ -166,7 +166,7 @@ export function AiProviderFields({
       {editor.authMode === 'api_key' ? (
         <ApiKeyFields creating={creating} editor={editor} onChange={onChange} />
       ) : (
-        <Alert className="border-0 bg-surface">
+        <Alert>
           <AlertDescription>
             Agent 将读取当前系统用户的 {providerEngineLabel(editor.engine)}{' '}
             登录状态；无需在项目中保存 Key。

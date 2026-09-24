@@ -28,11 +28,7 @@ export function FindingList({
       {items.length ? (
         <ul className="space-y-2">
           {items.map((item) => (
-            <Item
-              asChild
-              className="block rounded-md border-0 px-0 py-5"
-              key={item.id}
-            >
+            <Item asChild className="block" key={item.id}>
               <li>
                 <strong className="font-medium">{item.title}</strong>
                 <p className="mt-2 leading-7 text-muted-foreground">
@@ -57,13 +53,10 @@ export function Detail({
   label: string;
 }) {
   return (
-    <Item
-      className="items-start rounded-none border-0 px-0 py-0"
-      role="listitem"
-    >
+    <Item className="items-start" role="listitem">
       <ItemContent className="gap-1">
-        <ItemTitle className="text-muted-foreground">{label}</ItemTitle>
-        <ItemDescription className="line-clamp-none leading-6 text-foreground">
+        <ItemTitle>{label}</ItemTitle>
+        <ItemDescription className="line-clamp-none">
           {children}
         </ItemDescription>
       </ItemContent>

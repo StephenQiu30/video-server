@@ -63,7 +63,7 @@ export default function InspectionWorkspace({
         metadata={
           <ItemGroup
             aria-label="媒体信息"
-            className="mt-2 flex-row flex-wrap items-start justify-start gap-x-3 gap-y-2 text-left text-xs text-muted-foreground tabular-nums"
+            className="mt-2 flex-row flex-wrap items-start justify-start gap-x-3 gap-y-2 text-left tabular-nums"
           >
             <Meta label="平台" mono value={inspection.extractor_key} />
             {inspection.duration_seconds > 0 ? (
@@ -114,7 +114,7 @@ export default function InspectionWorkspace({
               </div>
             )}
             {selected?.plan ? (
-              <ItemGroup className="mt-7 grid grid-cols-2 gap-x-5 gap-y-4 pt-5 text-sm">
+              <ItemGroup className="mt-7 grid grid-cols-2 gap-x-5 gap-y-4">
                 <SelectionMeta
                   label="容器"
                   value={selected.plan.container_preference.toUpperCase()}
@@ -135,7 +135,7 @@ export default function InspectionWorkspace({
                 />
               </ItemGroup>
             ) : (gallery || collection) && selected ? (
-              <ItemGroup className="mt-7 grid grid-cols-2 gap-x-5 gap-y-4 pt-5 text-sm">
+              <ItemGroup className="mt-7 grid grid-cols-2 gap-x-5 gap-y-4">
                 <SelectionMeta
                   label="媒体类型"
                   value={collection ? '视频合集' : '官方图文'}
@@ -204,7 +204,7 @@ function Meta({
 }) {
   return (
     <Item
-      className="flex w-auto items-center gap-3 rounded-none border-0 px-0 py-0 before:content-['·'] first:before:hidden"
+      className="flex w-auto items-center gap-3 before:content-['·'] first:before:hidden"
       role="listitem"
     >
       <ItemContent className="flex-none gap-0">
@@ -235,17 +235,10 @@ function inspectionDetailLabel(
 
 function SelectionMeta({ label, value }: { label: string; value: string }) {
   return (
-    <Item
-      className="items-start rounded-none border-0 px-0 py-0"
-      role="listitem"
-    >
+    <Item className="items-start" role="listitem">
       <ItemContent className="gap-1">
-        <ItemTitle className="text-xs font-normal text-muted-foreground">
-          {label}
-        </ItemTitle>
-        <ItemDescription className="line-clamp-none font-medium text-foreground">
-          {value}
-        </ItemDescription>
+        <ItemTitle>{label}</ItemTitle>
+        <ItemDescription className="line-clamp-none">{value}</ItemDescription>
       </ItemContent>
     </Item>
   );

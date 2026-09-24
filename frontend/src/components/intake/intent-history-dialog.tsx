@@ -87,7 +87,7 @@ export function IntentHistoryDialog({
         showCloseButton={false}
       >
         <DialogHeader>
-          <DialogTitle className="text-xl">解析记录详情</DialogTitle>
+          <DialogTitle>解析记录详情</DialogTitle>
           <DialogDescription className="break-words">
             {item?.title || '媒体解析'}
             {item ? (

@@ -3,15 +3,9 @@ import {
   InfoIcon,
   WarningCircleIcon,
 } from '@phosphor-icons/react';
-import { cn } from 'cn';
 import type { ReactNode } from 'react';
 
-import {
-  Alert,
-  AlertAction,
-  AlertDescription,
-  AlertTitle,
-} from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 type FeedbackTone = 'error' | 'info' | 'success';
 
@@ -32,36 +26,26 @@ export function FeedbackNotice({
 }) {
   const icon =
     tone === 'error' ? (
-      <WarningCircleIcon aria-hidden className="text-destructive" />
+      <WarningCircleIcon aria-hidden />
     ) : tone === 'success' ? (
-      <CheckCircleIcon aria-hidden className="text-success" />
+      <CheckCircleIcon aria-hidden />
     ) : (
-      <InfoIcon aria-hidden className="text-muted-foreground" />
+      <InfoIcon aria-hidden />
     );
 
   return (
     <Alert
-      className={cn(
-        'border-0 bg-surface',
-        action && 'pr-44 sm:pr-48',
-        className,
-      )}
+      className={className}
       variant={tone === 'error' ? 'destructive' : 'default'}
     >
       {icon}
-      <div className="min-w-0">
-        {title ? (
-          <AlertTitle className="text-foreground">{title}</AlertTitle>
+      {title ? <AlertTitle>{title}</AlertTitle> : null}
+      <AlertDescription id={descriptionId} className="min-w-0">
+        {description}
+        {action ? (
+          <div className="mt-3 flex flex-wrap gap-2">{action}</div>
         ) : null}
-        <AlertDescription className="text-foreground/80" id={descriptionId}>
-          {description}
-        </AlertDescription>
-      </div>
-      {action ? (
-        <AlertAction className="top-1/2 right-4 -translate-y-1/2 sm:right-5">
-          {action}
-        </AlertAction>
-      ) : null}
+      </AlertDescription>
     </Alert>
   );
 }

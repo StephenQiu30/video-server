@@ -51,7 +51,6 @@ export function ProviderCatalogList({
         </Button>
         <Button
           aria-label={`删除平台 ${item.display_name}`}
-          className="text-destructive hover:text-destructive"
           onClick={() => onDelete(item)}
           size="icon-lg"
           type="button"
@@ -67,7 +66,7 @@ export function ProviderCatalogList({
     <Table className="min-w-[720px] table-fixed">
       <TableCaption className="sr-only">平台目录列表</TableCaption>
       <TableHeader>
-        <TableRow className="hover:bg-transparent">
+        <TableRow>
           <TableHead>平台</TableHead>
           <TableHead>目录键</TableHead>
           <TableHead>注册与可见性</TableHead>
@@ -78,12 +77,10 @@ export function ProviderCatalogList({
       <TableBody>
         {items.map((item) => (
           <TableRow key={item.key}>
-            <TableCell className="font-medium">{item.display_name}</TableCell>
-            <TableCell className="font-mono text-xs text-muted-foreground">
-              {item.key}
-            </TableCell>
+            <TableCell>{item.display_name}</TableCell>
+            <TableCell>{item.key}</TableCell>
             <TableCell>{badges(item)}</TableCell>
-            <TableCell className="text-right text-xs tabular-nums">
+            <TableCell className="text-right tabular-nums">
               {item.sort_order}
             </TableCell>
             <TableCell className="text-right">{actions(item)}</TableCell>

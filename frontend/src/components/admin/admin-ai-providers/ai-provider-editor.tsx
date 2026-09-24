@@ -49,10 +49,10 @@ export function AiProviderEditor({
       >
         <DialogHeader>
           <p className="mb-4 text-sm font-medium text-primary">AI 分析路由</p>
-          <DialogTitle className="text-xl font-medium tracking-[-0.025em]">
+          <DialogTitle>
             {creating ? '新增 AI 服务' : `编辑 ${editor.displayName}`}
           </DialogTitle>
-          <DialogDescription className="max-w-lg leading-6">
+          <DialogDescription className="max-w-lg">
             本机登录模式复用当前用户的 Codex 或 Claude 登录；API Key
             会加密保存，仅在分析任务运行时交给所选适配器，不写入环境文件。
           </DialogDescription>

@@ -64,7 +64,7 @@ export function AdminUsersScreen({
   const last = Math.min(result.page * result.pageSize, result.total);
 
   return (
-    <div aria-busy={result.loading} className="flex flex-col gap-10">
+    <div aria-busy={result.loading} className="flex flex-col gap-6">
       <div>
         <BackLink className="mb-4" fallbackHref="/account" />
         <PageHeader

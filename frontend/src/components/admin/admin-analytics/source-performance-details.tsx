@@ -18,7 +18,7 @@ export function SourcePerformanceDetails({ sources }: { sources: Source[] }) {
       <Table className="min-w-[900px] table-fixed">
         <TableCaption className="sr-only">各视频源下载表现</TableCaption>
         <TableHeader>
-          <TableRow className="hover:bg-transparent">
+          <TableRow>
             <SourceHead>视频源</SourceHead>
             <SourceHead numeric>任务</SourceHead>
             <SourceHead numeric>成功率</SourceHead>

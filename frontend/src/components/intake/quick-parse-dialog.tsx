@@ -170,7 +170,7 @@ export function QuickParseDialog() {
             </CommandGroup>
           </CommandList>
           {invalid ? (
-            <FieldError className="px-2 pb-2" id="quick-parse-error">
+            <FieldError id="quick-parse-error">
               {PUBLIC_INPUT_REQUIRED}
             </FieldError>
           ) : null}

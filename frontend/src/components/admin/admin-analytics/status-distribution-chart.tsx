@@ -151,12 +151,12 @@ export function StatusDistributionChart({
         <ItemGroup className="grid grid-cols-2 gap-x-8 gap-y-8 sm:grid-cols-4 sm:gap-x-10">
           {data.map((item) => (
             <Item
-              className="min-w-0 items-start rounded-none border-0 px-0 py-0"
+              className="min-w-0 items-start"
               key={item.status}
               role="listitem"
             >
               <ItemContent className="gap-0">
-                <ItemTitle className="flex items-center gap-2 text-xs font-normal text-muted-foreground">
+                <ItemTitle className="flex items-center gap-2">
                   <span
                     aria-hidden
                     className="size-1.5 rounded-full bg-chart-2"

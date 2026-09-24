@@ -67,19 +67,19 @@ export function AnalyticsKpis({
         {metrics.map((metric) => {
           return (
             <Item
-              className="min-w-0 items-start rounded-none border-0 px-0 py-0"
+              className="min-w-0 items-start"
               key={metric.label}
               role="listitem"
             >
               <ItemContent className="gap-0">
-                <ItemTitle className="flex items-center gap-2 text-xs font-normal text-muted-foreground">
+                <ItemTitle className="flex items-center gap-2">
                   <metric.icon aria-hidden className="size-4" />
                   {metric.label}
                 </ItemTitle>
                 <p className="mt-3 text-[clamp(2rem,4vw,3rem)] font-semibold leading-none tracking-[-0.05em] tabular-nums">
                   {metric.value}
                 </p>
-                <ItemDescription className="mt-3 min-h-9 leading-5 sm:min-h-0">
+                <ItemDescription className="mt-3 min-h-9 sm:min-h-0">
                   {metric.detail}
                 </ItemDescription>
               </ItemContent>

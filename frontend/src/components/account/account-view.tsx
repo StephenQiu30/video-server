@@ -118,9 +118,7 @@ export function AccountView() {
           <h2 className="text-sm font-medium">当前身份</h2>
           <div className="mt-5 flex items-center gap-4">
             <Avatar aria-hidden className="size-14">
-              <AvatarFallback className="bg-muted text-lg font-medium text-foreground">
-                {initials}
-              </AvatarFallback>
+              <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <div className="min-w-0">
               <p className="truncate text-lg font-medium tracking-[-0.02em]">

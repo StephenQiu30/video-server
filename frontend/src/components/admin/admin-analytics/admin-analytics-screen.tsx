@@ -68,18 +68,14 @@ export function AdminAnalyticsScreen({
                 >
                   <SelectTrigger
                     aria-label="统计周期"
-                    className="w-full rounded-lg sm:w-40"
+                    className="w-full sm:w-40"
                   >
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl">
+                  <SelectContent>
                     <SelectGroup>
                       {Object.entries(periodLabels).map(([value, label]) => (
-                        <SelectItem
-                          className="rounded-lg"
-                          key={value}
-                          value={value}
-                        >
+                        <SelectItem key={value} value={value}>
                           {label}
                         </SelectItem>
                       ))}
@@ -89,7 +85,7 @@ export function AdminAnalyticsScreen({
               </div>
               <Button
                 aria-label="刷新下载分析"
-                className="w-full shrink-0 bg-muted px-3 sm:w-auto"
+                className="w-full shrink-0 sm:w-auto"
                 disabled={loading}
                 onClick={onRetry}
                 type="button"

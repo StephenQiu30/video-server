@@ -113,14 +113,13 @@ export function ProviderStatusItem({
             </Badge>
           </div>
         </TableCell>
-        <TableCell className="text-sm leading-6 text-muted-foreground whitespace-normal">
+        <TableCell className="whitespace-normal">
           {capabilities || '暂无已登记能力'}
         </TableCell>
         <TableCell className="text-right whitespace-nowrap">
           <Button
             aria-controls={expanded ? detailsId : undefined}
             aria-expanded={expanded}
-            className="text-muted-foreground"
             onClick={() => setExpanded((current) => !current)}
             size="sm"
             variant="ghost"
@@ -138,7 +137,7 @@ export function ProviderStatusItem({
       </TableRow>
       {expanded ? (
         <TableRow>
-          <TableCell colSpan={4} className="bg-muted/20">
+          <TableCell colSpan={4}>
             <div
               className="grid gap-5 text-sm leading-6 text-muted-foreground sm:grid-cols-2"
               id={detailsId}

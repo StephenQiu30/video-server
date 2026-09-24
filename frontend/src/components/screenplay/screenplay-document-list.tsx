@@ -34,13 +34,13 @@ export function ScreenplayDocumentList({
   pendingDeleteId: string | null;
 }) {
   return (
-    <div aria-busy={loading} className="mt-10 sm:mt-12">
+    <div aria-busy={loading} className="mt-6">
       {loading && !data ? <LoadingRows /> : null}
       {data?.items.length ? (
         <Table className="min-w-[900px] table-fixed">
           <TableCaption className="sr-only">剧本文档列表</TableCaption>
           <TableHeader>
-            <TableRow className="hover:bg-transparent">
+            <TableRow>
               <TableHead className="w-[34%]">文档</TableHead>
               <TableHead className="w-[15%]">格式与更新时间</TableHead>
               <TableHead className="w-[22%]">内容统计</TableHead>
@@ -97,7 +97,7 @@ function DocumentRow({
           </span>
         </div>
       </TableHead>
-      <TableCell className="text-xs text-muted-foreground whitespace-normal">
+      <TableCell className="whitespace-normal">
         <div className="flex flex-col gap-1">
           <span>{documentFormatLabels[document.source_format]}</span>
           <time dateTime={document.updated_at}>
@@ -105,7 +105,7 @@ function DocumentRow({
           </time>
         </div>
       </TableCell>
-      <TableCell className="text-sm whitespace-normal">
+      <TableCell className="whitespace-normal">
         <div className="flex flex-col gap-1">
           <span>
             {document.scene_count ?? '-'} 个场景 ·{' '}

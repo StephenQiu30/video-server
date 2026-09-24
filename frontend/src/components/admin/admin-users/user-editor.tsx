@@ -62,10 +62,10 @@ export function UserEditor({
       <DialogContent className="max-h-[calc(100svh-2rem)] overflow-y-auto sm:max-w-[520px]">
         <DialogHeader>
           <p className="mb-4 text-sm font-medium">账户权限</p>
-          <DialogTitle className="text-xl font-medium tracking-[-0.025em]">
+          <DialogTitle>
             管理用户{editor.user ? `：${editor.user.username}` : ''}
           </DialogTitle>
-          <DialogDescription className="max-w-md leading-6">
+          <DialogDescription className="max-w-md">
             角色和停用状态会在该用户下一次认证请求时立即生效。
           </DialogDescription>
         </DialogHeader>
@@ -94,13 +94,10 @@ export function UserEditor({
                 </SelectContent>
               </Select>
             </Field>
-            <Field
-              className="rounded-md bg-surface px-4 py-4"
-              orientation="horizontal"
-            >
+            <Field orientation="horizontal">
               <FieldContent>
                 <FieldLabel htmlFor="edit-active">启用账号</FieldLabel>
-                <FieldDescription className="text-xs">
+                <FieldDescription>
                   停用后将撤销该账户的 Refresh 会话。
                 </FieldDescription>
               </FieldContent>
@@ -111,13 +108,10 @@ export function UserEditor({
                 onCheckedChange={onActiveChange}
               />
             </Field>
-            <Field
-              className="rounded-md bg-surface px-4 py-4"
-              orientation="horizontal"
-            >
+            <Field orientation="horizontal">
               <FieldContent>
                 <FieldLabel htmlFor="edit-quota-exempt">配额豁免</FieldLabel>
-                <FieldDescription className="text-xs">
+                <FieldDescription>
                   管理员始终豁免；普通用户可按需单独豁免业务配额。
                 </FieldDescription>
               </FieldContent>

@@ -140,7 +140,7 @@ export function ProviderTable({
     <Table className="min-w-[780px] table-fixed">
       <TableCaption className="sr-only">AI Provider 配置列表</TableCaption>
       <TableHeader>
-        <TableRow className="hover:bg-transparent">
+        <TableRow>
           <TableHead className="w-[25%]">服务</TableHead>
           <TableHead className="w-[32%]">模型与连接</TableHead>
           <TableHead className="w-[16%]">执行引擎</TableHead>

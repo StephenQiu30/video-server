@@ -105,7 +105,8 @@ export default function DownloadJobView({
         {state.job ? (
           <DownloadDeleteDialog
             active={!isTerminalDownloadStatus(state.job.status)}
-            busy={state.action !== null}
+            busy={state.action === 'delete'}
+            disabled={state.action !== null}
             onDelete={remove}
           />
         ) : null}
@@ -279,7 +280,7 @@ function DownloadJobSkeleton() {
       <div className={mediaResultGridClassName}>
         <div>
           <AspectRatio ratio={mediaFrameAspectRatio}>
-            <Skeleton className="size-full rounded-none" />
+            <Skeleton className="size-full" />
           </AspectRatio>
           <Skeleton className="mt-5 h-8 w-3/4" />
           <Skeleton className="mt-2 h-4 w-1/2" />
