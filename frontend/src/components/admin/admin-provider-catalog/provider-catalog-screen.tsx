@@ -5,8 +5,8 @@ import {
   Plus,
 } from '@phosphor-icons/react';
 import { useMemo, useState } from 'react';
-
 import { BackLink } from '@/components/layout/back-link';
+import type { BulkDeleteOptions } from '@/components/layout/bulk-delete-selection';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
@@ -26,6 +26,7 @@ import {
 import { ProviderCatalogList } from './provider-catalog-list';
 
 type ProviderCatalogScreenProps = {
+  bulk?: BulkDeleteOptions;
   result: CatalogResultState;
   onCreate: () => void;
   onDelete: (item: API.ProviderCatalogEntryResponse) => void;
@@ -34,6 +35,7 @@ type ProviderCatalogScreenProps = {
 };
 
 export function ProviderCatalogScreen({
+  bulk,
   result,
   onCreate,
   onDelete,
@@ -132,6 +134,20 @@ export function ProviderCatalogScreen({
           />
           {visibleItems.length > 0 ? (
             <ProviderCatalogList
+              bulk={
+                bulk
+                  ? {
+                      ...bulk,
+                      scope: JSON.stringify([
+                        bulk.scope,
+                        query,
+                        visibility,
+                        currentPage,
+                        pageSize,
+                      ]),
+                    }
+                  : undefined
+              }
               items={visibleItems}
               onDelete={onDelete}
               onEdit={onEdit}

@@ -139,6 +139,21 @@ export function AdminProviderCatalogView() {
   return (
     <>
       <ProviderCatalogScreen
+        bulk={{
+          scope: 'provider-catalog',
+          disabled:
+            loading ||
+            editor.saving ||
+            deleting.deleting ||
+            Boolean(editor.mode) ||
+            Boolean(deleting.target),
+          description: '所选平台目录配置将永久删除。',
+          remove: (id) =>
+            deleteProviderCatalogEntry({
+              provider_key: encodeURIComponent(id),
+            }),
+          onComplete: () => loadCatalog(),
+        }}
         onCreate={openCreate}
         onDelete={(target) => setDeleting({ ...EMPTY_DELETE, target })}
         onEdit={openEdit}

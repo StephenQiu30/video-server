@@ -1,6 +1,6 @@
 import { ArrowClockwise } from '@phosphor-icons/react';
-
 import { BackLink } from '@/components/layout/back-link';
+import type { BulkDeleteOptions } from '@/components/layout/bulk-delete-selection';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
@@ -42,6 +42,7 @@ type ScreenActions = {
 };
 
 type AdminUsersScreenProps = {
+  bulk?: BulkDeleteOptions;
   currentUserId: string;
   query: UserQueryState;
   result: UserResultState;
@@ -51,6 +52,7 @@ type AdminUsersScreenProps = {
 };
 
 export function AdminUsersScreen({
+  bulk,
   currentUserId,
   query,
   result,
@@ -115,6 +117,7 @@ export function AdminUsersScreen({
         )
       ) : (
         <UserList
+          bulk={bulk}
           items={result.items}
           currentUserId={currentUserId}
           onDelete={actions.onDelete}

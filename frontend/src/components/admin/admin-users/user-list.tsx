@@ -1,4 +1,10 @@
 import { CaretDown, PencilSimple, Trash } from '@phosphor-icons/react';
+import {
+  type BulkDeleteOptions,
+  BulkDeleteSelection,
+  SelectionCell,
+  SelectionHead,
+} from '@/components/layout/bulk-delete-selection';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,6 +25,7 @@ import {
 } from '@/components/ui/table';
 
 type UserListProps = {
+  bulk?: BulkDeleteOptions;
   items: API.ManagedUserResponse[];
   currentUserId: string;
   onDelete: (item: API.ManagedUserResponse) => void;
@@ -26,6 +33,7 @@ type UserListProps = {
 };
 
 export function UserList({
+  bulk,
   items,
   currentUserId,
   onDelete,
@@ -86,37 +94,46 @@ export function UserList({
   }
 
   return (
-    <div className="overflow-x-auto rounded-md">
-      <Table className="min-w-[760px] table-fixed">
-        <TableCaption className="sr-only">用户账户列表</TableCaption>
-        <TableHeader>
-          <TableRow>
-            <TableHead>用户名</TableHead>
-            <TableHead>邮箱</TableHead>
-            <TableHead>身份与状态</TableHead>
-            <TableHead>注册日期</TableHead>
-            <TableHead className="text-right">操作</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {items.map((item) => (
-            <TableRow key={item.id}>
-              <TableCell className="max-w-0 truncate">
-                {item.username}
-              </TableCell>
-              <TableCell className="max-w-0 truncate">{item.email}</TableCell>
-              <TableCell>{badges(item)}</TableCell>
-              <TableCell className="tabular-nums">
-                {formatUserDate(item.created_at)}
-              </TableCell>
-              <TableCell className="text-right whitespace-nowrap">
-                {action(item)}
-              </TableCell>
+    <BulkDeleteSelection
+      ids={items
+        .filter((item) => item.id !== currentUserId)
+        .map((item) => item.id)}
+      options={bulk}
+    >
+      <div className="overflow-x-auto rounded-md">
+        <Table className="min-w-[760px] table-fixed">
+          <TableCaption className="sr-only">用户账户列表</TableCaption>
+          <TableHeader>
+            <TableRow>
+              <SelectionHead />
+              <TableHead>用户名</TableHead>
+              <TableHead>邮箱</TableHead>
+              <TableHead>身份与状态</TableHead>
+              <TableHead>注册日期</TableHead>
+              <TableHead className="text-right">操作</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {items.map((item) => (
+              <TableRow key={item.id}>
+                <SelectionCell id={item.id} label={item.username} />
+                <TableCell className="max-w-0 truncate">
+                  {item.username}
+                </TableCell>
+                <TableCell className="max-w-0 truncate">{item.email}</TableCell>
+                <TableCell>{badges(item)}</TableCell>
+                <TableCell className="tabular-nums">
+                  {formatUserDate(item.created_at)}
+                </TableCell>
+                <TableCell className="text-right whitespace-nowrap">
+                  {action(item)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </BulkDeleteSelection>
   );
 }
 

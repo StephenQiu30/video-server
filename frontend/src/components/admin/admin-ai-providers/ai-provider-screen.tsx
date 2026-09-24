@@ -1,6 +1,6 @@
 import { ArrowClockwise, PlugsConnected, Plus } from '@phosphor-icons/react';
-
 import { BackLink } from '@/components/layout/back-link';
+import type { BulkDeleteOptions } from '@/components/layout/bulk-delete-selection';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ExecutionRoute, ProviderTable } from './ai-provider-list';
 
 type Props = {
+  bulk?: BulkDeleteOptions;
   agentAvailable: boolean;
   error: string;
   items: API.AiProviderProfileResponse[];
@@ -24,6 +25,7 @@ type Props = {
 };
 
 export function AiProviderScreen({
+  bulk,
   agentAvailable,
   error,
   items,
@@ -150,6 +152,7 @@ export function AiProviderScreen({
             ))
           ) : items.length > 0 ? (
             <ProviderTable
+              bulk={bulk}
               items={items}
               onActivate={onActivate}
               onDelete={onDelete}

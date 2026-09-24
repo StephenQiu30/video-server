@@ -260,7 +260,7 @@ export function IntentHistory({
                   role="listitem"
                   className="grid grid-cols-[1rem_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 lg:grid-cols-[1rem_minmax(0,1fr)_11rem_10rem_7rem] lg:gap-x-6"
                 >
-                  <div className="row-span-2 self-start lg:row-span-1">
+                  <div className="row-span-2 self-center lg:row-span-1">
                     {' '}
                     {eligible.some(
                       (entry) =>

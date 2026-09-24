@@ -111,7 +111,7 @@ function HistoryRow({
     >
       {selection ? (
         <Checkbox
-          className="self-start"
+          className="self-center"
           aria-label={`选择 ${item.title}`}
           checked={selection.ids.includes(item.id)}
           disabled={busy}

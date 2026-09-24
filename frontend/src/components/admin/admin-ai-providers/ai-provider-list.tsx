@@ -7,6 +7,12 @@ import {
   TerminalWindow,
   Trash,
 } from '@phosphor-icons/react';
+import {
+  type BulkDeleteOptions,
+  BulkDeleteSelection,
+  SelectionCell,
+  SelectionHead,
+} from '@/components/layout/bulk-delete-selection';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -69,6 +75,7 @@ export function ProviderRow({
   const localCodex = isLocalCodexProvider(item.key);
   return (
     <TableRow>
+      <SelectionCell id={item.key} label={item.display_name} />
       <TableCell className="max-w-0">
         <div className="flex min-w-0 flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -126,39 +133,49 @@ export function ProviderRow({
 }
 
 export function ProviderTable({
+  bulk,
   items,
   onActivate,
   onDelete,
   onEdit,
 }: {
+  bulk?: BulkDeleteOptions;
   items: API.AiProviderProfileResponse[];
   onActivate: (item: API.AiProviderProfileResponse) => void;
   onDelete: (item: API.AiProviderProfileResponse) => void;
   onEdit: (item: API.AiProviderProfileResponse) => void;
 }) {
   return (
-    <Table className="min-w-[780px] table-fixed">
-      <TableCaption className="sr-only">AI Provider 配置列表</TableCaption>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-[25%]">服务</TableHead>
-          <TableHead className="w-[32%]">模型与连接</TableHead>
-          <TableHead className="w-[16%]">执行引擎</TableHead>
-          <TableHead className="w-[27%] text-right">操作</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {items.map((item) => (
-          <ProviderRow
-            item={item}
-            key={item.key}
-            onActivate={() => onActivate(item)}
-            onDelete={() => onDelete(item)}
-            onEdit={() => onEdit(item)}
-          />
-        ))}
-      </TableBody>
-    </Table>
+    <BulkDeleteSelection
+      ids={items
+        .filter((item) => !item.is_active && !isLocalCodexProvider(item.key))
+        .map((item) => item.key)}
+      options={bulk}
+    >
+      <Table className="min-w-[780px] table-fixed">
+        <TableCaption className="sr-only">AI Provider 配置列表</TableCaption>
+        <TableHeader>
+          <TableRow>
+            <SelectionHead />
+            <TableHead className="w-[25%]">服务</TableHead>
+            <TableHead className="w-[32%]">模型与连接</TableHead>
+            <TableHead className="w-[16%]">执行引擎</TableHead>
+            <TableHead className="w-[27%] text-right">操作</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.map((item) => (
+            <ProviderRow
+              item={item}
+              key={item.key}
+              onActivate={() => onActivate(item)}
+              onDelete={() => onDelete(item)}
+              onEdit={() => onEdit(item)}
+            />
+          ))}
+        </TableBody>
+      </Table>
+    </BulkDeleteSelection>
   );
 }
 

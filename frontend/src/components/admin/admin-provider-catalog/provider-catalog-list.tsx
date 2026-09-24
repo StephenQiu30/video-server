@@ -1,4 +1,10 @@
 import { PencilSimple, Trash } from '@phosphor-icons/react';
+import {
+  type BulkDeleteOptions,
+  BulkDeleteSelection,
+  SelectionCell,
+  SelectionHead,
+} from '@/components/layout/bulk-delete-selection';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,12 +19,14 @@ import {
 } from '@/components/ui/table';
 
 type ProviderCatalogListProps = {
+  bulk?: BulkDeleteOptions;
   items: API.ProviderCatalogEntryResponse[];
   onDelete: (item: API.ProviderCatalogEntryResponse) => void;
   onEdit: (item: API.ProviderCatalogEntryResponse) => void;
 };
 
 export function ProviderCatalogList({
+  bulk,
   items,
   onDelete,
   onEdit,
@@ -63,30 +71,34 @@ export function ProviderCatalogList({
   }
 
   return (
-    <Table className="min-w-[720px] table-fixed">
-      <TableCaption className="sr-only">平台目录列表</TableCaption>
-      <TableHeader>
-        <TableRow>
-          <TableHead>平台</TableHead>
-          <TableHead>目录键</TableHead>
-          <TableHead>注册与可见性</TableHead>
-          <TableHead className="text-right">排序</TableHead>
-          <TableHead className="text-right">操作</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {items.map((item) => (
-          <TableRow key={item.key}>
-            <TableCell>{item.display_name}</TableCell>
-            <TableCell>{item.key}</TableCell>
-            <TableCell>{badges(item)}</TableCell>
-            <TableCell className="text-right tabular-nums">
-              {item.sort_order}
-            </TableCell>
-            <TableCell className="text-right">{actions(item)}</TableCell>
+    <BulkDeleteSelection ids={items.map((item) => item.key)} options={bulk}>
+      <Table className="min-w-[720px] table-fixed">
+        <TableCaption className="sr-only">平台目录列表</TableCaption>
+        <TableHeader>
+          <TableRow>
+            <SelectionHead />
+            <TableHead>平台</TableHead>
+            <TableHead>目录键</TableHead>
+            <TableHead>注册与可见性</TableHead>
+            <TableHead className="text-right">排序</TableHead>
+            <TableHead className="text-right">操作</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {items.map((item) => (
+            <TableRow key={item.key}>
+              <SelectionCell id={item.key} label={item.display_name} />
+              <TableCell>{item.display_name}</TableCell>
+              <TableCell>{item.key}</TableCell>
+              <TableCell>{badges(item)}</TableCell>
+              <TableCell className="text-right tabular-nums">
+                {item.sort_order}
+              </TableCell>
+              <TableCell className="text-right">{actions(item)}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </BulkDeleteSelection>
   );
 }

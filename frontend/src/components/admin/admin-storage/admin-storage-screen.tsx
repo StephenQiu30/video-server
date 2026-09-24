@@ -1,6 +1,6 @@
 import { ArrowClockwise, FolderOpen, Trash } from '@phosphor-icons/react';
-
 import { BackLink } from '@/components/layout/back-link';
+import type { BulkDeleteOptions } from '@/components/layout/bulk-delete-selection';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
@@ -14,6 +14,7 @@ import { StorageFileDeleteDialog } from './storage-file-delete-dialog';
 import { StorageFileList } from './storage-file-list';
 
 type AdminStorageScreenProps = {
+  bulk?: BulkDeleteOptions;
   items: API.StoredFileResponse[];
   total: number;
   page: number;
@@ -44,6 +45,7 @@ type AdminStorageScreenProps = {
 };
 
 export function AdminStorageScreen({
+  bulk,
   items,
   total,
   page,
@@ -119,7 +121,7 @@ export function AdminStorageScreen({
           />
         )
       ) : (
-        <StorageFileList items={items} onDelete={onOpenDelete} />
+        <StorageFileList bulk={bulk} items={items} onDelete={onOpenDelete} />
       )}
 
       {total > 0 ? (

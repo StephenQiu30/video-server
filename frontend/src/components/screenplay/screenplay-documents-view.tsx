@@ -108,6 +108,27 @@ export default function ScreenplayDocumentsView() {
           />
         ) : null}
         <ScreenplayDocumentList
+          bulk={{
+            scope: JSON.stringify([page, pageSize]),
+            disabled: state.refreshing || pendingDeleteId !== null,
+            description:
+              '所选文档、原始文件及规范化剧本将永久删除。正在分析的文档需先结束任务。',
+            remove: async (id) => {
+              await deleteScreenplayDocument({
+                document_id: encodeURIComponent(id),
+              });
+              queries.removeQueries({
+                queryKey: privateQueryKey('document', id),
+              });
+            },
+            onComplete: async (done) => {
+              await queries.invalidateQueries({
+                queryKey: privateQueryKey('documents'),
+              });
+              if (page > 1 && done.length === state.data?.items.length)
+                setPage(page - 1);
+            },
+          }}
           data={state.data}
           loading={state.loading}
           onDelete={remove}

@@ -1,5 +1,11 @@
 import { FileText } from '@phosphor-icons/react';
 import Link from 'next/link';
+import {
+  type BulkDeleteOptions,
+  BulkDeleteSelection,
+  SelectionCell,
+  SelectionHead,
+} from '@/components/layout/bulk-delete-selection';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { ScreenplayDocumentDeleteDialog } from '@/components/screenplay/screenplay-document-delete-dialog';
 import {
@@ -23,52 +29,60 @@ import {
 } from '@/components/ui/table';
 
 export function ScreenplayDocumentList({
+  bulk,
   data,
   loading,
   onDelete,
   pendingDeleteId,
 }: {
+  bulk?: BulkDeleteOptions;
   data: API.DocumentPageResponse | null;
   loading: boolean;
   onDelete: (document: API.DocumentResponse) => Promise<void>;
   pendingDeleteId: string | null;
 }) {
   return (
-    <div aria-busy={loading}>
-      {loading && !data ? <LoadingRows /> : null}
-      {data?.items.length ? (
-        <Table className="min-w-[900px] table-fixed">
-          <TableCaption className="sr-only">剧本文档列表</TableCaption>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[34%]">文档</TableHead>
-              <TableHead className="w-[15%]">格式与更新时间</TableHead>
-              <TableHead className="w-[22%]">内容统计</TableHead>
-              <TableHead className="w-[13%]">状态</TableHead>
-              <TableHead className="w-[16%] text-right">操作</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.items.map((document) => (
-              <DocumentRow
-                document={document}
-                key={document.id}
-                onDelete={onDelete}
-                pending={pendingDeleteId === document.id}
-              />
-            ))}
-          </TableBody>
-        </Table>
-      ) : null}
-      {data && !data.items.length ? (
-        <PageEmptyNotice
-          action={<ScreenplayUploadDialog label="上传第一份剧本" />}
-          description="上传一份剧本文档后，可在这里核对解析状态与正文。"
-          icon={<FileText aria-hidden />}
-          title="还没有剧本文档"
-        />
-      ) : null}
-    </div>
+    <BulkDeleteSelection
+      ids={data?.items.map((item) => item.id) ?? []}
+      options={bulk}
+    >
+      <div aria-busy={loading}>
+        {loading && !data ? <LoadingRows /> : null}
+        {data?.items.length ? (
+          <Table className="min-w-[900px] table-fixed">
+            <TableCaption className="sr-only">剧本文档列表</TableCaption>
+            <TableHeader>
+              <TableRow>
+                <SelectionHead />
+                <TableHead className="w-[34%]">文档</TableHead>
+                <TableHead className="w-[15%]">格式与更新时间</TableHead>
+                <TableHead className="w-[22%]">内容统计</TableHead>
+                <TableHead className="w-[13%]">状态</TableHead>
+                <TableHead className="w-[16%] text-right">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.items.map((document) => (
+                <DocumentRow
+                  document={document}
+                  key={document.id}
+                  onDelete={onDelete}
+                  pending={pendingDeleteId === document.id}
+                />
+              ))}
+            </TableBody>
+          </Table>
+        ) : null}
+        {data && !data.items.length ? (
+          <PageEmptyNotice
+            action={<ScreenplayUploadDialog label="上传第一份剧本" />}
+            description="上传一份剧本文档后，可在这里核对解析状态与正文。"
+            icon={<FileText aria-hidden />}
+            title="还没有剧本文档"
+          />
+        ) : null}
+      </div>
+    </BulkDeleteSelection>
   );
 }
 
@@ -84,6 +98,7 @@ function DocumentRow({
   const detailHref = `/documents/detail?documentId=${encodeURIComponent(document.id)}`;
   return (
     <TableRow>
+      <SelectionCell id={document.id} label={document.title} />
       <TableHead className="max-w-0 text-left whitespace-normal" scope="row">
         <div className="flex min-w-0 flex-col gap-1">
           <Link

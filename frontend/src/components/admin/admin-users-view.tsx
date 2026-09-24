@@ -152,6 +152,22 @@ export function AdminUsersView() {
 
   return (
     <AdminUsersScreen
+      bulk={{
+        scope: JSON.stringify([user.id, page, pageSize, search, role, active]),
+        disabled:
+          loading ||
+          saving ||
+          deleting ||
+          Boolean(editing) ||
+          Boolean(deleteTarget),
+        description:
+          '所选用户账户及其关联数据将永久删除。当前登录账户不可删除。',
+        remove: (id) => deleteUser({ user_id: encodeURIComponent(id) }),
+        onComplete: async (done) => {
+          if (page > 1 && done.length === items.length) setPage(page - 1);
+          else await loadUsers();
+        },
+      }}
       currentUserId={user.id}
       query={{ draftSearch, role, active }}
       result={{ items, total, page, pageSize, loading, error }}

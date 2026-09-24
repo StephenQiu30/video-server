@@ -99,6 +99,32 @@ export function AdminStorageView() {
 
   return (
     <AdminStorageScreen
+      bulk={{
+        scope: JSON.stringify([user?.id, page, pageSize]),
+        disabled:
+          loading ||
+          authLoading ||
+          cleaning ||
+          deleting ||
+          cleanupOpen ||
+          Boolean(deleteTarget),
+        description: '所选文件及关联存储对象将永久删除。',
+        remove: (id) => {
+          const item = items.find(
+            (item) => `${item.category}:${item.id}` === id,
+          );
+          if (!item)
+            return Promise.reject(new Error('文件已变化，请刷新列表。'));
+          return deleteStoredFile({
+            category: item.category,
+            file_id: item.id,
+          });
+        },
+        onComplete: async (done) => {
+          if (page > 1 && done.length === items.length) setPage(page - 1);
+          else await loadFiles();
+        },
+      }}
       cleanup={{
         open: cleanupOpen,
         days: cleanupDays,

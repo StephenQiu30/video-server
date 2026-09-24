@@ -178,6 +178,19 @@ export function AdminAiProvidersView() {
   return (
     <>
       <AiProviderScreen
+        bulk={{
+          scope: 'ai-providers',
+          disabled:
+            loading ||
+            deleting ||
+            Boolean(editor.mode) ||
+            Boolean(deleteTarget),
+          description:
+            '所选 AI 配置与凭据将永久删除。当前线路和系统兜底线路不可删除。',
+          remove: (id) =>
+            deleteAiProviderProfile({ provider_key: encodeURIComponent(id) }),
+          onComplete: () => load(),
+        }}
         agentAvailable={agentAvailable}
         error={error}
         items={items}
