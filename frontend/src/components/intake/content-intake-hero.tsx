@@ -39,7 +39,7 @@ export function ContentIntakeHero({
   }, [mode]);
 
   return (
-    <div className="pt-12 sm:pt-16" ref={rootRef}>
+    <div className="pt-6 sm:pt-8" ref={rootRef}>
       <EditorialIntro
         description="解析公开视频、图片与合集链接，或上传本地视频与剧本文档。"
         title={
@@ -52,7 +52,7 @@ export function ContentIntakeHero({
       />
 
       <Tabs
-        className="mt-8"
+        className="mt-6"
         onValueChange={(value) => onModeChange(value as IntakeMode)}
         value={mode}
       >
@@ -77,7 +77,7 @@ export function ContentIntakeHero({
             剧本文档
           </TabsTrigger>
         </TabsList>
-        <TabsContent className="max-w-5xl pt-4" value="link">
+        <TabsContent className="pt-4" value="link">
           {linkForm}
         </TabsContent>
         <TabsContent className="pt-4" value="video">

@@ -111,6 +111,7 @@ export function QuickParseDialog() {
         <Kbd>⌘ K</Kbd>
       </Button>
       <CommandDialog
+        className="sm:max-w-2xl"
         description="粘贴公开链接或完整分享文案，按回车开始解析。"
         onOpenChange={setOpen}
         open={open}
@@ -140,7 +141,7 @@ export function QuickParseDialog() {
             </CommandGroup>
           </CommandList>
           {invalid ? (
-            <FieldError id="quick-parse-error">
+            <FieldError className="px-2 pb-2" id="quick-parse-error">
               {PUBLIC_INPUT_REQUIRED}
             </FieldError>
           ) : null}
