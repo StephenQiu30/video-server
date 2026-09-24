@@ -1,10 +1,10 @@
 'use client';
 
 import { ArrowClockwiseIcon, FunnelX } from '@phosphor-icons/react';
-import { type KeyboardEvent, useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
+import { type KeyboardEvent, useMemo, useState } from 'react';
 
 import { BackLink } from '@/components/layout/back-link';
+import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
@@ -30,7 +30,6 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 type StatusFilter = 'all' | 'available' | 'attention';
 const STATUS_FILTERS: StatusFilter[] = ['all', 'available', 'attention'];
 const EMPTY_PROVIDERS: API.ProviderListResponse['items'][number][] = [];
-const PROVIDER_STATUS_ERROR_TOAST_ID = 'provider-status-refresh-error';
 
 export function ProviderStatusView() {
   const state = useProviderStatuses();
@@ -50,43 +49,24 @@ export function ProviderStatusView() {
     currentPage * pageSize,
   );
 
-  useEffect(() => {
-    if (!state.error || !state.data) {
-      if (!state.error) toast.dismiss(PROVIDER_STATUS_ERROR_TOAST_ID);
-      return;
-    }
-
-    toast.error('平台状态刷新失败', {
-      action: {
-        label: '重试',
-        onClick: () => {
-          toast.dismiss(PROVIDER_STATUS_ERROR_TOAST_ID);
-          state.retry();
-        },
-      },
-      description: state.error,
-      id: PROVIDER_STATUS_ERROR_TOAST_ID,
-    });
-  }, [state.data, state.error, state.retry]);
-
   return (
-    <div>
+    <div className="inner-page">
       <BackLink className="mb-4" fallbackHref="/" />
       <PageHeader
         action={
           <Button
             aria-label={state.refreshing ? '正在刷新平台状态' : '刷新状态'}
-            className="disabled:opacity-100"
             disabled={state.refreshing}
             onClick={state.retry}
-            variant="secondary"
+            size="lg"
+            variant="outline"
           >
             {state.refreshing ? (
               <Spinner aria-hidden data-icon="inline-start" />
             ) : (
               <ArrowClockwiseIcon aria-hidden data-icon="inline-start" />
             )}
-            {state.refreshing ? '刷新中…' : '刷新状态'}
+            {state.refreshing ? '刷新中…' : '刷新'}
           </Button>
         }
         description="这里展示已登记平台的当前状态。其他公开媒体链接也可在首页粘贴尝试，是否可下载以实际文件结果为准。"
@@ -104,6 +84,19 @@ export function ProviderStatusView() {
             onRetry={state.retry}
             retryLabel="重新加载"
             title="平台状态暂时不可用"
+          />
+        ) : null}
+        {state.error && state.data ? (
+          <FeedbackNotice
+            action={
+              <Button onClick={state.retry} size="sm" variant="outline">
+                <ArrowClockwiseIcon aria-hidden data-icon="inline-start" />
+                重新加载
+              </Button>
+            }
+            description={state.error}
+            title="平台状态刷新失败"
+            tone="error"
           />
         ) : null}
         {state.data ? (

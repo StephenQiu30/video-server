@@ -11,14 +11,6 @@ import { render } from '../helpers/query-render';
 
 const runtime = vi.hoisted(() => ({
   listProviders: vi.fn(),
-  toast: {
-    dismiss: vi.fn(),
-    error: vi.fn(),
-  },
-}));
-
-vi.mock('sonner', () => ({
-  toast: runtime.toast,
 }));
 
 vi.mock('@/components/auth/auth-provider', async (importOriginal) => ({
@@ -31,8 +23,6 @@ vi.mock('@/components/auth/auth-provider', async (importOriginal) => ({
 describe('provider status page', () => {
   beforeEach(() => {
     runtime.listProviders.mockReset();
-    runtime.toast.dismiss.mockReset();
-    runtime.toast.error.mockReset();
   });
 
   it('distinguishes registration, verification and availability', async () => {
@@ -254,19 +244,17 @@ describe('provider status page', () => {
       screen.queryByRole('status', { name: '正在加载平台状态' }),
     ).not.toBeInTheDocument();
     await act(async () => refresh.reject(new Error('状态服务暂不可用')));
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    await waitFor(() =>
-      expect(runtime.toast.error).toHaveBeenCalledWith(
-        '平台状态刷新失败',
-        expect.objectContaining({
-          description: '状态服务暂不可用',
-          id: 'provider-status-refresh-error',
-        }),
-      ),
+    const refreshAlert = await screen.findByRole('alert');
+    expect(refreshAlert).toHaveTextContent('平台状态刷新失败');
+    expect(refreshAlert).toHaveTextContent('状态服务暂不可用');
+    expect(screen.getByText('YouTube')).toBeInTheDocument();
+    fireEvent.click(
+      within(refreshAlert).getByRole('button', { name: '重新加载' }),
     );
-    const toastOptions = runtime.toast.error.mock.calls.at(-1)?.[1];
-    await act(async () => toastOptions.action.onClick());
     expect(await screen.findByText('哔哩哔哩')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByText('平台状态刷新失败')).not.toBeInTheDocument(),
+    );
     expect(runtime.listProviders).toHaveBeenCalledTimes(3);
   });
 
@@ -284,7 +272,6 @@ describe('provider status page', () => {
     expect(
       within(alert).getByRole('button', { name: '重新加载' }),
     ).toBeInTheDocument();
-    expect(runtime.toast.error).not.toHaveBeenCalled();
   });
 
   it('labels operator-only evidence without calling it a public sample', async () => {

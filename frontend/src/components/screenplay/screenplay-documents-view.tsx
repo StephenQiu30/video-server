@@ -71,64 +71,64 @@ export default function ScreenplayDocumentsView() {
               ) : (
                 <ArrowClockwise aria-hidden data-icon="inline-start" />
               )}
-              刷新
+              {state.refreshing ? '刷新中…' : '刷新'}
             </Button>
           </div>
         }
         description="核对导入状态、提取规模和规范化剧本文本。"
         title="剧本文档"
       />
-      {state.error && !state.data ? (
-        <PageErrorNotice
-          className="mt-8"
-          message={state.error}
-          onRetry={state.refresh}
-          retryLabel="重新加载"
-          title="暂时无法读取剧本文档"
+      <div className="mt-6 flex flex-col gap-6">
+        {state.error && !state.data ? (
+          <PageErrorNotice
+            message={state.error}
+            onRetry={state.refresh}
+            retryLabel="重新加载"
+            title="暂时无法读取剧本文档"
+          />
+        ) : null}
+        {state.error && state.data ? (
+          <FeedbackNotice
+            action={
+              <Button onClick={state.refresh} size="sm" variant="outline">
+                <ArrowClockwise aria-hidden data-icon="inline-start" />
+                重新加载
+              </Button>
+            }
+            description={state.error}
+            title="剧本文档刷新失败"
+            tone="error"
+          />
+        ) : null}
+        {actionError ? (
+          <FeedbackNotice
+            description={actionError}
+            title="操作未完成"
+            tone="error"
+          />
+        ) : null}
+        <ScreenplayDocumentList
+          data={state.data}
+          loading={state.loading}
+          onDelete={remove}
+          pendingDeleteId={pendingDeleteId}
         />
-      ) : null}
-      {state.error && state.data ? (
-        <FeedbackNotice
-          action={
-            <Button onClick={state.refresh} size="sm" variant="outline">
-              重新加载
-            </Button>
-          }
-          className="mt-8"
-          description={state.error}
-          title="剧本文档刷新失败"
-          tone="error"
-        />
-      ) : null}
-      {actionError ? (
-        <FeedbackNotice
-          className="mt-8"
-          description={actionError}
-          title="操作未完成"
-          tone="error"
-        />
-      ) : null}
-      <ScreenplayDocumentList
-        data={state.data}
-        loading={state.loading}
-        onDelete={remove}
-        pendingDeleteId={pendingDeleteId}
-      />
-      {state.data && state.data.total > 0 ? (
-        <PagePagination
-          pageSize={pageSize}
-          busy={state.refreshing}
-          onPageSizeChange={(size) => {
-            setPageSize(size);
-            setPage(1);
-          }}
-          ariaLabel="剧本文档分页"
-          className="mt-10 justify-end"
-          onPageChange={setPage}
-          page={page}
-          pages={Math.ceil(state.data.total / state.data.page_size)}
-        />
-      ) : null}
+        {state.data && state.data.total > 0 ? (
+          <PagePagination
+            pageSize={pageSize}
+            busy={state.refreshing}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+            ariaLabel="剧本文档分页"
+            className="justify-end"
+            onPageChange={setPage}
+            page={page}
+            pages={Math.ceil(state.data.total / state.data.page_size)}
+          />
+        ) : null}
+      </div>
     </div>
   );
 }

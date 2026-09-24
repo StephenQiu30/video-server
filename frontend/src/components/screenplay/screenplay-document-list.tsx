@@ -34,7 +34,7 @@ export function ScreenplayDocumentList({
   pendingDeleteId: string | null;
 }) {
   return (
-    <div aria-busy={loading} className="mt-6">
+    <div aria-busy={loading}>
       {loading && !data ? <LoadingRows /> : null}
       {data?.items.length ? (
         <Table className="min-w-[900px] table-fixed">
