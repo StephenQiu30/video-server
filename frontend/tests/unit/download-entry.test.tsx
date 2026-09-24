@@ -61,6 +61,26 @@ it('recovers an uncertain submission using the same idempotency key and opens th
   });
 });
 
+it('dismisses the loading notice once the parsed result has opened', async () => {
+  mockHttpResponses(intentFixture(), inspection);
+  renderEntry();
+  enter('https://youtu.be/owned');
+  await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
+  await waitFor(() =>
+    expect(screen.queryByText('正在加载解析结果')).not.toBeInTheDocument(),
+  );
+});
+
+it('shows a retry instead of loading forever when a ready intent has no result reference', async () => {
+  mockHttpResponses(intentFixture({ inspection_id: null }));
+  renderEntry();
+  enter('https://youtu.be/owned');
+  expect(await screen.findByText('解析结果暂不可用')).toBeVisible();
+  expect(screen.getByRole('button', { name: '重试读取' })).toBeEnabled();
+  expect(screen.queryByText('正在加载解析结果')).not.toBeInTheDocument();
+  expect(push).not.toHaveBeenCalled();
+});
+
 it('keeps an expired inspection on home with a refresh action', async () => {
   mockHttpResponses(intentFixture(), {
     ...inspection,

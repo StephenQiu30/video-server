@@ -81,10 +81,18 @@ export default function DownloadWorkspace() {
     (!!intent.attempt && intent.attempt.input !== null) ||
     (!!intent.snapshot &&
       observedActiveIntentId.current === intent.snapshot.id);
+  const resultAlreadyOpened =
+    intent.snapshot?.status === IntentStatusCode.Ready &&
+    !!intent.inspection &&
+    openedResultKey === `${intent.snapshot.id}:${intent.inspection.id}`;
   const showIntentStatus =
     mode === 'link' &&
     !!intent.attempt &&
     intent.snapshot?.status !== IntentStatusCode.HandedOff &&
+    (!resultAlreadyOpened ||
+      intent.pending ||
+      intent.resultExpired ||
+      !!intent.error) &&
     ((intent.pending && (!!intent.attempt.input || !!intent.snapshot)) ||
       (showTerminalStatus && (!!intent.error || intent.resultExpired)) ||
       intent.snapshot?.status === IntentStatusCode.Ready ||
@@ -164,28 +172,42 @@ export default function DownloadWorkspace() {
     }
 
     const snapshot = intent.snapshot;
+    const missingInspection =
+      snapshot?.status === IntentStatusCode.Ready &&
+      !snapshot.inspection_id &&
+      !intent.pending;
     const title = intent.error
       ? '任务状态暂时无法更新'
       : intent.pending && snapshot?.status === IntentStatusCode.Ready
         ? '正在更新解析结果'
         : intent.resultExpired
           ? '解析结果已过期'
-          : snapshot?.status === IntentStatusCode.Ready
-            ? '正在加载解析结果'
-            : intentTitle(snapshot?.status);
+          : missingInspection
+            ? '解析结果暂不可用'
+            : snapshot?.status === IntentStatusCode.Ready
+              ? intent.inspection
+                ? '正在打开解析结果'
+                : '正在加载解析结果'
+              : intentTitle(snapshot?.status);
     const description =
       intent.error ??
       (intent.pending && snapshot?.status === IntentStatusCode.Ready
         ? '正在更新解析结果，请稍候。'
         : intent.resultExpired
           ? '更新后请重新确认下载规格，无需再次粘贴原链接。'
-          : snapshot?.reason_code
-            ? localizedErrorMessage(snapshot.reason_code)
-            : !snapshot
-              ? '正在确认接单，请稍候，无需重复提交。'
-              : intent.pending
-                ? '任务在后台处理，切换页面不会中断解析。'
-                : '本次解析已结束。');
+          : missingInspection
+            ? '解析记录缺少结果引用，请重试读取解析记录。'
+            : snapshot?.reason_code
+              ? localizedErrorMessage(snapshot.reason_code)
+              : !snapshot
+                ? '正在确认接单，请稍候，无需重复提交。'
+                : intent.pending
+                  ? '任务在后台处理，切换页面不会中断解析。'
+                  : snapshot.status === IntentStatusCode.Ready
+                    ? intent.inspection
+                      ? '解析已完成，正在打开结果页。'
+                      : '正在读取解析结果，请稍候。'
+                    : '本次解析已结束。');
     const action: ExternalToast['action'] =
       intent.resultExpired && !intent.pending ? (
         {
@@ -205,6 +227,8 @@ export default function DownloadWorkspace() {
         />
       ) : intent.error ? (
         { label: '恢复任务', onClick: () => void intent.retry() }
+      ) : missingInspection ? (
+        { label: '重试读取', onClick: () => void intent.retry() }
       ) : undefined;
     const cancel: ExternalToast['cancel'] =
       snapshot &&
@@ -242,6 +266,7 @@ export default function DownloadWorkspace() {
       toast.error(title, options);
     } else if (
       intent.resultExpired ||
+      missingInspection ||
       snapshot?.status === IntentStatusCode.ActionRequired
     ) {
       toast.warning(title, options);
