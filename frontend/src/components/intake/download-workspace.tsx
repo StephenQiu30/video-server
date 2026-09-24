@@ -6,6 +6,7 @@ import {
   type RefObject,
   useCallback,
   useEffect,
+  useEffectEvent,
   useRef,
   useState,
 } from 'react';
@@ -56,6 +57,8 @@ export default function DownloadWorkspace() {
     setInput: setUrl,
     declaredOrigin: mediaDeclaredOrigin,
     setDeclaredOrigin: setMediaDeclaredOrigin,
+    quickParse,
+    clearQuickParse,
   } = useIntakeDraft();
   const intent = useDownloadIntent();
   const [busy, setBusy] = useState<BusyAction>(null);
@@ -125,10 +128,12 @@ export default function DownloadWorkspace() {
   const inspectionKey = useRef<StableKey | null>(null);
   const discoveryKey = useRef<StableKey | null>(null);
   const openingResultKey = useRef<string | null>(null);
+  const handledQuickParseId = useRef<number | null>(null);
   useEffect(() => {
     const snapshot = intent.snapshot;
     const inspection = intent.inspection;
     if (
+      quickParse ||
       mode !== 'link' ||
       snapshot?.status !== IntentStatusCode.Ready ||
       !inspection ||
@@ -153,6 +158,7 @@ export default function DownloadWorkspace() {
     intent.inspection,
     intent.resultExpired,
     intent.clear,
+    quickParse,
     mode,
     queries,
     router,
@@ -198,9 +204,12 @@ export default function DownloadWorkspace() {
     setAuthorizationTarget(null);
   }
 
-  async function inspect(accessPolicy?: API.ProviderAccessPolicy) {
+  async function inspect(
+    accessPolicy?: API.ProviderAccessPolicy,
+    overrideInput?: string,
+  ) {
     if (busy !== null || (intent.pending && !intent.canResubmit)) return;
-    const input = url.trim();
+    const input = (overrideInput ?? url).trim();
     clearLinkResult();
     if (!hasPublicInput(input)) {
       setUrlInvalid(true);
@@ -262,6 +271,21 @@ export default function DownloadWorkspace() {
       setBusy(null);
     }
   }
+
+  const inspectFromQuickParse = useEffectEvent((input: string) => {
+    void inspect(undefined, input);
+  });
+
+  useEffect(() => {
+    if (!quickParse || handledQuickParseId.current === quickParse.id) return;
+    handledQuickParseId.current = quickParse.id;
+    clearQuickParse(quickParse.id);
+    if (busy !== null || (intent.pending && !intent.canResubmit)) {
+      setError('已有解析任务正在处理，请完成或取消后再试。');
+      return;
+    }
+    inspectFromQuickParse(quickParse.input);
+  }, [quickParse, clearQuickParse, busy, intent.pending, intent.canResubmit]);
 
   return (
     <div className="pb-6" data-slot="download-workspace">

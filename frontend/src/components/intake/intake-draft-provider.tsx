@@ -5,8 +5,10 @@ import {
   type Dispatch,
   type ReactNode,
   type SetStateAction,
+  useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import type { IntakeMode } from '@/components/intake/content-intake-hero';
@@ -20,6 +22,9 @@ type IntakeDraft = {
   setDeclaredOrigin: Dispatch<SetStateAction<API.DeclaredOrigin>>;
   attempt: ParseAttempt | null;
   setAttempt: Dispatch<SetStateAction<ParseAttempt | null>>;
+  quickParse: { id: number; input: string } | null;
+  requestQuickParse: (input: string) => void;
+  clearQuickParse: (id: number) => void;
 };
 
 export type ParseAttempt = {
@@ -39,6 +44,16 @@ export function IntakeDraftProvider({ children }: { children: ReactNode }) {
   const [declaredOrigin, setDeclaredOrigin] =
     useState<API.DeclaredOrigin>('user_file');
   const [attempt, setAttempt] = useState<ParseAttempt | null>(null);
+  const [quickParse, setQuickParse] = useState<IntakeDraft['quickParse']>(null);
+  const nextQuickParseId = useRef(0);
+  const requestQuickParse = useCallback((value: string) => {
+    setInput(value);
+    setMode('link');
+    setQuickParse({ id: ++nextQuickParseId.current, input: value });
+  }, []);
+  const clearQuickParse = useCallback((id: number) => {
+    setQuickParse((current) => (current?.id === id ? null : current));
+  }, []);
   const value = useMemo(
     () => ({
       input,
@@ -49,8 +64,19 @@ export function IntakeDraftProvider({ children }: { children: ReactNode }) {
       setDeclaredOrigin,
       attempt,
       setAttempt,
+      quickParse,
+      requestQuickParse,
+      clearQuickParse,
     }),
-    [input, mode, declaredOrigin, attempt],
+    [
+      input,
+      mode,
+      declaredOrigin,
+      attempt,
+      quickParse,
+      requestQuickParse,
+      clearQuickParse,
+    ],
   );
   return <IntakeDraftContext value={value}>{children}</IntakeDraftContext>;
 }

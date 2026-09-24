@@ -77,7 +77,7 @@ export function ContentIntakeHero({
             剧本文档
           </TabsTrigger>
         </TabsList>
-        <TabsContent className="pt-4" value="link">
+        <TabsContent className="max-w-5xl pt-4" value="link">
           {linkForm}
         </TabsContent>
         <TabsContent className="pt-4" value="video">

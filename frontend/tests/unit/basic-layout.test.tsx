@@ -1,15 +1,10 @@
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthField, AuthPageFrame } from '@/components/auth/auth-page-frame';
 import { BasicLayout } from '@/components/layout/basic-layout';
 import { InputGroupInput } from '@/components/ui/input-group';
+import { render } from '../helpers/query-render';
 
 const runtime = vi.hoisted(() => ({
   loading: false,

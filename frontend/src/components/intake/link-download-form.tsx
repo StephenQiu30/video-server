@@ -11,6 +11,7 @@ import {
   InputGroupText,
   InputGroupTextarea,
 } from '@/components/ui/input-group';
+import { Kbd } from '@/components/ui/kbd';
 import { Spinner } from '@/components/ui/spinner';
 import {
   Tooltip,
@@ -71,6 +72,7 @@ export function LinkDownloadForm({
           <InputGroupText>
             <LinkSimple aria-hidden />
             支持完整分享文案
+            <Kbd className="hidden sm:inline-flex">⌘ K</Kbd>
           </InputGroupText>
           <div className="flex items-center gap-2">
             {url ? (

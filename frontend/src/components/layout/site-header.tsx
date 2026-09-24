@@ -8,6 +8,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { AuthStatusCode, useAuth } from '@/components/auth/auth-provider';
+import { QuickParseDialog } from '@/components/intake/quick-parse-dialog';
 import { DesktopNavigation } from '@/components/layout/desktop-navigation';
 import { HeaderAccount } from '@/components/layout/header-account';
 import { MobileNavigation } from '@/components/layout/mobile-navigation';
@@ -126,6 +127,7 @@ export function SiteHeader() {
                       </a>
                     </Button>
                   ) : null}
+                  <QuickParseDialog />
                   <ThemeToggle />
                   {publicView ? (
                     <div className="flex shrink-0 justify-end">
