@@ -3,6 +3,7 @@
 from sqlalchemy import (
     DateTime,
     Integer,
+    LargeBinary,
     String,
     Uuid,
     and_,
@@ -21,6 +22,7 @@ from app.models.download import ArtifactRow, DownloadJobRow
 from app.models.download_intent import DownloadIntentRow
 from app.models.media import MediaInspectionRow
 from app.models.media_import import MediaImportRow
+from app.services.downloads.inspection_models import EncryptedUrl
 from app.services.history_records import (
     HistoryRecordCursor,
     HistoryRecordKind,
@@ -44,9 +46,7 @@ class SqlAlchemyHistoryRecordRepository:
             select(
                 literal(HistoryRecordKind.PARSE.value).label("record_type"),
                 DownloadIntentRow.id.label("id"),
-                func.coalesce(MediaInspectionRow.title, literal("媒体解析")).label(
-                    "title"
-                ),
+                MediaInspectionRow.title.label("title"),
                 DownloadIntentRow.created_at.label("created_at"),
                 DownloadIntentRow.status.label("status"),
                 DownloadIntentRow.version.label("version"),
@@ -60,6 +60,11 @@ class SqlAlchemyHistoryRecordRepository:
                 cast(null(), Integer).label("progress"),
                 cast(null(), String).label("stage"),
                 cast(null(), String).label("error_code"),
+                DownloadIntentRow.url_ciphertext.label("url_ciphertext"),
+                DownloadIntentRow.url_nonce.label("url_nonce"),
+                DownloadIntentRow.url_key_id.label("url_key_id"),
+                DownloadIntentRow.request_fingerprint.label("request_fingerprint"),
+                DownloadIntentRow.access_policy.label("access_policy"),
             )
             .outerjoin(
                 MediaInspectionRow,
@@ -92,6 +97,11 @@ class SqlAlchemyHistoryRecordRepository:
                 AnalysisJobRow.progress.label("progress"),
                 AnalysisJobRow.stage.label("stage"),
                 AnalysisJobRow.error_code.label("error_code"),
+                cast(null(), LargeBinary).label("url_ciphertext"),
+                cast(null(), LargeBinary).label("url_nonce"),
+                cast(null(), String).label("url_key_id"),
+                cast(null(), String).label("request_fingerprint"),
+                cast(null(), String).label("access_policy"),
             )
             .outerjoin(ArtifactRow, ArtifactRow.id == AnalysisJobRow.artifact_id)
             .outerjoin(
@@ -168,6 +178,15 @@ class SqlAlchemyHistoryRecordRepository:
                 progress=row["progress"],
                 stage=row["stage"],
                 error_code=row["error_code"],
+                encrypted_url=(
+                    EncryptedUrl(
+                        row["url_ciphertext"], row["url_nonce"], row["url_key_id"]
+                    )
+                    if row["url_ciphertext"] is not None
+                    else None
+                ),
+                request_fingerprint=row["request_fingerprint"],
+                access_policy=row["access_policy"],
             )
             for row in rows[:limit]
         )
@@ -178,3 +197,39 @@ class SqlAlchemyHistoryRecordRepository:
             else HistoryRecordCursor(last.created_at, last.record_type, last.id)
         )
         return HistoryRecordPage(items, cursor)
+
+    async def inspection_titles(
+        self,
+        owner_hash: str,
+        fingerprints: frozenset[str],
+        youtube_ids: frozenset[str],
+    ) -> dict[str, str]:
+        if not fingerprints and not youtube_ids:
+            return {}
+        statement = (
+            select(
+                MediaInspectionRow.request_fingerprint,
+                MediaInspectionRow.provider_media_id,
+                MediaInspectionRow.extractor_key,
+                MediaInspectionRow.title,
+            )
+            .where(
+                MediaInspectionRow.owner_hash == owner_hash,
+                or_(
+                    MediaInspectionRow.request_fingerprint.in_(fingerprints),
+                    and_(
+                        func.lower(MediaInspectionRow.extractor_key) == "youtube",
+                        MediaInspectionRow.provider_media_id.in_(youtube_ids),
+                    ),
+                ),
+            )
+            .order_by(MediaInspectionRow.created_at.desc())
+        )
+        async with self._sessions() as session:
+            rows = (await session.execute(statement)).all()
+        titles: dict[str, str] = {}
+        for fingerprint, media_id, extractor_key, title in rows:
+            titles.setdefault(fingerprint, title)
+            if extractor_key.lower() == "youtube":
+                titles.setdefault(media_id, title)
+        return titles

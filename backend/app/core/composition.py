@@ -536,7 +536,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
                 select_policy=select_intent_policy,
             ),
             history_record_service=HistoryRecordService(
-                SqlAlchemyHistoryRecordRepository(sessions)
+                SqlAlchemyHistoryRecordRepository(sessions), envelope, fingerprinter
             ),
             auth_service=auth_service,
             web_session_service=WebSessionService(

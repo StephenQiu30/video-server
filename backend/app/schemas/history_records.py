@@ -98,7 +98,7 @@ def _parse_item(item: HistoryRecordSnapshot) -> ParseHistoryRecordResponse:
 
 
 def _analysis_item(item: HistoryRecordSnapshot) -> VideoAnalysisHistoryRecordResponse:
-    if item.skill_id is None or item.progress is None:
+    if item.title is None or item.skill_id is None or item.progress is None:
         raise ValueError("video analysis history record is incomplete")
     return VideoAnalysisHistoryRecordResponse(
         record_type="video_analysis",
