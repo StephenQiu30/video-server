@@ -88,10 +88,7 @@ export function ResultTab({
   value: string;
 }) {
   return (
-    <TabsTrigger
-      className="rounded-md border-0 px-3 py-2 data-[state=active]:bg-muted"
-      value={value}
-    >
+    <TabsTrigger className="px-3 py-2" value={value}>
       {children}
     </TabsTrigger>
   );
