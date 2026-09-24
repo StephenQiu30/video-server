@@ -28,7 +28,7 @@ export function BrandLink({ className }: { className?: string }) {
       <Image
         alt=""
         aria-hidden
-        className="size-8 shrink-0 brightness-0 dark:invert"
+        className="size-8 shrink-0"
         height={32}
         src="/logo.svg"
         width={32}
