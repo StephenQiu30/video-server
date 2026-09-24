@@ -9,11 +9,16 @@ import { intentFixture } from '../fixtures/intent-fixtures';
 import { httpRequests, mockHttpResponses } from '../helpers/http';
 import { render } from '../helpers/query-render';
 
+const identity = vi.hoisted(() => ({ authenticated: true }));
 const navigation = vi.hoisted(() => ({ pathname: '/history', push: vi.fn() }));
 
 vi.mock('@/components/auth/auth-provider', async (importOriginal) => ({
   ...(await importOriginal()),
-  useAuth: () => ({ user: { id: 'quick-parse-owner', role: 'user' } }),
+  useAuth: () => ({
+    user: identity.authenticated
+      ? { id: 'quick-parse-owner', role: 'user' }
+      : null,
+  }),
 }));
 vi.mock('next/navigation', () => ({
   usePathname: () => navigation.pathname,
@@ -35,9 +40,33 @@ function Harness() {
 
 describe('quick parse', () => {
   beforeEach(() => {
+    identity.authenticated = true;
     navigation.pathname = '/history';
     navigation.push.mockReset();
     window.history.replaceState({}, '', '/history');
+  });
+
+  it('restores the keyboard origin when dismissed', async () => {
+    render(<Harness />);
+    const origin = screen.getByRole('button', { name: '挂载首页' });
+    origin.focus();
+    fireEvent.keyDown(origin, { key: 'k', ctrlKey: true });
+    expect(screen.getByRole('combobox', { name: '链接或操作' })).toHaveFocus();
+    fireEvent.keyDown(screen.getByRole('combobox', { name: '链接或操作' }), {
+      key: 'Escape',
+    });
+    await waitFor(() => expect(origin).toHaveFocus());
+  });
+
+  it('offers anonymous users login without queuing a parse', () => {
+    identity.authenticated = false;
+    navigation.pathname = '/user/register';
+    render(<Harness />);
+    fireEvent.click(screen.getByRole('button', { name: '快捷操作' }));
+    fireEvent.click(screen.getByRole('option', { name: '登录后使用' }));
+    expect(navigation.push).toHaveBeenCalledWith('/user/login?redirect=%2F');
+    expect(httpRequests()).toHaveLength(0);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('opens with ⌘K and hands one parse request to the homepage', async () => {
@@ -48,7 +77,7 @@ describe('quick parse', () => {
     render(<Harness />);
 
     fireEvent.keyDown(document, { key: 'k', metaKey: true });
-    const dialog = screen.getByRole('dialog', { name: '快速操作' });
+    const dialog = screen.getByRole('dialog', { name: '快捷操作' });
     const input = within(dialog).getByRole('combobox', {
       name: '链接或操作',
     });
@@ -73,7 +102,7 @@ describe('quick parse', () => {
   it('supports Ctrl+K and keeps blank input in the dialog', () => {
     render(<Harness />);
     fireEvent.keyDown(document, { key: 'k', ctrlKey: true });
-    const dialog = screen.getByRole('dialog', { name: '快速操作' });
+    const dialog = screen.getByRole('dialog', { name: '快捷操作' });
     fireEvent.click(within(dialog).getByRole('option', { name: /解析链接/ }));
 
     expect(within(dialog).getByRole('alert')).toHaveTextContent(
@@ -104,7 +133,7 @@ describe('quick parse', () => {
   ])('opens the %s workspace from ⌘K', (action, tabName) => {
     render(<Harness />);
     fireEvent.keyDown(document, { key: 'k', metaKey: true });
-    const dialog = screen.getByRole('dialog', { name: '快速操作' });
+    const dialog = screen.getByRole('dialog', { name: '快捷操作' });
     fireEvent.click(within(dialog).getByRole('option', { name: action }));
 
     expect(navigation.push).toHaveBeenCalledWith('/');

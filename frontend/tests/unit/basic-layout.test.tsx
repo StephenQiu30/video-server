@@ -53,6 +53,42 @@ describe('BasicLayout', () => {
     runtime.user = undefined;
   });
 
+  it.each([
+    '/',
+    '/history',
+    '/history/activity',
+    '/documents',
+    '/providers',
+    '/admin/operation-logs',
+    '/user/login',
+    '/user/register',
+    '/guide/',
+  ])('mounts quick actions outside the header on %s', (pathname) => {
+    runtime.pathname = pathname;
+    render(
+      <BasicLayout>
+        <div>页面内容</div>
+      </BasicLayout>,
+    );
+    expect(
+      within(screen.getByRole('banner')).queryByRole('button', {
+        name: '快捷操作',
+      }),
+    ).not.toBeInTheDocument();
+    const footer = screen.getByRole('contentinfo');
+    expect(
+      within(footer).getByRole('button', { name: '快捷操作' }),
+    ).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'k', ctrlKey: true });
+    expect(screen.getAllByRole('dialog', { name: '快捷操作' })).toHaveLength(1);
+    expect(
+      screen.getByRole('option', { name: '登录后使用' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: /解析链接/ }),
+    ).not.toBeInTheDocument();
+  });
+
   it('renders the shared accessible navigation on application routes', () => {
     runtime.pathname = '/providers';
     render(

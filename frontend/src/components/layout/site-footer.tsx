@@ -1,5 +1,6 @@
 import { cn } from 'cn';
 import Link from 'next/link';
+import { QuickParseDialog } from '@/components/intake/quick-parse-dialog';
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -18,20 +19,23 @@ export function SiteFooter({ className }: { className?: string }) {
           </Link>
           <span>MIT 开源 · 请仅处理已获授权内容</span>
         </div>
-        <NavigationMenu
-          aria-label="项目链接"
-          className="max-w-none flex-none"
-          viewport={false}
-        >
-          <NavigationMenuList className="gap-4">
-            <FooterLink href="/guide/">使用指南</FooterLink>
-            <FooterLink href={siteConfig.repositoryUrl}>GitHub</FooterLink>
-            <FooterLink href={`${siteConfig.repositoryUrl}/tree/main/docs`}>
-              文档
-            </FooterLink>
-            <FooterLink href={siteConfig.licenseUrl}>MIT License</FooterLink>
-          </NavigationMenuList>
-        </NavigationMenu>
+        <div className="flex flex-wrap items-center gap-3">
+          <QuickParseDialog />
+          <NavigationMenu
+            aria-label="项目链接"
+            className="max-w-none flex-none"
+            viewport={false}
+          >
+            <NavigationMenuList className="flex-wrap gap-4">
+              <FooterLink href="/guide/">使用指南</FooterLink>
+              <FooterLink href={siteConfig.repositoryUrl}>GitHub</FooterLink>
+              <FooterLink href={`${siteConfig.repositoryUrl}/tree/main/docs`}>
+                文档
+              </FooterLink>
+              <FooterLink href={siteConfig.licenseUrl}>MIT License</FooterLink>
+            </NavigationMenuList>
+          </NavigationMenu>
+        </div>
       </div>
     </footer>
   );
