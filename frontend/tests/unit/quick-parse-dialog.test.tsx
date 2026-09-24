@@ -48,9 +48,9 @@ describe('quick parse', () => {
     render(<Harness />);
 
     fireEvent.keyDown(document, { key: 'k', metaKey: true });
-    const dialog = screen.getByRole('dialog', { name: '快速解析' });
+    const dialog = screen.getByRole('dialog', { name: '快速操作' });
     const input = within(dialog).getByRole('combobox', {
-      name: '快速解析媒体地址',
+      name: '链接或操作',
     });
     fireEvent.change(input, { target: { value: shareText } });
     fireEvent.keyDown(input, { key: 'Enter' });
@@ -73,8 +73,8 @@ describe('quick parse', () => {
   it('supports Ctrl+K and keeps blank input in the dialog', () => {
     render(<Harness />);
     fireEvent.keyDown(document, { key: 'k', ctrlKey: true });
-    const dialog = screen.getByRole('dialog', { name: '快速解析' });
-    fireEvent.click(within(dialog).getByRole('option', { name: /解析媒体/ }));
+    const dialog = screen.getByRole('dialog', { name: '快速操作' });
+    fireEvent.click(within(dialog).getByRole('option', { name: /解析链接/ }));
 
     expect(within(dialog).getByRole('alert')).toHaveTextContent(
       PUBLIC_INPUT_REQUIRED,
@@ -87,7 +87,7 @@ describe('quick parse', () => {
     render(<Harness />);
     fireEvent.keyDown(document, { key: 'k', metaKey: true });
     const input = screen.getByRole('combobox', {
-      name: '快速解析媒体地址',
+      name: '链接或操作',
     });
     fireEvent.paste(input, {
       clipboardData: {
@@ -96,5 +96,24 @@ describe('quick parse', () => {
     });
 
     expect(input).toHaveValue('看看这个视频 https://example.com/video');
+  });
+
+  it.each([
+    ['上传本地视频', '本地视频'],
+    ['上传剧本文档', '剧本文档'],
+  ])('opens the %s workspace from ⌘K', (action, tabName) => {
+    render(<Harness />);
+    fireEvent.keyDown(document, { key: 'k', metaKey: true });
+    const dialog = screen.getByRole('dialog', { name: '快速操作' });
+    fireEvent.click(within(dialog).getByRole('option', { name: action }));
+
+    expect(navigation.push).toHaveBeenCalledWith('/');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '挂载首页' }));
+    expect(screen.getByRole('tab', { name: tabName })).toHaveAttribute(
+      'data-state',
+      'active',
+    );
+    expect(httpRequests()).toHaveLength(0);
   });
 });

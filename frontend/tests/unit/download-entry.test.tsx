@@ -74,18 +74,31 @@ it('dismisses the loading notice once the parsed result has opened', async () =>
   );
 });
 
-it('keeps an active parse and its cancel action in the page content', async () => {
+it('shows active parsing and its cancel action in Sonner', async () => {
   mockHttpResponses(
     intentFixture({ status: 'resolving', inspection_id: null }),
+    intentFixture({ status: 'cancelled', inspection_id: null }),
   );
   renderEntry();
   enter('https://youtu.be/owned');
   await waitFor(() =>
     expect(
-      document.querySelector('[data-slot="parse-intent-status"]'),
+      document.querySelector('[data-sonner-toast][data-type="loading"]'),
     ).toHaveTextContent('正在读取媒体信息'),
   );
+  expect(
+    document.querySelector('[data-slot="parse-intent-status"]'),
+  ).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: '取消解析' })).toBeEnabled();
+  fireEvent.click(screen.getByRole('button', { name: '取消解析' }));
+  await waitFor(() =>
+    expect(httpRequests()).toContainEqual(
+      expect.objectContaining({
+        method: 'POST',
+        url: `/api/download-intents/${intentFixture().id}/cancel`,
+      }),
+    ),
+  );
   expect(push).not.toHaveBeenCalled();
 });
 

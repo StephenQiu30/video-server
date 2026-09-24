@@ -4,12 +4,12 @@ import { FileText, UploadSimple, X } from '@phosphor-icons/react';
 import { type FormEvent, useRef } from 'react';
 
 import {
-  IntakeControlRow,
   IntakePickerButton,
   IntakeSubmitButton,
 } from '@/components/intake/intake-control-row';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Field, FieldDescription, FieldTitle } from '@/components/ui/field';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
@@ -60,35 +60,83 @@ export function ScreenplayUploadForm({
     onStart();
   };
 
-  return (
-    <Form className={workspace ? undefined : 'mt-2'} onSubmit={submit}>
-      <IntakeControlRow className={workspace ? undefined : 'block'}>
-        <IntakePickerButton
-          aria-describedby={error ? 'screenplay-upload-error' : undefined}
-          aria-invalid={fileInvalid || undefined}
-          className={workspace ? undefined : 'w-full'}
-          disabled={busy}
-          onClick={() => inputRef.current?.click()}
-        >
-          <FileText aria-hidden data-icon="inline-start" />
-          <span className="min-w-0 truncate" title={file?.name}>
-            {file?.name ?? '选择剧本文档'}
+  const filePicker = (
+    <IntakePickerButton
+      aria-describedby={error ? 'screenplay-upload-error' : undefined}
+      aria-invalid={fileInvalid || undefined}
+      className="w-full"
+      disabled={busy}
+      onClick={() => inputRef.current?.click()}
+      size={workspace ? 'lg' : undefined}
+      variant={workspace ? 'outline' : undefined}
+    >
+      <FileText aria-hidden data-icon="inline-start" />
+      <span className="min-w-0 truncate" title={file?.name}>
+        {file?.name ?? '选择剧本文档'}
+      </span>
+    </IntakePickerButton>
+  );
+  const fileInput = (
+    <Input
+      accept=".docx,.pdf,.txt,.md,.markdown,.fountain"
+      aria-label="选择剧本文档文件"
+      className="sr-only h-px w-px border-0 p-0"
+      disabled={busy}
+      onChange={(event) => onFileSelect(event.target.files?.[0] ?? null)}
+      onClick={(event) => {
+        event.currentTarget.value = '';
+      }}
+      ref={inputRef}
+      type="file"
+    />
+  );
+  const fileDescription = file
+    ? formatFileSize(file.size)
+    : 'DOCX、PDF、TXT、Markdown 或 Fountain';
+  const errorNotice = error ? (
+    <Alert className="mt-3" id="screenplay-upload-error" variant="destructive">
+      <AlertTitle>无法上传剧本</AlertTitle>
+      <AlertDescription>{error}</AlertDescription>
+    </Alert>
+  ) : null;
+  const progressNotice = busy ? (
+    <div className="mt-4">
+      <div className="mb-3 flex min-h-9 items-center justify-between gap-4">
+        <p aria-live="polite" className="text-sm" role="status">
+          {phaseLabels[phase]}
+        </p>
+        <div className="flex items-center gap-3">
+          <span
+            aria-hidden
+            className="text-xs tabular-nums text-muted-foreground"
+          >
+            {progress}%
           </span>
-        </IntakePickerButton>
-        <Input
-          accept=".docx,.pdf,.txt,.md,.markdown,.fountain"
-          aria-label="选择剧本文档文件"
-          className="sr-only h-px w-px border-0 p-0"
-          disabled={busy}
-          onChange={(event) => onFileSelect(event.target.files?.[0] ?? null)}
-          onClick={(event) => {
-            event.currentTarget.value = '';
-          }}
-          ref={inputRef}
-          type="file"
-        />
-        {workspace ? (
-          <IntakeSubmitButton disabled={busy}>
+          {canCancel ? (
+            <Button onClick={onCancel} size="sm" type="button" variant="ghost">
+              <X aria-hidden data-icon="inline-start" />
+              取消上传
+            </Button>
+          ) : null}
+        </div>
+      </div>
+      <Progress aria-label={phaseLabels[phase]} value={progress} />
+    </div>
+  ) : null;
+
+  if (workspace) {
+    return (
+      <Form className="flex flex-col gap-4" onSubmit={submit}>
+        <Field data-invalid={fileInvalid || undefined}>
+          <FieldTitle>剧本文件</FieldTitle>
+          {filePicker}
+          {fileInput}
+          <FieldDescription>{fileDescription}</FieldDescription>
+        </Field>
+        {errorNotice}
+        {progressNotice}
+        <div className="flex justify-end">
+          <IntakeSubmitButton disabled={busy} size="lg">
             {busy ? (
               <Spinner aria-hidden data-icon="inline-start" />
             ) : (
@@ -96,65 +144,26 @@ export function ScreenplayUploadForm({
             )}
             {busy ? '处理中…' : '上传剧本'}
           </IntakeSubmitButton>
-        ) : null}
-      </IntakeControlRow>
-      <p className="mt-2 text-xs text-muted-foreground">
-        {file
-          ? formatFileSize(file.size)
-          : 'DOCX、PDF、TXT、Markdown 或 Fountain'}
-      </p>
-
-      {error ? (
-        <Alert
-          className="mt-3"
-          id="screenplay-upload-error"
-          variant="destructive"
-        >
-          <AlertTitle>无法上传剧本</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
-
-      {busy ? (
-        <div className="mt-4 py-4">
-          <div className="mb-3 flex min-h-9 items-center justify-between gap-4">
-            <p aria-live="polite" className="text-sm" role="status">
-              {phaseLabels[phase]}
-            </p>
-            <div className="flex items-center gap-3">
-              <span
-                aria-hidden
-                className="text-xs tabular-nums text-muted-foreground"
-              >
-                {progress}%
-              </span>
-              {canCancel ? (
-                <Button
-                  onClick={onCancel}
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  <X aria-hidden data-icon="inline-start" />
-                  取消上传
-                </Button>
-              ) : null}
-            </div>
-          </div>
-          <Progress aria-label={phaseLabels[phase]} value={progress} />
         </div>
-      ) : null}
+      </Form>
+    );
+  }
 
-      {!workspace ? (
-        <Button className="mt-5 w-full" disabled={busy} size="lg" type="submit">
-          {busy ? (
-            <Spinner aria-hidden data-icon="inline-start" />
-          ) : (
-            <UploadSimple aria-hidden data-icon="inline-start" />
-          )}
-          {busy ? '处理中…' : '上传剧本'}
-        </Button>
-      ) : null}
+  return (
+    <Form className="mt-2" onSubmit={submit}>
+      {filePicker}
+      {fileInput}
+      <p className="mt-2 text-xs text-muted-foreground">{fileDescription}</p>
+      {errorNotice}
+      {progressNotice}
+      <Button className="mt-5 w-full" disabled={busy} size="lg" type="submit">
+        {busy ? (
+          <Spinner aria-hidden data-icon="inline-start" />
+        ) : (
+          <UploadSimple aria-hidden data-icon="inline-start" />
+        )}
+        {busy ? '处理中…' : '上传剧本'}
+      </Button>
     </Form>
   );
 }

@@ -47,6 +47,7 @@ import { createUuid as createIdempotencyKey } from '@/lib/uuid';
 
 type BusyAction = 'inspect' | null;
 type StableKey = { payload: string; value: string };
+const PARSE_STATUS_TOAST_ID = 'framefetch-parse-status';
 export default function DownloadWorkspace() {
   const router = useRouter();
   const queries = useQueryClient();
@@ -77,22 +78,27 @@ export default function DownloadWorkspace() {
     else if (intent.snapshot && isActiveIntentStatus(intent.snapshot.status))
       observedActiveIntentId.current = intent.snapshot.id;
   }, [intent.attempt, intent.snapshot]);
+  const snapshot = intent.snapshot;
   const showTerminalStatus =
     (!!intent.attempt && intent.attempt.input !== null) ||
-    (!!intent.snapshot &&
-      observedActiveIntentId.current === intent.snapshot.id);
-  const showIntentStatus =
+    (!!snapshot && observedActiveIntentId.current === snapshot.id);
+  const showPendingToast =
+    !!intent.attempt &&
+    intent.pending &&
+    !intent.error &&
+    snapshot?.status !== IntentStatusCode.ActionRequired;
+  const showSubmittingToast = busy === 'inspect' && !showPendingToast;
+  const canCancelToast = showPendingToast && !!snapshot;
+  const showIntentAction =
     mode === 'link' &&
     !!intent.attempt &&
-    intent.snapshot?.status !== IntentStatusCode.HandedOff &&
-    ((intent.pending && (!!intent.attempt.input || !!intent.snapshot)) ||
-      (showTerminalStatus && (!!intent.error || intent.resultExpired)) ||
-      intent.snapshot?.status === IntentStatusCode.Ready ||
+    (intent.resultExpired ||
+      !!intentAuthorization ||
+      !!intent.error ||
+      snapshot?.status === IntentStatusCode.ActionRequired ||
       (showTerminalStatus &&
-        (intent.snapshot?.status === IntentStatusCode.Failed ||
-          intent.snapshot?.status === IntentStatusCode.Expired ||
-          intent.snapshot?.status === IntentStatusCode.ActionRequired)));
-  const snapshot = intent.snapshot;
+        (snapshot?.status === IntentStatusCode.Failed ||
+          snapshot?.status === IntentStatusCode.Expired)));
   const intentStatusError =
     !!intent.error ||
     snapshot?.status === IntentStatusCode.Failed ||
@@ -125,6 +131,41 @@ export default function DownloadWorkspace() {
                   ? '解析已完成，正在打开结果页。'
                   : '正在读取解析结果，请稍候。'
                 : '本次解析已结束。');
+  const cancelFromToast = useEffectEvent(() => {
+    void intent.cancel();
+  });
+  useEffect(() => {
+    if (!showPendingToast && !showSubmittingToast) {
+      toast.dismiss(PARSE_STATUS_TOAST_ID);
+      return;
+    }
+    toast.loading(showPendingToast ? intentStatusTitle : '正在提交解析请求', {
+      id: PARSE_STATUS_TOAST_ID,
+      description: showPendingToast
+        ? intentStatusDescription
+        : '请稍候，无需重复提交。',
+      duration: Number.POSITIVE_INFINITY,
+      action: canCancelToast
+        ? {
+            label: intent.cancelling ? '正在取消…' : '取消解析',
+            onClick: () => cancelFromToast(),
+          }
+        : undefined,
+    });
+  }, [
+    showPendingToast,
+    showSubmittingToast,
+    canCancelToast,
+    intentStatusTitle,
+    intentStatusDescription,
+    intent.cancelling,
+  ]);
+  useEffect(
+    () => () => {
+      toast.dismiss(PARSE_STATUS_TOAST_ID);
+    },
+    [],
+  );
   const inspectionKey = useRef<StableKey | null>(null);
   const discoveryKey = useRef<StableKey | null>(null);
   const openingResultKey = useRef<string | null>(null);
@@ -347,7 +388,7 @@ export default function DownloadWorkspace() {
           />
         }
       />
-      {showIntentStatus ? (
+      {showIntentAction ? (
         <Alert
           className="mt-6"
           data-slot="parse-intent-status"

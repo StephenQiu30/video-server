@@ -1,9 +1,15 @@
 'use client';
 
-import { MagnifyingGlassIcon } from '@phosphor-icons/react';
+import {
+  FileTextIcon,
+  FileVideoIcon,
+  LinkSimpleIcon,
+  MagnifyingGlassIcon,
+} from '@phosphor-icons/react';
 import { usePathname, useRouter } from 'next/navigation';
 import { type ClipboardEvent, useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/components/auth/auth-provider';
+import type { IntakeMode } from '@/components/intake/content-intake-hero';
 import { useIntakeDraft } from '@/components/intake/intake-draft-provider';
 import {
   hasPublicInput,
@@ -25,7 +31,7 @@ import { Kbd } from '@/components/ui/kbd';
 
 export function QuickParseDialog() {
   const { user } = useAuth();
-  const { input, requestQuickParse } = useIntakeDraft();
+  const { input, requestQuickParse, setMode } = useIntakeDraft();
   const pathname = usePathname() ?? '/';
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -71,6 +77,15 @@ export function QuickParseDialog() {
     }
   }
 
+  function selectUpload(mode: Extract<IntakeMode, 'video' | 'screenplay'>) {
+    setMode(mode);
+    setOpen(false);
+    if (pathname !== '/') {
+      markNavigationPush('/');
+      router.push('/');
+    }
+  }
+
   function pasteShareText(event: ClipboardEvent<HTMLInputElement>) {
     const pasted = event.clipboardData.getData('text');
     if (!/[\r\n]/.test(pasted)) return;
@@ -92,7 +107,7 @@ export function QuickParseDialog() {
   return (
     <>
       <Button
-        aria-label="快速解析（⌘K）"
+        aria-label="快速操作（⌘K）"
         className="xl:hidden"
         onClick={openDialog}
         size="icon-lg"
@@ -107,36 +122,50 @@ export function QuickParseDialog() {
         variant="outline"
       >
         <MagnifyingGlassIcon aria-hidden data-icon="inline-start" />
-        快速解析
+        快速操作
         <Kbd>⌘ K</Kbd>
       </Button>
       <CommandDialog
         className="sm:max-w-2xl"
-        description="粘贴公开链接或完整分享文案，按回车开始解析。"
+        description="解析公开链接，或选择上传本地视频与剧本文档。"
         onOpenChange={setOpen}
         open={open}
-        title="快速解析"
+        title="快速操作"
       >
-        <Command label="快速解析媒体地址" shouldFilter={false}>
+        <Command label="链接或操作" shouldFilter={false}>
           <CommandInput
             aria-describedby={invalid ? 'quick-parse-error' : undefined}
             aria-invalid={invalid ? true : undefined}
-            aria-label="快速解析媒体地址"
+            aria-label="链接或操作"
             maxLength={4096}
             onPaste={pasteShareText}
             onValueChange={(nextValue) => {
               setValue(nextValue);
               setInvalid(false);
             }}
-            placeholder="粘贴媒体链接或完整分享文案…"
+            placeholder="粘贴媒体链接，或选择下方操作…"
             value={value}
           />
           <CommandList>
-            <CommandGroup heading="操作">
-              <CommandItem onSelect={submit} value="解析媒体">
-                <MagnifyingGlassIcon aria-hidden />
-                解析媒体
+            <CommandGroup heading="选择操作">
+              <CommandItem onSelect={submit} value="解析链接">
+                <LinkSimpleIcon aria-hidden />
+                解析链接
                 <CommandShortcut>↵</CommandShortcut>
+              </CommandItem>
+              <CommandItem
+                onSelect={() => selectUpload('video')}
+                value="上传本地视频"
+              >
+                <FileVideoIcon aria-hidden />
+                上传本地视频
+              </CommandItem>
+              <CommandItem
+                onSelect={() => selectUpload('screenplay')}
+                value="上传剧本文档"
+              >
+                <FileTextIcon aria-hidden />
+                上传剧本文档
               </CommandItem>
             </CommandGroup>
           </CommandList>

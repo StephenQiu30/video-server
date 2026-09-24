@@ -4,11 +4,11 @@ import { FileVideo, UploadSimple, X } from '@phosphor-icons/react';
 import { type FormEvent, useRef } from 'react';
 
 import {
-  IntakeControlRow,
   IntakePickerButton,
   IntakeSubmitButton,
 } from '@/components/intake/intake-control-row';
 import { Button } from '@/components/ui/button';
+import { Field, FieldDescription, FieldTitle } from '@/components/ui/field';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
@@ -55,20 +55,24 @@ export function MediaUploadForm({
   };
 
   return (
-    <Form onSubmit={submit}>
+    <Form className="flex flex-col gap-4" onSubmit={submit}>
       {declaredOrigin === 'wechat_channels' ? (
-        <p className="mb-3 text-sm leading-6 text-muted-foreground">
+        <p className="text-sm leading-6 text-muted-foreground">
           当前文件将记录为“用户提供的视频号来源”，系统不会接收视频号链接、会话或令牌。
         </p>
       ) : null}
-      <IntakeControlRow>
+      <Field data-invalid={fileInvalid || undefined}>
+        <FieldTitle>视频文件</FieldTitle>
         <IntakePickerButton
           aria-describedby={
             fileInvalid ? 'download-workspace-error' : undefined
           }
           aria-invalid={fileInvalid || undefined}
+          className="w-full"
           disabled={busy}
           onClick={() => inputRef.current?.click()}
+          size="lg"
+          variant="outline"
         >
           <FileVideo aria-hidden data-icon="inline-start" />
           <span className="min-w-0 truncate" title={file?.name}>
@@ -87,21 +91,12 @@ export function MediaUploadForm({
           ref={inputRef}
           type="file"
         />
-        <IntakeSubmitButton disabled={busy}>
-          {busy ? (
-            <Spinner aria-hidden data-icon="inline-start" />
-          ) : (
-            <UploadSimple aria-hidden data-icon="inline-start" />
-          )}
-          {busy ? '处理中…' : '上传视频'}
-        </IntakeSubmitButton>
-      </IntakeControlRow>
-      <p className="mt-2 text-xs text-muted-foreground">
-        {file ? formatFileSize(file.size) : 'MP4 · 单个文件'}
-      </p>
-
+        <FieldDescription>
+          {file ? formatFileSize(file.size) : 'MP4 · 单个文件'}
+        </FieldDescription>
+      </Field>
       {busy ? (
-        <div className="mt-4 py-4">
+        <div>
           <div className="mb-3 flex min-h-9 items-center justify-between gap-4">
             <p aria-live="polite" className="text-sm" role="status">
               {phaseLabels[phase]}
@@ -124,6 +119,16 @@ export function MediaUploadForm({
           <Progress aria-label={phaseLabels[phase]} value={progress} />
         </div>
       ) : null}
+      <div className="flex justify-end">
+        <IntakeSubmitButton disabled={busy} size="lg">
+          {busy ? (
+            <Spinner aria-hidden data-icon="inline-start" />
+          ) : (
+            <UploadSimple aria-hidden data-icon="inline-start" />
+          )}
+          {busy ? '处理中…' : '上传视频'}
+        </IntakeSubmitButton>
+      </div>
     </Form>
   );
 }

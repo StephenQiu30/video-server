@@ -22,7 +22,7 @@ describe('LinkDownloadForm', () => {
     const field = screen.getByRole('textbox', { name: '公开视频地址' });
     expect(field.tagName).toBe('TEXTAREA');
 
-    fireEvent.click(screen.getByText('支持完整分享文案'));
+    field.focus();
     expect(field).toHaveFocus();
 
     fireEvent.keyDown(field, { key: 'Enter', shiftKey: true });

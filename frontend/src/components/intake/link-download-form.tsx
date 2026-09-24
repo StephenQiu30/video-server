@@ -1,23 +1,13 @@
 'use client';
 
-import { DownloadSimple, LinkSimple, X } from '@phosphor-icons/react';
+import { DownloadSimple, X } from '@phosphor-icons/react';
 import type { FormEvent, KeyboardEvent } from 'react';
 import { IntakeSubmitButton } from '@/components/intake/intake-control-row';
+import { Button } from '@/components/ui/button';
+import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Form } from '@/components/ui/form';
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupText,
-  InputGroupTextarea,
-} from '@/components/ui/input-group';
-import { Kbd } from '@/components/ui/kbd';
 import { Spinner } from '@/components/ui/spinner';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Textarea } from '@/components/ui/textarea';
 
 export function LinkDownloadForm({
   busy,
@@ -53,54 +43,49 @@ export function LinkDownloadForm({
   };
 
   return (
-    <Form onSubmit={submit}>
-      <InputGroup>
-        <InputGroupTextarea
+    <Form className="flex flex-col gap-4" onSubmit={submit}>
+      <Field data-invalid={invalid || undefined}>
+        <FieldLabel htmlFor="public-media-input">公开视频地址</FieldLabel>
+        <Textarea
           aria-describedby={invalid ? 'download-workspace-error' : undefined}
-          aria-invalid={invalid ? true : undefined}
-          aria-label="公开视频地址"
+          aria-invalid={invalid || undefined}
           autoComplete="url"
           disabled={disabled}
+          id="public-media-input"
           maxLength={4096}
           onChange={(event) => onUrlChange(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="粘贴媒体链接或平台分享文案"
-          rows={2}
+          placeholder="粘贴公开媒体链接，或包含链接的完整分享文案"
+          rows={3}
           value={url}
         />
-        <InputGroupAddon align="block-end" className="justify-between">
-          <InputGroupText>
-            <LinkSimple aria-hidden />
-            支持完整分享文案
-            <Kbd className="hidden sm:inline-flex">⌘ K</Kbd>
-          </InputGroupText>
-          <div className="flex items-center gap-2">
-            {url ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <InputGroupButton
-                    aria-label="清空链接"
-                    disabled={disabled}
-                    onClick={() => onUrlChange('')}
-                    size="icon-sm"
-                  >
-                    <X aria-hidden />
-                  </InputGroupButton>
-                </TooltipTrigger>
-                <TooltipContent>清空链接</TooltipContent>
-              </Tooltip>
-            ) : null}
-            <IntakeSubmitButton disabled={disabled} size="lg">
-              {busy ? (
-                <Spinner aria-hidden data-icon="inline-start" />
-              ) : (
-                <DownloadSimple aria-hidden data-icon="inline-start" />
-              )}
-              {busy ? '解析中…' : hasResult ? '重新解析' : '解析媒体'}
-            </IntakeSubmitButton>
-          </div>
-        </InputGroupAddon>
-      </InputGroup>
+        <FieldDescription>
+          支持完整分享文案。按 Enter 解析，Shift+Enter 换行。
+        </FieldDescription>
+      </Field>
+      <div className="flex items-center justify-end gap-2">
+        {url ? (
+          <Button
+            aria-label="清空链接"
+            disabled={disabled}
+            onClick={() => onUrlChange('')}
+            size="lg"
+            type="button"
+            variant="ghost"
+          >
+            <X aria-hidden data-icon="inline-start" />
+            清空
+          </Button>
+        ) : null}
+        <IntakeSubmitButton disabled={disabled} size="lg">
+          {busy ? (
+            <Spinner aria-hidden data-icon="inline-start" />
+          ) : (
+            <DownloadSimple aria-hidden data-icon="inline-start" />
+          )}
+          {busy ? '解析中…' : hasResult ? '重新解析' : '解析媒体'}
+        </IntakeSubmitButton>
+      </div>
     </Form>
   );
 }
