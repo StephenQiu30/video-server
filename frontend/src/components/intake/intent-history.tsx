@@ -5,12 +5,12 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { listHistoryRecords } from '@/api/downloadIntents';
-import { useAnalysisSkills } from '@/components/analysis/use-analysis-skills';
 import {
   analysisStatusVariant,
   isActiveAnalysisStatus,
   statusLabels,
 } from '@/components/analysis/analysis-panel-model';
+import { useAnalysisSkills } from '@/components/analysis/use-analysis-skills';
 import { IntentHistoryDialog } from '@/components/intake/intent-history-dialog';
 import {
   IntentStatusCode,

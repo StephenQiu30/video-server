@@ -3,9 +3,9 @@
 import { useSearchParams } from 'next/navigation';
 
 import AnalysisPanel from '@/components/analysis/analysis-panel';
-import { BackLink } from '@/components/layout/back-link';
 import DownloadJobView from '@/components/downloads/download-job-view';
 import MissingDownload from '@/components/downloads/missing-download';
+import { BackLink } from '@/components/layout/back-link';
 
 export default function DownloadRoute() {
   const searchParams = useSearchParams();
