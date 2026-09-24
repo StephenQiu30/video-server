@@ -76,9 +76,9 @@ def parse_screenplay_analysis_result(
         dialogue_findings=_findings(
             context, root["dialogue_findings"], "dialogue_finding", True
         ),
-        strengths=_findings(context, root["strengths"], "strength", False),
+        strengths=_findings(context, root["strengths"], "strength", True),
         priority_revisions=_findings(
-            context, root["priority_revisions"], "priority_revision", False
+            context, root["priority_revisions"], "priority_revision", True
         ),
     )
     actual_scene_ids = tuple(scene.source_scene_id for scene in result.scenes)

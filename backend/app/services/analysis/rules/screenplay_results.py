@@ -77,8 +77,6 @@ class ScreenplayRewriteResult:
 def validate_screenplay_analysis_result(result: ScreenplayAnalysisResult) -> None:
     if not result.scenes:
         _invalid("screenplay analysis must contain scenes")
-    if not result.strengths or not result.priority_revisions:
-        _invalid("screenplay strengths and priority revisions cannot be empty")
     collections = (
         result.characters,
         result.scenes,

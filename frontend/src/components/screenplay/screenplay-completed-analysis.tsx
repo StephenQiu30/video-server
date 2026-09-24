@@ -52,7 +52,7 @@ export function ScreenplayCompletedAnalysis({
           <p className="mt-3 text-sm text-muted-foreground">
             {job.result.kind === 'screenplay_rewrite'
               ? 'AI 改写 · 完整正文请在下方查看或导出'
-              : 'AI 剧本分析 · 请对照上方已上传的剧本原文核查结论'}
+              : 'AI 剧本故事审稿 · 请对照上方已上传的剧本原文核查结论'}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">

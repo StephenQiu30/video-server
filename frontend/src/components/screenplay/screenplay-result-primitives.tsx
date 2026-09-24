@@ -1,4 +1,3 @@
-import { cn } from 'cn';
 import type { ReactNode } from 'react';
 
 import {
@@ -9,23 +8,25 @@ import {
 } from '@/components/ui/item';
 import { TabsTrigger } from '@/components/ui/tabs';
 
-type ScreenplayEvidence =
+type ScreenplayFinding =
   API.ScreenplayAnalysisResultResponse['dialogue_findings'][number];
 
-export function EvidenceList({
+export function FindingList({
   className = '',
+  emptyMessage = '本项没有独立发现。',
   heading,
   items,
 }: {
   className?: string;
+  emptyMessage?: string;
   heading: string;
-  items: ScreenplayEvidence[];
+  items: ScreenplayFinding[];
 }) {
   return (
     <div className={className}>
       <h3 className="mb-4 text-lg font-medium tracking-[-0.02em]">{heading}</h3>
       {items.length ? (
-        <ul className={cn('gap-2')}>
+        <ul className="space-y-2">
           {items.map((item) => (
             <Item
               asChild
@@ -42,7 +43,7 @@ export function EvidenceList({
           ))}
         </ul>
       ) : (
-        <p className="py-7 text-muted-foreground">本项没有独立发现。</p>
+        <p className="py-7 text-muted-foreground">{emptyMessage}</p>
       )}
     </div>
   );

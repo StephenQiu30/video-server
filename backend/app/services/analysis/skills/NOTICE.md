@@ -86,6 +86,20 @@ The built-in analysis skills are original, project-specific rewrites. They do no
 - License: MIT; copyright 2026 drama-skills contributors.
 - Local use: the new `screenplay-continuity-review` independently expresses source-scene evidence, information permissions, physical handoffs and actionable revision outcomes inside the existing screenplay result contract. Upstream text, scripts, templates, review files, production workflow and tool permissions were not copied or executed.
 
+## drama-skills screenplay story review (2026-09-24)
+
+- Source: https://github.com/zenstory-ai/drama-skills/tree/b71cb3ca9343eaf6c0375725ccc9261a4e79021e/skills/short-drama-review
+- Reviewed commit: `b71cb3ca9343eaf6c0375725ccc9261a4e79021e`.
+- License: MIT; copyright 2026 drama-skills contributors.
+- Local use: `screenplay-analysis` independently expresses issue-first coverage, consequence-based priority, actionable revision goals, and separation of structural problems from craft preferences. Its `review-method.md`, `rubric-story-script.md` and `anti-template-repair.md` informed the review. Upstream text, fixed rubric, file publication, scripts, examples and agent workflow were not copied or executed.
+
+## screenwriting-skills screenplay story review (2026-09-24)
+
+- Source: https://github.com/jtydhr88/screenwriting-skills/tree/357d1348ccaa1ab75f2f51ef7c90a7f00a686c76/plugins/screenwriting/skills
+- Reviewed commit: `357d1348ccaa1ab75f2f51ef7c90a7f00a686c76`.
+- License: MIT; copyright 2026 Terry Jia.
+- Local use: `screenplay-analysis` independently applies selected scene state, character choice, dialogue action and story progression checks from `sw-scene-craft`, `sw-character-conflict`, `sw-dialogue` and `sw-story-structure`. Upstream prose, templates, examples, scripts and fixed structural formulas were not copied or executed.
+
 ## video-shotcraft
 
 - Source: https://github.com/Vincentwei1021/video-shotcraft

@@ -1,17 +1,89 @@
 'use client';
 
-import { cn } from 'cn';
+import { useState } from 'react';
 
 import AnalysisReportPreview from '@/components/analysis/analysis-report-preview';
 import {
   Detail,
-  EvidenceList,
+  FindingList,
   languageLabel,
   Metric,
   ResultTab,
 } from '@/components/screenplay/screenplay-result-primitives';
-import { Item, ItemGroup } from '@/components/ui/item';
+import { Button } from '@/components/ui/button';
+import { ItemGroup } from '@/components/ui/item';
 import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs';
+
+const SCENES_PER_PAGE = 20;
+
+function SceneReviewList({
+  scenes,
+}: {
+  scenes: API.ScreenplaySceneResponse[];
+}) {
+  const [page, setPage] = useState(0);
+  const pageCount = Math.ceil(scenes.length / SCENES_PER_PAGE);
+  const visiblePage = Math.min(page, Math.max(pageCount - 1, 0));
+  const first = visiblePage * SCENES_PER_PAGE;
+  const visibleScenes = scenes.slice(first, first + SCENES_PER_PAGE);
+
+  return (
+    <div className="space-y-6">
+      <p className="text-muted-foreground text-sm">
+        共 {scenes.length} 场。按原剧本顺序查看；展开场景可阅读具体判断。
+      </p>
+      <ol className="space-y-3" start={first + 1}>
+        {visibleScenes.map((scene, index) => (
+          <li key={scene.id}>
+            <details className="border-b py-4">
+              <summary className="cursor-pointer font-medium marker:text-muted-foreground">
+                场景 {first + index + 1} · {scene.purpose || '未说明场景作用'}
+              </summary>
+              <ItemGroup className="grid gap-4 pt-4 text-sm sm:grid-cols-3">
+                <Detail label="冲突">{scene.conflict}</Detail>
+                <Detail label="变化">{scene.turn}</Detail>
+                <Detail label="节奏">{scene.pacing}</Detail>
+              </ItemGroup>
+              {scene.findings.length > 0 && (
+                <ul className="mt-4 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                  {scene.findings.map((finding) => (
+                    <li key={finding}>{finding}</li>
+                  ))}
+                </ul>
+              )}
+            </details>
+          </li>
+        ))}
+      </ol>
+      {pageCount > 1 && (
+        <nav
+          aria-label="场景分页"
+          className="flex items-center justify-between gap-4"
+        >
+          <Button
+            type="button"
+            variant="outline"
+            disabled={visiblePage === 0}
+            onClick={() => setPage(visiblePage - 1)}
+          >
+            上一页
+          </Button>
+          <span className="text-muted-foreground text-sm">
+            第 {visiblePage + 1} / {pageCount} 页
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={visiblePage + 1 >= pageCount}
+            onClick={() => setPage(visiblePage + 1)}
+          >
+            下一页
+          </Button>
+        </nav>
+      )}
+    </div>
+  );
+}
 
 export default function ScreenplayAnalysisResultView({
   reportMarkdown,
@@ -21,132 +93,106 @@ export default function ScreenplayAnalysisResultView({
   result: API.ScreenplayAnalysisResultResponse;
 }) {
   return (
-    <Tabs className="mt-10 gap-0" defaultValue="overview">
-      <div className="grid gap-5 py-4 sm:grid-cols-3">
-        <Metric label="逐场景覆盖" value={`${result.scenes.length}`} />
-        <Metric label="主要人物" value={`${result.characters.length}`} />
-        <Metric label="输出语言" value={languageLabel(result.language)} />
-      </div>
-      <div className="mt-9 max-w-none">
-        <h2 className="text-xl font-medium tracking-[-0.02em]">故事概览</h2>
-        <ItemGroup className="mt-5 grid gap-5">
-          <Detail label="一句话梗概">
-            <span className="text-lg leading-8">{result.logline}</span>
-          </Detail>
-          <Detail label="故事梗概">
-            <span className="leading-7 text-muted-foreground">
-              {result.synopsis}
-            </span>
-          </Detail>
-        </ItemGroup>
-      </div>
-      <ResultTabs reportMarkdown={reportMarkdown} />
-      <TabsContent className="pt-7" value="overview">
-        <div className="max-w-none">
-          <h3 className="text-xl font-medium tracking-[-0.02em]">结构与节奏</h3>
-          <p className="mt-3 leading-7 text-muted-foreground">
-            {result.structure.pacing_summary}
+    <div className="mt-10 space-y-10">
+      <section
+        aria-labelledby="screenplay-review-heading"
+        className="space-y-6"
+      >
+        <div>
+          <h2
+            id="screenplay-review-heading"
+            className="text-2xl font-semibold tracking-tight"
+          >
+            审稿重点
+          </h2>
+          <p className="text-muted-foreground mt-2 text-sm">
+            先看需要修改的地方，再看值得保留的设计。
           </p>
         </div>
-        <EvidenceList
-          heading="幕结构"
-          items={result.structure.acts}
-          className="mt-8"
+        <FindingList
+          heading="优先修改"
+          items={result.priority_revisions}
+          emptyMessage="没有足够依据提出优先修改意见。"
         />
-        <EvidenceList
-          heading="关键转折"
-          items={result.structure.turning_points}
-          className="mt-8"
+        <FindingList
+          heading="值得保留"
+          items={result.strengths}
+          emptyMessage="没有足够依据确认值得保留的设计。"
         />
-      </TabsContent>
-      <TabsContent className="pt-7" value="characters">
-        {result.characters.length ? (
-          <ul className={cn('gap-2')}>
-            {result.characters.map((character) => (
-              <Item
-                asChild
-                className="block rounded-md border-0 px-0 py-6"
-                key={character.id}
-              >
-                <li>
-                  <strong className="font-medium">{character.name}</strong>
-                  <ItemGroup className="mt-4 grid gap-4 text-sm sm:grid-cols-3">
+      </section>
+
+      <section className="space-y-4" aria-label="故事概览">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Metric label="场景" value={String(result.scenes.length)} />
+          <Metric label="人物" value={String(result.characters.length)} />
+          <Metric label="语言" value={languageLabel(result.language)} />
+        </div>
+        <ItemGroup className="grid gap-4">
+          <Detail label="一句话故事">{result.logline}</Detail>
+          <Detail label="故事梗概">{result.synopsis}</Detail>
+        </ItemGroup>
+      </section>
+
+      <Tabs defaultValue="structure" className="gap-6">
+        <TabsList
+          className="h-auto w-full flex-wrap justify-start gap-3 rounded-none p-0"
+          variant="line"
+        >
+          <ResultTab value="structure">结构</ResultTab>
+          <ResultTab value="characters">人物</ResultTab>
+          <ResultTab value="dialogue">对白</ResultTab>
+          <ResultTab value="scenes">场景</ResultTab>
+          {reportMarkdown && <ResultTab value="report">完整报告</ResultTab>}
+        </TabsList>
+        <TabsContent value="structure" className="space-y-6">
+          <ItemGroup>
+            <Detail label="节奏概览">{result.structure.pacing_summary}</Detail>
+          </ItemGroup>
+          <FindingList
+            heading="幕结构"
+            items={result.structure.acts}
+            emptyMessage="未识别幕结构。"
+          />
+          <FindingList
+            heading="关键转折"
+            items={result.structure.turning_points}
+            emptyMessage="未识别关键转折。"
+          />
+        </TabsContent>
+        <TabsContent value="characters">
+          {result.characters.length ? (
+            <ul className="space-y-6">
+              {result.characters.map((character) => (
+                <li key={character.id} className="space-y-4 py-4">
+                  <h3 className="font-semibold">{character.name}</h3>
+                  <ItemGroup className="grid gap-4 sm:grid-cols-3">
                     <Detail label="目标">{character.goal}</Detail>
                     <Detail label="冲突">{character.conflict}</Detail>
                     <Detail label="人物弧">{character.arc}</Detail>
                   </ItemGroup>
                 </li>
-              </Item>
-            ))}
-          </ul>
-        ) : (
-          <p className="py-7 text-muted-foreground">
-            本次结果没有独立人物条目。
-          </p>
-        )}
-      </TabsContent>
-      <TabsContent className="pt-7" value="scenes">
-        <ol className={cn('gap-2')}>
-          {result.scenes.map((scene, index) => (
-            <Item
-              asChild
-              className="grid gap-4 rounded-md border-0 px-0 py-6 sm:grid-cols-[88px_minmax(0,1fr)]"
-              key={scene.id}
-            >
-              <li>
-                <span className="text-sm text-muted-foreground tabular-nums">
-                  场景 {index + 1}
-                </span>
-                <div>
-                  <strong className="font-medium">{scene.purpose}</strong>
-                  <p className="mt-2 leading-7 text-muted-foreground">
-                    {scene.conflict} · {scene.turn}
-                  </p>
-                  <p className="mt-3 text-sm">节奏：{scene.pacing}</p>
-                  {scene.findings.length ? (
-                    <ul className="mt-3 flex flex-col gap-1 list-disc pl-5 text-sm text-muted-foreground">
-                      {scene.findings.map((finding) => (
-                        <li key={finding}>{finding}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </div>
-              </li>
-            </Item>
-          ))}
-        </ol>
-      </TabsContent>
-      <TabsContent className="pt-7" value="dialogue">
-        <EvidenceList heading="对白发现" items={result.dialogue_findings} />
-      </TabsContent>
-      <TabsContent className="pt-7" value="revisions">
-        <EvidenceList heading="优点" items={result.strengths} />
-        <EvidenceList
-          heading="优先修改"
-          items={result.priority_revisions}
-          className="mt-10"
-        />
-      </TabsContent>
-      {reportMarkdown ? (
-        <TabsContent className="pt-7" value="report">
-          <AnalysisReportPreview markdown={reportMarkdown} />
+              ))}
+            </ul>
+          ) : (
+            <p className="text-muted-foreground">本次结果没有独立人物条目。</p>
+          )}
         </TabsContent>
-      ) : null}
-    </Tabs>
-  );
-}
-
-function ResultTabs({ reportMarkdown }: { reportMarkdown?: string | null }) {
-  return (
-    <div className="mt-10 overflow-x-auto">
-      <TabsList className="h-auto w-max gap-7 rounded-none p-0" variant="line">
-        <ResultTab value="overview">结构</ResultTab>
-        <ResultTab value="characters">人物</ResultTab>
-        <ResultTab value="scenes">场景</ResultTab>
-        <ResultTab value="dialogue">对白</ResultTab>
-        <ResultTab value="revisions">修改建议</ResultTab>
-        {reportMarkdown ? <ResultTab value="report">完整报告</ResultTab> : null}
-      </TabsList>
+        <TabsContent value="dialogue" className="space-y-6">
+          <FindingList
+            heading="对白发现"
+            items={result.dialogue_findings}
+            emptyMessage="没有足够依据提出对白审稿意见。"
+          />
+        </TabsContent>
+        <TabsContent value="scenes">
+          <SceneReviewList scenes={result.scenes} />
+        </TabsContent>
+        {reportMarkdown && (
+          <TabsContent value="report">
+            <AnalysisReportPreview markdown={reportMarkdown} />
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   );
 }
