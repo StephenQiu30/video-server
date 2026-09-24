@@ -10,6 +10,10 @@ from uuid import UUID
 
 from cryptography.fernet import InvalidToken
 
+from app.services.analysis.errors import (
+    AnalysisApplicationError,
+    AnalysisApplicationErrorCode,
+)
 from app.services.downloads.inspection_models import EncryptedUrl
 from app.services.downloads.ports import RequestFingerprinter, UrlCipher
 from app.services.downloads.validation import validate_owner_hash
@@ -18,6 +22,49 @@ from app.services.downloads.validation import validate_owner_hash
 class HistoryRecordKind(StrEnum):
     PARSE = "parse"
     VIDEO_ANALYSIS = "video_analysis"
+    DOCUMENT_PARSE = "document_parse"
+    SCREENPLAY_ANALYSIS = "screenplay_analysis"
+
+
+class HistoryStatusGroup(StrEnum):
+    PROCESSING = "processing"
+    ACTION_REQUIRED = "action_required"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    EXPIRED = "expired"
+
+
+class HistoryAvailability(StrEnum):
+    AVAILABLE = "available"
+    UNAVAILABLE = "unavailable"
+    UNKNOWN = "unknown"
+    NOT_APPLICABLE = "not_applicable"
+
+
+def history_status_group(status: str) -> HistoryStatusGroup:
+    if status in {"ready", "handed_off", "succeeded"}:
+        return HistoryStatusGroup.COMPLETED
+    if status in {"action_required", "failed", "cancelled", "expired"}:
+        return HistoryStatusGroup(status)
+    return HistoryStatusGroup.PROCESSING
+
+
+@dataclass(frozen=True, slots=True)
+class HistoryRecordFilters:
+    record_types: tuple[HistoryRecordKind, ...] = ()
+    status_group: HistoryStatusGroup | None = None
+    created_from: datetime | None = None
+    created_to: datetime | None = None
+    q: str | None = None
+    skill_id: str | None = None
+    result_contract: str | None = None
+    document_id: UUID | None = None
+    download_id: UUID | None = None
+    analysis_id: UUID | None = None
+
+
+DEFAULT_HISTORY_FILTERS = HistoryRecordFilters()
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,6 +81,16 @@ class HistoryRecordSnapshot:
     title: str | None
     created_at: datetime
     status: str
+    updated_at: datetime | None = None
+    document_id: UUID | None = None
+    artifact_id: UUID | None = None
+    source_format: str | None = None
+    output_language: str | None = None
+    result_contract: str | None = None
+    current_run_no: int | None = None
+    cancel_requested_at: datetime | None = None
+    source_availability: HistoryAvailability = HistoryAvailability.UNKNOWN
+    result_availability: HistoryAvailability = HistoryAvailability.UNKNOWN
     version: int | None = None
     reason_code: str | None = None
     retry_at: datetime | None = None
@@ -56,6 +113,18 @@ class HistoryRecordPage:
     next_cursor: HistoryRecordCursor | None
 
 
+@dataclass(frozen=True, slots=True)
+class AnalysisRunHistory:
+    id: UUID
+    run_no: int
+    trigger: str
+    status: str
+    created_at: datetime
+    started_at: datetime | None
+    finished_at: datetime | None
+    error_code: str | None
+
+
 class HistoryRecordPersistence(Protocol):
     async def history(
         self,
@@ -63,7 +132,17 @@ class HistoryRecordPersistence(Protocol):
         *,
         before: HistoryRecordCursor | None,
         limit: int,
+        filters: HistoryRecordFilters = DEFAULT_HISTORY_FILTERS,
     ) -> HistoryRecordPage: ...
+
+    async def runs(
+        self,
+        owner_hash: str,
+        analysis_id: UUID,
+        *,
+        before_run_no: int | None,
+        limit: int,
+    ) -> tuple[AnalysisRunHistory, ...]: ...
 
     async def inspection_titles(
         self,
@@ -84,17 +163,43 @@ class HistoryRecordService:
         self._cipher = cipher
         self._fingerprinter = fingerprinter
 
+    async def analysis_record(
+        self, owner_hash: str, analysis_id: UUID
+    ) -> HistoryRecordSnapshot:
+        page = await self.list(
+            owner_hash, filters=HistoryRecordFilters(analysis_id=analysis_id)
+        )
+        if not page.items:
+            raise AnalysisApplicationError(AnalysisApplicationErrorCode.NOT_FOUND)
+        return page.items[0]
+
+    async def runs(
+        self,
+        owner_hash: str,
+        analysis_id: UUID,
+        *,
+        before_run_no: int | None,
+        limit: int,
+    ) -> tuple[AnalysisRunHistory, ...]:
+        await self.analysis_record(owner_hash, analysis_id)
+        return await self._repository.runs(
+            owner_hash, analysis_id, before_run_no=before_run_no, limit=limit
+        )
+
     async def list(
         self,
         owner_hash: str,
         *,
         before: HistoryRecordCursor | None = None,
         limit: int = 20,
+        filters: HistoryRecordFilters = DEFAULT_HISTORY_FILTERS,
     ) -> HistoryRecordPage:
         validate_owner_hash(owner_hash)
         if not 1 <= limit <= 50:
             raise ValueError("invalid history page size")
-        page = await self._repository.history(owner_hash, before=before, limit=limit)
+        page = await self._repository.history(
+            owner_hash, before=before, limit=limit, filters=filters
+        )
         sources: dict[UUID, tuple[str, str | None, str]] = {}
         for item in page.items:
             if item.record_type is not HistoryRecordKind.PARSE or item.title:

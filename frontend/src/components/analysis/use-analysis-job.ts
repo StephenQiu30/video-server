@@ -11,13 +11,14 @@ import {
   createDocumentAnalysis,
   deleteAnalysis,
   getAnalysis,
+  getAnalysisHistoryRecord,
   getLatestDocumentAnalysis,
   getLatestDownloadAnalysis,
   retryAnalysis,
 } from '@/api/analyses';
 import { isTerminalAnalysisStatus } from '@/components/analysis/analysis-panel-model';
 import { privateQueryKey } from '@/lib/query-keys';
-import { displayError } from '@/lib/request-error';
+import { ApiError, displayError } from '@/lib/request-error';
 import { sessionGeneration } from '@/lib/session-events';
 import { TaskSocketStatusCode, taskSocket } from '@/lib/task-socket';
 
@@ -114,6 +115,13 @@ export function useAnalysisJob(
       );
       if (current && next && isOlder(current, next)) return;
       queries.setQueryData(queryKey, next);
+      for (const resource of [
+        'intent-history',
+        'analysis-history-record',
+        'analysis-runs',
+      ]) {
+        void queries.invalidateQueries({ queryKey: privateQueryKey(resource) });
+      }
     },
   });
 
@@ -121,6 +129,23 @@ export function useAnalysisJob(
     queryKey,
     enabled: !action,
     queryFn: async ({ signal }) => {
+      if (selectedAnalysisId && inputId) {
+        const record = await getAnalysisHistoryRecord(
+          { analysis_id: encodeURIComponent(selectedAnalysisId) },
+          { signal },
+        );
+        if (
+          (inputKind === 'screenplay'
+            ? record.document_id
+            : record.download_id) !== inputId
+        )
+          throw new ApiError(
+            409,
+            'analysis_source_mismatch',
+            '来源不匹配',
+            '该分析记录不属于当前素材，请从解析中心重新打开。',
+          );
+      }
       const previous = queries.getQueryData<API.AnalysisResponse | null>(
         queryKey,
       );

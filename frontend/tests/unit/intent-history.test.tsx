@@ -7,18 +7,52 @@ import { httpRequests, mockHttpResponses } from '../helpers/http';
 import { render } from '../helpers/query-render';
 
 const push = vi.fn();
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
-beforeEach(() => push.mockReset());
+vi.mock('@/components/analysis/use-analysis-skills', () => ({
+  useAnalysisSkills: () => ({ skills: [] }),
+}));
+vi.mock('next/navigation', async () => {
+  const React = await import('react');
+  return {
+    useRouter: () => ({ push }),
+    useSearchParams: () => {
+      const [search, setSearch] = React.useState(window.location.search);
+      React.useEffect(() => {
+        const listener = () => setSearch(window.location.search);
+        window.addEventListener('history-test', listener);
+        return () => window.removeEventListener('history-test', listener);
+      }, []);
+      return new URLSearchParams(search);
+    },
+  };
+});
+beforeEach(() => {
+  push.mockReset();
+  window.history.replaceState(null, '', '/history/inspections');
+  const original = window.history.pushState.bind(window.history);
+  vi.spyOn(window.history, 'pushState').mockImplementation((...args) => {
+    original(...args);
+    window.dispatchEvent(new Event('history-test'));
+  });
+});
 
 it('keeps pagination read-only and sends a ready result to its dedicated page', async () => {
   const item = {
     ...intentFixture(),
     created_at: '2026-09-23T00:00:00Z',
     title: '之前解析的视频',
+    record_type: 'parse',
+    status_group: 'completed',
   };
-  mockHttpResponses({ items: [item], next_cursor: item.id });
+  mockHttpResponses({
+    items: [item],
+    next_cursor: {
+      id: item.id,
+      created_at: item.created_at,
+      record_type: 'parse',
+    },
+  });
   render(<IntentHistoryPage />);
-  expect(screen.getByRole('heading', { name: '解析记录' })).toBeVisible();
+  expect(screen.getByRole('heading', { name: '解析中心' })).toBeVisible();
   expect(await screen.findByText(item.title)).toBeVisible();
   mockHttpResponses({
     items: [
@@ -33,7 +67,9 @@ it('keeps pagination read-only and sends a ready result to its dedicated page', 
   fireEvent.click(screen.getByRole('button', { name: '更早的记录' }));
   expect(await screen.findByText('较早的视频')).toBeVisible();
   expect(httpRequests()[1].params).toMatchObject({
-    before: item.id,
+    before_id: item.id,
+    before_created_at: item.created_at,
+    before_record_type: 'parse',
     limit: 20,
   });
   fireEvent.click(screen.getByRole('button', { name: '查看结果' }));
@@ -53,7 +89,15 @@ it('opens failed history in a read-only dialog without restoring it as the curre
   });
   mockHttpResponses(
     {
-      items: [{ ...failed, title: null, created_at: '2026-09-23T00:00:00Z' }],
+      items: [
+        {
+          ...failed,
+          record_type: 'parse',
+          status_group: 'failed',
+          title: null,
+          created_at: '2026-09-23T00:00:00Z',
+        },
+      ],
       next_cursor: null,
     },
     failed,
@@ -65,7 +109,7 @@ it('opens failed history in a read-only dialog without restoring it as the curre
   expect(screen.getByText('本次解析未完成')).toBeVisible();
   expect(await screen.findByText(/该链接明确需要平台账号权限/)).toBeVisible();
   expect(httpRequests().map((request) => request.url)).toEqual([
-    '/api/download-intents/history',
+    '/api/download-intents/history/records',
     `/api/download-intents/${failed.id}`,
   ]);
   expect(push).not.toHaveBeenCalled();
@@ -87,6 +131,8 @@ it('shows handed-off download status and progress in a dialog before any navigat
       items: [
         {
           ...handedOff,
+          record_type: 'parse',
+          status_group: 'completed',
           title: '已进入下载的视频',
           created_at: '2026-09-23T00:00:00Z',
         },
@@ -106,9 +152,63 @@ it('shows handed-off download status and progress in a dialog before any navigat
     screen.getByRole('link', { name: '打开完整下载任务' }),
   ).toHaveAttribute('href', `/downloads/detail?jobId=${download.id}`);
   expect(httpRequests().map((request) => request.url)).toEqual([
-    '/api/download-intents/history',
+    '/api/download-intents/history/records',
     `/api/download-intents/${handedOff.id}`,
     `/api/downloads/${download.id}`,
   ]);
   expect(push).not.toHaveBeenCalled();
+});
+
+it('renders screenplay and video analyses as independent exact-id links', async () => {
+  mockHttpResponses({
+    items: [
+      {
+        id: 'analysis-first',
+        record_type: 'screenplay_analysis',
+        document_id: 'doc',
+        title: '剧本第一稿',
+        skill_id: 'screenplay-analysis',
+        output_language: 'zh-CN',
+        result_contract: 'screenplay-analysis',
+        status: 'failed',
+        status_group: 'failed',
+        created_at: '2026-09-24T00:00:00Z',
+        source_availability: 'unavailable',
+      },
+      {
+        id: 'analysis-second',
+        record_type: 'video_analysis',
+        title: '视频拉片',
+        skill_id: 'director-breakdown',
+        output_language: 'zh-CN',
+        status: 'succeeded',
+        status_group: 'completed',
+        created_at: '2026-09-24T00:00:00Z',
+      },
+      {
+        id: 'doc',
+        record_type: 'document_parse',
+        document_id: 'doc',
+        title: '剧本原文',
+        status: 'ready',
+        status_group: 'completed',
+        created_at: '2026-09-24T00:00:00Z',
+      },
+    ],
+    next_cursor: null,
+  });
+  render(<IntentHistoryPage />);
+  await screen.findByText('剧本第一稿');
+  const links = screen.getAllByRole('link', { name: '查看分析' });
+  expect(links.map((link) => link.getAttribute('href'))).toEqual([
+    '/analyses/detail?analysisId=analysis-first',
+    '/analyses/detail?analysisId=analysis-second',
+  ]);
+  expect(screen.getByRole('link', { name: '查看文档' })).toHaveAttribute(
+    'href',
+    '/documents/detail?documentId=doc',
+  );
+  expect(httpRequests().every((request) => request.method === 'GET')).toBe(
+    true,
+  );
 });

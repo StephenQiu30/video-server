@@ -47,6 +47,23 @@ export async function cancelAnalysis(
   );
 }
 
+/** 读取分析来源与历史摘要 GET /api/analyses/${param0}/history-record */
+export async function getAnalysisHistoryRecord(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getAnalysisHistoryRecordParams,
+  options?: RequestOptions
+) {
+  const { analysis_id: param0, ...queryParams } = params;
+  return request<API.ApiResponseUnionVideoAnalysisHistoryRecordResponse_ScreenplayAnalysisHistoryRecordResponse_>(
+    `/api/analyses/${param0}/history-record`,
+    {
+      method: "GET",
+      params: { ...queryParams },
+      ...(options || {}),
+    }
+  );
+}
+
 /** 导出视频分析报告 将已完成的结构化分析结果导出为 DOCX 报告。 GET /api/analyses/${param0}/report.docx */
 export async function exportAnalysisReport(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
@@ -89,6 +106,27 @@ export async function retryAnalysis(
     {
       method: "POST",
       params: { ...queryParams },
+      ...(options || {}),
+    }
+  );
+}
+
+/** 分页读取分析运行记录 GET /api/analyses/${param0}/runs */
+export async function listAnalysisRuns(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.listAnalysisRunsParams,
+  options?: RequestOptions
+) {
+  const { analysis_id: param0, ...queryParams } = params;
+  return request<API.ApiResponseAnalysisRunHistoryPageResponse_>(
+    `/api/analyses/${param0}/runs`,
+    {
+      method: "GET",
+      params: {
+        // limit has a default value: 20
+        limit: "20",
+        ...queryParams,
+      },
       ...(options || {}),
     }
   );

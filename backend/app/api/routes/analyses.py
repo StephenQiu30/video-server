@@ -3,11 +3,16 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 from fastapi.exceptions import RequestValidationError
 
 from app.api.admission import RateLimitAdmission
-from app.api.deps import IdempotencyKey, get_analysis_use_cases, get_current_user
+from app.api.deps import (
+    IdempotencyKey,
+    get_analysis_use_cases,
+    get_current_user,
+    get_history_record_service,
+)
 from app.api.responses import ApiResponseRoute
 from app.core.runtime import AnalysisUseCases
 from app.schemas.analyses import (
@@ -15,9 +20,17 @@ from app.schemas.analyses import (
     AnalysisResponse,
     AnalysisSkillResponse,
 )
+from app.schemas.history_records import (
+    AnalysisRunHistoryPageResponse,
+    AnalysisRunHistoryResponse,
+    HistoryRecordPageResponse,
+    ScreenplayAnalysisHistoryRecordResponse,
+    VideoAnalysisHistoryRecordResponse,
+)
 from app.services.analysis.export_report import DOCX_MEDIA_TYPE, MARKDOWN_MEDIA_TYPE
 from app.services.analysis.rules.enums import AnalysisInputKind
 from app.services.auth.models import CurrentUser
+from app.services.history_records import HistoryRecordPage, HistoryRecordService
 
 router = APIRouter(route_class=ApiResponseRoute, tags=["analyses"])
 User = Annotated[CurrentUser, Depends(get_current_user)]
@@ -236,3 +249,55 @@ async def delete_analysis(
     """隐藏分析任务并异步清理其私有报告对象。"""
     await use_cases.delete_analysis(analysis_id, user.owner_hash)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get(
+    "/analyses/{analysis_id}/history-record",
+    operation_id="getAnalysisHistoryRecord",
+    response_model=VideoAnalysisHistoryRecordResponse
+    | ScreenplayAnalysisHistoryRecordResponse,
+    summary="读取分析来源与历史摘要",
+)
+async def get_analysis_history_record(
+    analysis_id: UUID,
+    user: User,
+    service: Annotated[HistoryRecordService, Depends(get_history_record_service)],
+    response: Response,
+) -> VideoAnalysisHistoryRecordResponse | ScreenplayAnalysisHistoryRecordResponse:
+    response.headers["Cache-Control"] = "no-store"
+    record = await service.analysis_record(user.owner_hash, analysis_id)
+    item = HistoryRecordPageResponse.from_page(
+        HistoryRecordPage((record,), None)
+    ).items[0]
+    assert isinstance(
+        item,
+        VideoAnalysisHistoryRecordResponse | ScreenplayAnalysisHistoryRecordResponse,
+    )
+    return item
+
+
+@router.get(
+    "/analyses/{analysis_id}/runs",
+    operation_id="listAnalysisRuns",
+    response_model=AnalysisRunHistoryPageResponse,
+    summary="分页读取分析运行记录",
+)
+async def list_analysis_runs(
+    analysis_id: UUID,
+    user: User,
+    service: Annotated[HistoryRecordService, Depends(get_history_record_service)],
+    response: Response,
+    before_run_no: Annotated[int | None, Query(ge=1)] = None,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+) -> AnalysisRunHistoryPageResponse:
+    response.headers["Cache-Control"] = "no-store"
+    runs = await service.runs(
+        user.owner_hash, analysis_id, before_run_no=before_run_no, limit=limit + 1
+    )
+    return AnalysisRunHistoryPageResponse(
+        items=[
+            AnalysisRunHistoryResponse.model_validate(run, from_attributes=True)
+            for run in runs[:limit]
+        ],
+        next_before_run_no=runs[limit - 1].run_no if len(runs) > limit else None,
+    )

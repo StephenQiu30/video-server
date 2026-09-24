@@ -30,6 +30,9 @@ export function ScreenplayUploadDialog({
       void queries.invalidateQueries({
         queryKey: privateQueryKey('documents'),
       });
+      void queries.invalidateQueries({
+        queryKey: privateQueryKey('intent-history'),
+      });
       setOpen(false);
       router.push(
         `/documents/detail?documentId=${encodeURIComponent(documentId)}`,

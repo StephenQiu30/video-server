@@ -103,7 +103,7 @@ export async function listDownloadIntents(
   );
 }
 
-/** 分页查询解析入口与视频内容分析记录 GET /api/download-intents/history/records */
+/** 分页查询链接、视频 AI、剧本基础解析与剧本 AI 记录 GET /api/download-intents/history/records */
 export async function listHistoryRecords(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.listHistoryRecordsParams,

@@ -1,8 +1,8 @@
-from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from pydantic import AwareDatetime
 
 from app.api.admission import RateLimitAdmission
 from app.api.deps import (
@@ -19,12 +19,15 @@ from app.schemas.download_intents import (
     IntentResponse,
 )
 from app.schemas.history_records import HistoryRecordPageResponse
+from app.services.analysis.rules.enums import AnalysisResultContract
 from app.services.auth.models import CurrentUser
 from app.services.downloads.intents import IntentService
 from app.services.history_records import (
     HistoryRecordCursor,
+    HistoryRecordFilters,
     HistoryRecordKind,
     HistoryRecordService,
+    HistoryStatusGroup,
 )
 
 router = APIRouter(
@@ -105,18 +108,46 @@ async def list_intents(
     "/history/records",
     response_model=HistoryRecordPageResponse,
     operation_id="listHistoryRecords",
-    summary="分页查询解析入口与视频内容分析记录",
+    summary="分页查询链接、视频 AI、剧本基础解析与剧本 AI 记录",
 )
 async def list_history_records(
     user: User,
     service: HistoryService,
     response: Response,
-    before_created_at: datetime | None = None,
+    before_created_at: AwareDatetime | None = None,
+    record_type: Annotated[list[HistoryRecordKind] | None, Query()] = None,
+    status_group: HistoryStatusGroup | None = None,
+    created_from: AwareDatetime | None = None,
+    created_to: AwareDatetime | None = None,
+    q: Annotated[str | None, Query(max_length=100)] = None,
+    skill_id: Annotated[str | None, Query(min_length=1, max_length=128)] = None,
+    result_contract: AnalysisResultContract | None = None,
+    document_id: UUID | None = None,
+    download_id: UUID | None = None,
     before_record_type: HistoryRecordKind | None = None,
     before_id: UUID | None = None,
     limit: Annotated[int, Query(ge=1, le=50)] = 20,
 ) -> HistoryRecordPageResponse:
     response.headers["Cache-Control"] = "no-store"
+    if created_from and created_to and created_from >= created_to:
+        raise HTTPException(
+            status_code=422, detail="created_from must precede created_to"
+        )
+    kinds = tuple(record_type or ())
+    if document_id and download_id:
+        raise HTTPException(status_code=422, detail="Choose one source filter")
+    if (
+        (skill_id or result_contract)
+        and kinds
+        and not any(
+            kind
+            in {HistoryRecordKind.VIDEO_ANALYSIS, HistoryRecordKind.SCREENPLAY_ANALYSIS}
+            for kind in kinds
+        )
+    ):
+        raise HTTPException(
+            status_code=422, detail="AI filters require analysis records"
+        )
     cursor_parts = (before_created_at, before_record_type, before_id)
     if any(part is not None for part in cursor_parts) and not all(
         part is not None for part in cursor_parts
@@ -142,7 +173,22 @@ async def list_history_records(
             id=before_id,
         )
     return HistoryRecordPageResponse.from_page(
-        await service.list(user.owner_hash, before=before, limit=limit)
+        await service.list(
+            user.owner_hash,
+            before=before,
+            limit=limit,
+            filters=HistoryRecordFilters(
+                record_types=kinds,
+                status_group=status_group,
+                created_from=created_from,
+                created_to=created_to,
+                q=q.strip() if q else None,
+                skill_id=skill_id,
+                result_contract=result_contract,
+                document_id=document_id,
+                download_id=download_id,
+            ),
+        )
     )
 
 

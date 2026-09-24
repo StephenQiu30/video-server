@@ -67,7 +67,7 @@ export function DesktopNavigation({
               href="/history/inspections"
             >
               <MagnifyingGlassIcon aria-hidden />
-              解析记录
+              解析中心
             </NavigationLink>
             <NavigationLink active={documentsActive} href="/documents">
               <FileTextIcon aria-hidden />

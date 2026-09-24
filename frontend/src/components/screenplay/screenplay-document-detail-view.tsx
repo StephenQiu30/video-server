@@ -2,6 +2,7 @@
 
 import { ArrowClockwise } from '@phosphor-icons/react';
 import { useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { deleteDocument as deleteScreenplayDocument } from '@/api/documents';
@@ -58,9 +59,11 @@ const tocColumnClassName =
 
 export default function ScreenplayDocumentDetailView({
   documentId,
+  analysisId,
   pollIntervalMs,
 }: {
   documentId: string;
+  analysisId?: string;
   pollIntervalMs?: number;
 }) {
   const router = useRouter();
@@ -84,6 +87,9 @@ export default function ScreenplayDocumentDetailView({
       });
       void queries.invalidateQueries({
         queryKey: privateQueryKey('documents'),
+      });
+      void queries.invalidateQueries({
+        queryKey: privateQueryKey('intent-history'),
       });
       router.replace('/documents');
     } catch (reason) {
@@ -158,6 +164,15 @@ export default function ScreenplayDocumentDetailView({
               />
             </div>
           </header>
+          <div className="mt-6">
+            <Button asChild variant="outline">
+              <Link
+                href={`/history/inspections?document_id=${encodeURIComponent(documentId)}`}
+              >
+                查看全部解析与分析
+              </Link>
+            </Button>
+          </div>
           <ScreenplayDocumentMetadata document={state.document} />
           <div
             className={workspaceClassName}
@@ -176,6 +191,7 @@ export default function ScreenplayDocumentDetailView({
           {state.document.status === ImportStatusCode.Ready ? (
             <ScreenplayAnalysisPanel
               documentId={documentId}
+              analysisId={analysisId}
               pollIntervalMs={pollIntervalMs}
             />
           ) : null}

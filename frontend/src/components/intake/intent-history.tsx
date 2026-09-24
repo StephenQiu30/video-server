@@ -5,18 +5,24 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { listHistoryRecords } from '@/api/downloadIntents';
-import {
-  analysisStatusVariant,
-  isActiveAnalysisStatus,
-  statusLabels,
-} from '@/components/analysis/analysis-panel-model';
 import { useAnalysisSkills } from '@/components/analysis/use-analysis-skills';
+import {
+  HistoryRecordFilters,
+  useHistoryRecordFilters,
+} from '@/components/intake/history-record-filters';
+import {
+  historyPollingInterval,
+  historyRecordHref,
+  historyRecordLabel,
+  historyRecordStatus,
+  historyRecordVariant,
+  isAnalysisRecord,
+} from '@/components/intake/history-record-presentation';
+import { useIntakeDraft } from '@/components/intake/intake-draft-provider';
 import { IntentHistoryDialog } from '@/components/intake/intent-history-dialog';
 import {
   IntentStatusCode,
   intentHistoryActionLabel,
-  intentStatusVariant,
-  intentTitle,
 } from '@/components/intake/intent-status';
 import { BackLink } from '@/components/layout/back-link';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
@@ -25,6 +31,12 @@ import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Item,
   ItemActions,
@@ -44,60 +56,72 @@ export function IntentHistory({
   onViewResult: (item: API.IntentHistoryItemResponse) => void;
 }) {
   type ParseHistoryItem = API.ParseHistoryRecordResponse;
-  const [cursors, setCursors] = useState<
-    (API.HistoryRecordCursorResponse | undefined)[]
-  >([undefined]);
+  const filters = useHistoryRecordFilters();
+  const { setMode } = useIntakeDraft();
   const [selected, setSelected] = useState<ParseHistoryItem | null>(null);
   const detailTrigger = useRef<HTMLButtonElement | null>(null);
-  const before = cursors.at(-1);
   const history = useQuery({
-    queryKey: privateQueryKey(
-      'intent-history',
-      before?.created_at,
-      before?.record_type,
-      before?.id,
-    ),
+    queryKey: privateQueryKey('intent-history', filters.filters),
     queryFn: ({ signal }) =>
-      listHistoryRecords(
-        {
-          before_created_at: before?.created_at,
-          before_record_type: before?.record_type,
-          before_id: before?.id,
-          limit: 20,
-        },
-        { signal },
-      ),
+      listHistoryRecords(filters.filters, {
+        signal,
+        paramsSerializer: { indexes: null },
+      }),
     staleTime: 0,
     refetchInterval: (query) =>
       query.state.error
         ? false
-        : query.state.data?.items.some(
-              (item) =>
-                isVideoAnalysisRecord(item) &&
-                isActiveAnalysisStatus(item.status),
-            )
-          ? 2_000
-          : false,
+        : historyPollingInterval(query.state.data?.items ?? []),
+    refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
   });
   const analysisSkills = useAnalysisSkills();
+  const screenplaySkills = useAnalysisSkills('screenplay');
+  const skills = [...analysisSkills.skills, ...screenplaySkills.skills];
   const skillNames = new Map(
-    analysisSkills.skills.map((skill) => [skill.id, skill.display_name]),
+    skills.map((skill) => [skill.id, skill.display_name]),
   );
   return (
     <div className="inner-page">
       <BackLink className="mb-4" fallbackHref="/" />
       <PageHeader
         action={
-          <Button asChild size="lg">
-            <Link href="/">
-              <Plus data-icon="inline-start" />
-              新建解析
-            </Link>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="lg">
+                <Plus data-icon="inline-start" />
+                新建解析
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {(
+                [
+                  ['link', '粘贴链接'],
+                  ['video', '上传视频'],
+                  ['screenplay', '上传剧本'],
+                ] as const
+              ).map(([mode, label]) => (
+                <DropdownMenuItem key={mode} asChild>
+                  <Link href="/" onClick={() => setMode(mode)}>
+                    {label}
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         }
-        description="查看之前提交的解析，以及针对视频运行过的 Skill 分析。"
-        title="解析记录"
+        description="查看链接解析、视频 AI 分析、剧本基础解析与 AI 分析的处理记录。"
+        title="解析中心"
+      />
+      <HistoryRecordFilters
+        state={filters}
+        skills={
+          filters.category === 'video'
+            ? analysisSkills.skills
+            : filters.category === 'screenplay'
+              ? screenplaySkills.skills
+              : skills
+        }
       />
       <section aria-label="已提交的解析" className="mt-12 lg:mt-16">
         <div className="flex items-center justify-between gap-4">
@@ -105,7 +129,10 @@ export function IntentHistory({
           <Button
             variant="outline"
             disabled={history.isFetching}
-            onClick={() => void history.refetch()}
+            onClick={() => {
+              filters.first();
+              void history.refetch();
+            }}
           >
             <ArrowClockwise data-icon="inline-start" />
             {history.isFetching ? '更新中…' : '刷新'}
@@ -151,8 +178,12 @@ export function IntentHistory({
         {history.data?.items.length === 0 ? (
           <PageEmptyNotice
             compact
-            title="暂无解析记录"
-            description="提交媒体解析或运行视频 Skill 后，可在这里继续查看。"
+            title={filters.hasFilters ? '没有匹配的解析记录' : '暂无解析记录'}
+            description={
+              filters.hasFilters
+                ? '调整筛选条件，或清除筛选查看全部记录。'
+                : '提交链接、上传剧本或运行 AI 分析后，可在这里继续查看。'
+            }
           />
         ) : null}
         {history.data?.items.length ? (
@@ -177,10 +208,16 @@ export function IntentHistory({
                     <ItemTitle className="line-clamp-2 w-auto break-words text-[15px]">
                       {item.title || '媒体解析'}
                     </ItemTitle>
-                    {isVideoAnalysisRecord(item) ? (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {historyRecordLabel(item)}
+                      {isAnalysisRecord(item)
+                        ? ` · ${skillNames.get(item.skill_id) ?? item.skill_id} · ${item.output_language}`
+                        : ''}
+                    </p>
+                    {isAnalysisRecord(item) &&
+                    item.source_availability === 'unavailable' ? (
                       <p className="mt-1 text-xs text-muted-foreground">
-                        视频分析 ·{' '}
-                        {skillNames.get(item.skill_id) ?? item.skill_id}
+                        源文件不可用 · 已有结果仍可查看
                       </p>
                     ) : null}
                   </ItemContent>
@@ -194,27 +231,17 @@ export function IntentHistory({
                   </time>
                   <Badge
                     className="justify-self-end rounded-md px-2 py-1 font-normal lg:justify-self-start"
-                    variant={
-                      isVideoAnalysisRecord(item)
-                        ? analysisStatusVariant(item.status)
-                        : intentStatusVariant(item.status)
-                    }
+                    variant={historyRecordVariant(item)}
                   >
-                    {isVideoAnalysisRecord(item)
-                      ? `${statusLabels[item.status]}${isActiveAnalysisStatus(item.status) ? ` · ${item.progress}%` : ''}`
-                      : intentTitle(item.status)}
+                    {historyRecordStatus(item)}
                   </Badge>
                   <ItemActions className="col-span-2 justify-end lg:col-span-1">
-                    {isVideoAnalysisRecord(item) ? (
+                    {item.record_type !== 'parse' ? (
                       <Button asChild variant="ghost" size="sm">
-                        <Link
-                          href={
-                            item.download_id
-                              ? `/downloads/detail?jobId=${encodeURIComponent(item.download_id)}&analysisId=${encodeURIComponent(item.id)}`
-                              : `/downloads/detail?analysisId=${encodeURIComponent(item.id)}`
-                          }
-                        >
-                          查看分析
+                        <Link href={historyRecordHref(item)}>
+                          {item.record_type === 'document_parse'
+                            ? '查看文档'
+                            : '查看分析'}
                         </Link>
                       </Button>
                     ) : (
@@ -242,15 +269,15 @@ export function IntentHistory({
             </ItemGroup>
           </>
         ) : null}
-        {cursors.length > 1 || history.data?.next_cursor ? (
+        {filters.hasPrevious || history.data?.next_cursor ? (
           <nav
             className="mt-4 flex justify-end gap-2"
             aria-label="解析记录分页"
           >
             <Button
               variant="ghost"
-              disabled={cursors.length <= 1 || history.isFetching}
-              onClick={() => setCursors((value) => value.slice(0, -1))}
+              disabled={!filters.hasPrevious || history.isFetching}
+              onClick={filters.previous}
             >
               较新的记录
             </Button>
@@ -259,10 +286,7 @@ export function IntentHistory({
               disabled={!history.data?.next_cursor || history.isFetching}
               onClick={() => {
                 if (history.data?.next_cursor)
-                  setCursors((value) => [
-                    ...value,
-                    history.data?.next_cursor ?? undefined,
-                  ]);
+                  filters.next(history.data.next_cursor);
               }}
             >
               更早的记录
@@ -277,10 +301,4 @@ export function IntentHistory({
       />
     </div>
   );
-}
-
-function isVideoAnalysisRecord(
-  item: API.HistoryRecordPageResponse['items'][number],
-): item is API.VideoAnalysisHistoryRecordResponse {
-  return item.record_type === 'video_analysis';
 }

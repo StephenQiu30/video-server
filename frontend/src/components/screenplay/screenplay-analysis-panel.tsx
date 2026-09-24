@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import AnalysisConfigurator from '@/components/analysis/analysis-configurator';
 import { AnalysisStatusCode } from '@/components/analysis/analysis-panel-model';
@@ -13,15 +14,32 @@ import { Spinner } from '@/components/ui/spinner';
 
 export default function ScreenplayAnalysisPanel({
   documentId,
+  analysisId,
   pollIntervalMs = 1500,
 }: {
   documentId: string;
+  analysisId?: string;
   pollIntervalMs?: number;
 }) {
-  const state = useAnalysisJob(documentId, pollIntervalMs, 'screenplay');
+  const router = useRouter();
+  const state = useAnalysisJob(
+    documentId,
+    pollIntervalMs,
+    'screenplay',
+    analysisId,
+  );
   const [newAnalysisForJobId, setNewAnalysisForJobId] = useState<string | null>(
     null,
   );
+  function beginNewAnalysis() {
+    if (analysisId) {
+      router.push(
+        `/documents/detail?documentId=${encodeURIComponent(documentId)}`,
+      );
+      return;
+    }
+    setNewAnalysisForJobId(state.job?.id ?? null);
+  }
 
   if (state.loading && state.action !== 'start') {
     return (
@@ -74,7 +92,7 @@ export default function ScreenplayAnalysisPanel({
             job={state.job}
             onDelete={state.remove}
             onRetry={state.retry}
-            onNewAnalysis={() => setNewAnalysisForJobId(state.job?.id ?? null)}
+            onNewAnalysis={beginNewAnalysis}
           />
         </>
       ) : (
@@ -109,22 +127,20 @@ export default function ScreenplayAnalysisPanel({
               tone="error"
             />
           ) : null}
-          {!state.job ? (
+          {!state.job && !analysisId ? (
             <AnalysisConfigurator
               inputId={documentId}
               busy={state.action === 'start'}
               inputKind="screenplay"
               onStart={state.start}
             />
-          ) : (
+          ) : state.job ? (
             <ScreenplayAnalysisJobState
               job={state.job}
               state={state}
-              onNewAnalysis={() =>
-                setNewAnalysisForJobId(state.job?.id ?? null)
-              }
+              onNewAnalysis={beginNewAnalysis}
             />
-          )}
+          ) : null}
         </>
       )}
       {state.job && newAnalysisForJobId === state.job.id ? (

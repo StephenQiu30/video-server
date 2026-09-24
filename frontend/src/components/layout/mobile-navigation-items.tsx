@@ -37,7 +37,7 @@ export function MobileNavigationItems({
         href="/history/inspections"
       >
         <MagnifyingGlassIcon aria-hidden />
-        解析记录
+        解析中心
       </MobileLink>
       <MobileLink active={pathname.startsWith('/documents')} href="/documents">
         <FileTextIcon aria-hidden />

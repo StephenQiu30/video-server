@@ -1,0 +1,331 @@
+'use client';
+
+import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useState } from 'react';
+import { getAnalysisHistoryRecord, listAnalysisRuns } from '@/api/analyses';
+import AnalysisArticleResultView from '@/components/analysis/analysis-article-result-view';
+import AnalysisDeleteDialog from '@/components/analysis/analysis-delete-dialog';
+import {
+  stageLabels,
+  statusLabels,
+} from '@/components/analysis/analysis-panel-model';
+import AnalysisReportDownloadLink from '@/components/analysis/analysis-report-download-link';
+import AnalysisResultView from '@/components/analysis/analysis-result-view';
+import { useAnalysisJob } from '@/components/analysis/use-analysis-job';
+import { useAnalysisSkills } from '@/components/analysis/use-analysis-skills';
+import { historyRecordLabel } from '@/components/intake/history-record-presentation';
+import { BackLink } from '@/components/layout/back-link';
+import { FeedbackNotice } from '@/components/layout/feedback-notice';
+import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
+import { PageErrorNotice } from '@/components/layout/page-error-notice';
+import { PageHeader } from '@/components/layout/page-header';
+import { ScreenplayResultView } from '@/components/screenplay/screenplay-result-view';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { privateQueryKey } from '@/lib/query-keys';
+import { displayError } from '@/lib/request-error';
+
+export default function AnalysisDetailRoute() {
+  const id = useSearchParams().get('analysisId')?.trim();
+  return (
+    <div className="inner-page">
+      <BackLink fallbackHref="/history/inspections" />
+      {id ? (
+        <AnalysisDetail key={id} id={id} />
+      ) : (
+        <PageEmptyNotice
+          title="缺少分析记录"
+          description="请从解析中心选择一条分析记录。"
+        />
+      )}
+    </div>
+  );
+}
+
+function AnalysisDetail({ id }: { id: string }) {
+  const record = useQuery({
+    queryKey: privateQueryKey('analysis-history-record', id),
+    queryFn: ({ signal }) =>
+      getAnalysisHistoryRecord({ analysis_id: id }, { signal }),
+  });
+  if (record.isPending)
+    return (
+      <p className="py-12" role="status">
+        正在读取分析记录…
+      </p>
+    );
+  if (record.error && !record.data)
+    return (
+      <PageErrorNotice
+        title="分析记录不可用"
+        message={displayError(record.error)}
+        onRetry={() => void record.refetch()}
+      />
+    );
+  if (!record.data) return null;
+  return <AnalysisDetailContent record={record.data} />;
+}
+
+function AnalysisDetailContent({
+  record,
+}: {
+  record:
+    | API.VideoAnalysisHistoryRecordResponse
+    | API.ScreenplayAnalysisHistoryRecordResponse;
+}) {
+  const kind =
+    record.record_type === 'screenplay_analysis' ? 'screenplay' : 'video';
+  const state = useAnalysisJob('', 3000, kind, record.id);
+  const skills = useAnalysisSkills(kind);
+  const skillName =
+    skills.skills.find((skill) => skill.id === record.skill_id)?.display_name ??
+    record.skill_id;
+  const [confirmRetry, setConfirmRetry] = useState(false);
+  const job = state.job;
+  const active =
+    job && ['queued', 'running', 'retry_wait'].includes(job.status);
+  const sourceHref = record.document_id
+    ? `/documents/detail?documentId=${encodeURIComponent(record.document_id)}`
+    : record.download_id
+      ? `/downloads/detail?jobId=${encodeURIComponent(record.download_id)}`
+      : null;
+  const allHref = record.document_id
+    ? `/history/inspections?document_id=${encodeURIComponent(record.document_id)}`
+    : record.download_id
+      ? `/history/inspections?download_id=${encodeURIComponent(record.download_id)}`
+      : '/history/inspections';
+  return (
+    <>
+      <PageHeader
+        className="mt-8"
+        title={record.title}
+        description={`${historyRecordLabel(record)} · ${skillName} · ${record.output_language}`}
+      />
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Button asChild variant="outline">
+          <Link href={allHref}>查看本素材全部记录</Link>
+        </Button>
+        {sourceHref && record.source_availability === 'available' ? (
+          <Button asChild variant="outline">
+            <Link href={sourceHref}>查看源文件 / 新建分析</Link>
+          </Button>
+        ) : null}
+      </div>
+      {record.source_availability === 'unavailable' ? (
+        <p className="mt-4 text-sm text-muted-foreground">
+          源文件不可用，无法重新执行；已有分析结果仍可查看。
+        </p>
+      ) : null}
+      {state.loading ? (
+        <p className="py-10" role="status">
+          正在读取分析结果…
+        </p>
+      ) : null}
+      {state.error ? (
+        <FeedbackNotice
+          className="mt-6"
+          title="无法完成操作"
+          description={state.error}
+          tone="error"
+          action={
+            <Button onClick={() => void state.retryPoll()} variant="outline">
+              重新读取
+            </Button>
+          }
+        />
+      ) : null}
+      {!state.loading && !job && !state.error ? (
+        <PageEmptyNotice
+          title="分析记录已删除"
+          description="返回解析中心查看其他记录。"
+        />
+      ) : null}
+      {job ? (
+        <>
+          <div
+            className="mt-8 flex flex-wrap items-center gap-3"
+            aria-live="polite"
+          >
+            <Badge variant="secondary">
+              {record.cancel_requested_at && active
+                ? '正在取消'
+                : statusLabels[job.status]}
+            </Badge>
+            <span className="text-sm text-muted-foreground">
+              第 {job.run_no} 次执行
+              {active
+                ? ` · ${job.progress}%${job.stage ? ` · ${stageLabels[job.stage]}` : ''}`
+                : ''}
+            </span>
+            {active ? (
+              <Button
+                disabled={
+                  Boolean(state.action) || Boolean(record.cancel_requested_at)
+                }
+                variant="outline"
+                onClick={() => void state.cancel()}
+              >
+                取消分析
+              </Button>
+            ) : (
+              <Button
+                disabled={
+                  Boolean(state.action) ||
+                  record.source_availability !== 'available'
+                }
+                variant="outline"
+                onClick={() => setConfirmRetry(true)}
+              >
+                {job.status === 'succeeded' ? '重新运行' : '重试'}
+              </Button>
+            )}
+            <AnalysisDeleteDialog
+              busy={state.action === 'delete'}
+              disabled={Boolean(state.action)}
+              onDelete={state.remove}
+            />
+            {job.report?.status === 'available'
+              ? (['md', 'docx'] as const).map((format) => (
+                  <Button key={format} asChild variant="outline">
+                    <AnalysisReportDownloadLink
+                      analysisId={job.id}
+                      format={format}
+                      download={`analysis-${job.id}.${format}`}
+                    >
+                      导出 {format === 'md' ? 'Markdown' : 'DOCX'}
+                    </AnalysisReportDownloadLink>
+                  </Button>
+                ))
+              : null}
+          </div>
+          {confirmRetry ? (
+            <FeedbackNotice
+              className="mt-5"
+              title="按原配置重新运行"
+              description="将保留任务编号并增加执行次数，可能消耗模型额度。修改配置请从源文件新建分析。"
+              action={
+                <div className="flex gap-2">
+                  <Button
+                    disabled={Boolean(state.action)}
+                    onClick={() => {
+                      setConfirmRetry(false);
+                      void state.retry();
+                    }}
+                  >
+                    确认执行
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setConfirmRetry(false)}
+                  >
+                    取消
+                  </Button>
+                </div>
+              }
+            />
+          ) : null}
+          {job.error_code ? (
+            <p className="mt-4 text-sm text-destructive" role="status">
+              任务未完成：{job.error_code}
+            </p>
+          ) : null}
+          {job.result?.kind === 'video_visual_analysis' ? (
+            <AnalysisResultView
+              result={job.result}
+              reportMarkdown={job.report_markdown}
+            />
+          ) : job.result?.kind === 'video_article' ? (
+            <AnalysisArticleResultView
+              result={job.result}
+              reportMarkdown={job.report_markdown}
+            />
+          ) : job.result ? (
+            <ScreenplayResultView
+              result={job.result}
+              reportMarkdown={job.report_markdown}
+            />
+          ) : null}
+          <AnalysisRuns
+            id={job.id}
+            runNo={job.run_no}
+            active={Boolean(active)}
+          />
+        </>
+      ) : null}
+    </>
+  );
+}
+
+function AnalysisRuns({
+  id,
+  runNo,
+  active,
+}: {
+  id: string;
+  runNo: number;
+  active: boolean;
+}) {
+  const [cursors, setCursors] = useState<(number | undefined)[]>([undefined]);
+  const before = cursors.at(-1);
+  const runs = useQuery({
+    queryKey: privateQueryKey('analysis-runs', id, runNo, before),
+    queryFn: ({ signal }) =>
+      listAnalysisRuns(
+        { analysis_id: id, before_run_no: before, limit: 20 },
+        { signal },
+      ),
+    refetchInterval: (query) => (active && !query.state.error ? 3000 : false),
+  });
+  return (
+    <section className="mt-12" aria-label="运行记录">
+      <h2 className="text-xl font-medium">运行记录</h2>
+      {runs.error ? (
+        <FeedbackNotice
+          className="mt-4"
+          title="运行记录读取失败"
+          description={displayError(runs.error)}
+          tone="error"
+          action={<Button onClick={() => void runs.refetch()}>重试</Button>}
+        />
+      ) : null}
+      {runs.isPending ? <p role="status">正在读取运行记录…</p> : null}
+      <ol className="mt-4 divide-y divide-border">
+        {runs.data?.items.map((run) => (
+          <li key={run.id} className="flex flex-wrap gap-4 py-4 text-sm">
+            <span>第 {run.run_no} 次</span>
+            <span>{statusLabels[run.status]}</span>
+            <time dateTime={run.created_at}>
+              {new Date(run.created_at).toLocaleString('zh-CN', {
+                hour12: false,
+              })}
+            </time>
+            {run.error_code ? <span>{run.error_code}</span> : null}
+          </li>
+        ))}
+      </ol>
+      <div className="mt-4 flex gap-2">
+        <Button
+          variant="ghost"
+          disabled={cursors.length <= 1 || runs.isFetching}
+          onClick={() => setCursors((value) => value.slice(0, -1))}
+        >
+          较新的运行
+        </Button>
+        <Button
+          variant="ghost"
+          disabled={!runs.data?.next_before_run_no || runs.isFetching}
+          onClick={() =>
+            setCursors((value) => [
+              ...value,
+              runs.data?.next_before_run_no ?? undefined,
+            ])
+          }
+        >
+          更早的运行
+        </Button>
+      </div>
+    </section>
+  );
+}

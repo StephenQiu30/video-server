@@ -10,12 +10,48 @@ import { stubCryptoUuids } from '../helpers/crypto';
 import { httpRequests, mockHttpResponses } from '../helpers/http';
 import { render } from '../helpers/query-render';
 
+const { push } = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
+
 const documentId = '99999999-9999-4999-8999-999999999999';
 
 describe('ScreenplayAnalysisPanel', () => {
   beforeEach(() => {
     vi.mocked(httpClient.request).mockReset();
+    push.mockReset();
     stubCryptoUuids('22222222-2222-4222-8222-222222222222');
+  });
+
+  it('opens the source document before creating from a selected historical analysis', async () => {
+    const job = screenplayAnalysisJob('analysis');
+    const record = {
+      id: job.id,
+      document_id: documentId,
+    };
+    vi.mocked(httpClient.request).mockImplementation(async (config) => {
+      const payload = config.url?.endsWith('/history-record')
+        ? record
+        : config.url === '/api/analysis-skills'
+          ? screenplaySkills
+          : job;
+      return { data: { code: 'ok', message: 'OK', data: payload } } as never;
+    });
+
+    render(
+      <ScreenplayAnalysisPanel documentId={documentId} analysisId={job.id} />,
+    );
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: '使用最新 Skill 新建任务',
+      }),
+    );
+
+    expect(push).toHaveBeenCalledWith(
+      `/documents/detail?documentId=${documentId}`,
+    );
+    expect(httpRequests().every((request) => request.method === 'GET')).toBe(
+      true,
+    );
   });
 
   it('discloses cloud processing and creates a document-bound task', async () => {

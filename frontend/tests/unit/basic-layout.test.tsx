@@ -83,7 +83,7 @@ describe('BasicLayout', () => {
     const historyLink = screen.getByRole('link', { name: /下载记录/ });
     expect(historyLink).toHaveAttribute('href', '/history');
     expect(historyLink).not.toHaveAttribute('aria-current');
-    const intentHistoryLink = screen.getByRole('link', { name: /解析记录/ });
+    const intentHistoryLink = screen.getByRole('link', { name: /解析中心/ });
     expect(intentHistoryLink).toHaveAttribute('href', '/history/inspections');
     expect(intentHistoryLink).not.toHaveAttribute('aria-current');
     expect(screen.getByRole('link', { name: /剧本文档/ })).toHaveAttribute(
@@ -284,7 +284,7 @@ describe('BasicLayout', () => {
       name: '主要导航',
     });
     expect(
-      within(desktopNavigation).getByRole('link', { name: '解析记录' }),
+      within(desktopNavigation).getByRole('link', { name: '解析中心' }),
     ).toHaveAttribute('aria-current', 'page');
     expect(
       within(desktopNavigation).getByRole('link', { name: '下载记录' }),
@@ -295,7 +295,7 @@ describe('BasicLayout', () => {
       name: '移动导航',
     });
     expect(
-      within(mobileNavigation).getByRole('link', { name: '解析记录' }),
+      within(mobileNavigation).getByRole('link', { name: '解析中心' }),
     ).toHaveAttribute('aria-current', 'page');
     expect(
       within(mobileNavigation).getByRole('link', { name: '下载记录' }),

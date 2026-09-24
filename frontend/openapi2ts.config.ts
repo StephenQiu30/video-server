@@ -33,6 +33,8 @@ const config: GenerateServiceProps = {
       return document;
     },
     customType(schema, namespace, original) {
+      if (schema && 'const' in schema && typeof schema.const === 'string')
+        return JSON.stringify(schema.const);
       return schema?.type === 'string' && schema.format === 'binary'
         ? 'Blob'
         : original(schema, namespace);

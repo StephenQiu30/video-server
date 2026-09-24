@@ -190,6 +190,30 @@ declare namespace API {
     | "screenplay-analysis"
     | "screenplay-rewrite";
 
+  type AnalysisRunHistoryPageResponse = {
+    /** Items */
+    items: AnalysisRunHistoryResponse[];
+    /** Next Before Run No */
+    next_before_run_no: number | null;
+  };
+
+  type AnalysisRunHistoryResponse = {
+    /** Id */
+    id: string;
+    /** Run No */
+    run_no: number;
+    /** Trigger */
+    trigger: string;
+    status: AnalysisStatus;
+    /** Created At */
+    created_at: string;
+    /** Started At */
+    started_at: string | null;
+    /** Finished At */
+    finished_at: string | null;
+    error_code: AnalysisErrorCode | null;
+  };
+
   type AnalysisSkillResponse = {
     /** Id */
     id: string;
@@ -248,6 +272,15 @@ declare namespace API {
     message: string;
     /** 成功时为业务数据，错误时为 null。 */
     data: AnalysisResponse;
+  };
+
+  type ApiResponseAnalysisRunHistoryPageResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: AnalysisRunHistoryPageResponse;
   };
 
   type ApiResponseDocumentDetailResponse_ = {
@@ -511,6 +544,18 @@ declare namespace API {
     data: AnalysisResponse | null;
   };
 
+  type ApiResponseUnionVideoAnalysisHistoryRecordResponse_ScreenplayAnalysisHistoryRecordResponse_ =
+    {
+      /** 稳定的业务结果码。 */
+      code: ErrorCode;
+      /** Message 安全的结果说明。 */
+      message: string;
+      /** Data 成功时为业务数据，错误时为 null。 */
+      data:
+        | VideoAnalysisHistoryRecordResponse
+        | ScreenplayAnalysisHistoryRecordResponse;
+    };
+
   type ApiResponseUserResponse_ = {
     /** 稳定的业务结果码。 */
     code: ErrorCode;
@@ -654,7 +699,7 @@ declare namespace API {
 
   type DiscoveredItemInspectionSource = {
     /** Kind */
-    kind: string;
+    kind: "discovered_item";
     /** Discovery Id */
     discovery_id: string;
     /** Item Ref */
@@ -753,6 +798,31 @@ declare namespace API {
     page_size: number;
     /** Total */
     total: number;
+  };
+
+  type DocumentParseHistoryRecordResponse = {
+    /** Updated At */
+    updated_at: string;
+    status_group: HistoryStatusGroup;
+    source_availability: HistoryAvailability;
+    result_availability: HistoryAvailability;
+    /** Record Type */
+    record_type: "document_parse";
+    /** Id */
+    id: string;
+    /** Document Id */
+    document_id: string;
+    /** Title */
+    title: string;
+    status: ImportStatus;
+    /** Source Format */
+    source_format: string;
+    /** Created At */
+    created_at: string;
+    /** Version */
+    version: number;
+    /** Error Code */
+    error_code: string | null;
   };
 
   type DocumentParseSummaryResponse = {
@@ -1069,7 +1139,7 @@ declare namespace API {
 
   type EngineCatalogResponse = {
     /** Scope */
-    scope?: string;
+    scope?: "anonymous_runner";
     /** Engine Version */
     engine_version: string;
     /** Engine Commit */
@@ -1224,6 +1294,10 @@ declare namespace API {
 
   type FpsBucket = "fps_30" | "fps_60" | "above_60";
 
+  type getAnalysisHistoryRecordParams = {
+    analysis_id: string;
+  };
+
   type getAnalysisParams = {
     analysis_id: string;
   };
@@ -1302,6 +1376,12 @@ declare namespace API {
     evidence_shot_ids: string[];
   };
 
+  type HistoryAvailability =
+    | "available"
+    | "unavailable"
+    | "unknown"
+    | "not_applicable";
+
   type HistoryRecordCursorResponse = {
     /** Created At */
     created_at: string;
@@ -1310,13 +1390,30 @@ declare namespace API {
     id: string;
   };
 
-  type HistoryRecordKind = "parse" | "video_analysis";
+  type HistoryRecordKind =
+    | "parse"
+    | "video_analysis"
+    | "document_parse"
+    | "screenplay_analysis";
 
   type HistoryRecordPageResponse = {
     /** Items */
-    items: (ParseHistoryRecordResponse | VideoAnalysisHistoryRecordResponse)[];
+    items: (
+      | ParseHistoryRecordResponse
+      | VideoAnalysisHistoryRecordResponse
+      | ScreenplayAnalysisHistoryRecordResponse
+      | DocumentParseHistoryRecordResponse
+    )[];
     next_cursor: HistoryRecordCursorResponse | null;
   };
+
+  type HistoryStatusGroup =
+    | "processing"
+    | "action_required"
+    | "completed"
+    | "failed"
+    | "cancelled"
+    | "expired";
 
   type IdentityState = "verified" | "ambiguous" | "unknown";
 
@@ -1397,7 +1494,7 @@ declare namespace API {
     /** Reason Code */
     reason_code: string | null;
     /** Next Action */
-    next_action?: string;
+    next_action?: "none";
     /** Retry At */
     retry_at: string | null;
     /** Deadline */
@@ -1433,7 +1530,7 @@ declare namespace API {
     /** Reason Code */
     reason_code: string | null;
     /** Next Action */
-    next_action?: string;
+    next_action?: "none";
     /** Retry At */
     retry_at: string | null;
     /** Deadline */
@@ -1461,6 +1558,12 @@ declare namespace API {
     preview?: boolean;
   };
 
+  type listAnalysisRunsParams = {
+    analysis_id: string;
+    before_run_no?: number | null;
+    limit?: number;
+  };
+
   type listAnalysisSkillsParams = {
     input_kind: AnalysisInputKind;
   };
@@ -1477,6 +1580,15 @@ declare namespace API {
 
   type listHistoryRecordsParams = {
     before_created_at?: string | null;
+    record_type?: HistoryRecordKind[] | null;
+    status_group?: HistoryStatusGroup | null;
+    created_from?: string | null;
+    created_to?: string | null;
+    q?: string | null;
+    skill_id?: string | null;
+    result_contract?: AnalysisResultContract | null;
+    document_id?: string | null;
+    download_id?: string | null;
     before_record_type?: HistoryRecordKind | null;
     before_id?: string | null;
     limit?: number;
@@ -1602,7 +1714,7 @@ declare namespace API {
     /** Refresh Token */
     refresh_token: string;
     /** Token Type */
-    token_type: string;
+    token_type: "Bearer";
     /** Access Expires At */
     access_expires_at: string;
     /** Refresh Expires At */
@@ -1610,6 +1722,11 @@ declare namespace API {
   };
 
   type ParseHistoryRecordResponse = {
+    /** Updated At */
+    updated_at: string;
+    status_group: HistoryStatusGroup;
+    source_availability: HistoryAvailability;
+    result_availability: HistoryAvailability;
     /** Id */
     id: string;
     /** Version */
@@ -1618,7 +1735,7 @@ declare namespace API {
     /** Reason Code */
     reason_code: string | null;
     /** Next Action */
-    next_action?: string;
+    next_action?: "none";
     /** Retry At */
     retry_at: string | null;
     /** Deadline */
@@ -1632,7 +1749,7 @@ declare namespace API {
     /** Title */
     title: string | null;
     /** Record Type */
-    record_type: string;
+    record_type: "parse";
   };
 
   type ProblemDetails = {
@@ -1842,7 +1959,7 @@ declare namespace API {
 
   type PublicUrlInspectionSource = {
     /** Kind */
-    kind: string;
+    kind: "public_url";
     /** Url 用户有权处理的公开、非 DRM HTTP(S) 媒体地址。 */
     url: string;
     /** 显式选择平台允许的访问策略；省略时使用平台固定默认策略，不按端点存在性切换。 */
@@ -1852,7 +1969,7 @@ declare namespace API {
   type ReadinessResponse = {
     status: ReadinessStatus;
     /** Service */
-    service: string;
+    service: "api";
   };
 
   type ReadinessStatus = "ok" | "unavailable";
@@ -1911,6 +2028,48 @@ declare namespace API {
     | "owner_authorized_export"
     | "official_asset_grant"
     | "user_provided";
+
+  type ScreenplayAnalysisHistoryRecordResponse = {
+    /** Updated At */
+    updated_at: string;
+    status_group: HistoryStatusGroup;
+    source_availability: HistoryAvailability;
+    result_availability: HistoryAvailability;
+    /** Record Type */
+    record_type: "screenplay_analysis";
+    /** Document Id */
+    document_id: string | null;
+    /** Artifact Id */
+    artifact_id: string | null;
+    /** Output Language */
+    output_language: string;
+    result_contract: AnalysisResultContract;
+    /** Current Run No */
+    current_run_no: number;
+    /** Cancel Requested At */
+    cancel_requested_at: string | null;
+    /** Version */
+    version: number;
+    /** Allowed Actions */
+    allowed_actions: ("view" | "retry" | "cancel" | "delete")[];
+    /** Action Unavailable Reason */
+    action_unavailable_reason: string | null;
+    /** Id */
+    id: string;
+    /** Download Id */
+    download_id: string | null;
+    /** Title */
+    title: string;
+    /** Skill Id */
+    skill_id: string;
+    /** Created At */
+    created_at: string;
+    status: AnalysisStatus;
+    /** Progress */
+    progress: number;
+    stage: AnalysisStage | null;
+    error_code: AnalysisErrorCode | null;
+  };
 
   type ScreenplayAnalysisResultResponse = {
     /** Kind */
@@ -2068,7 +2227,7 @@ declare namespace API {
 
   type SourceDiscoveryRequest = {
     /** Kind */
-    kind: string;
+    kind: "wechat_official_account_article";
     /** Url */
     url: string;
   };
@@ -2223,8 +2382,30 @@ declare namespace API {
   type UserRole = "admin" | "user";
 
   type VideoAnalysisHistoryRecordResponse = {
+    /** Updated At */
+    updated_at: string;
+    status_group: HistoryStatusGroup;
+    source_availability: HistoryAvailability;
+    result_availability: HistoryAvailability;
     /** Record Type */
-    record_type: string;
+    record_type: "video_analysis";
+    /** Document Id */
+    document_id: string | null;
+    /** Artifact Id */
+    artifact_id: string | null;
+    /** Output Language */
+    output_language: string;
+    result_contract: AnalysisResultContract;
+    /** Current Run No */
+    current_run_no: number;
+    /** Cancel Requested At */
+    cancel_requested_at: string | null;
+    /** Version */
+    version: number;
+    /** Allowed Actions */
+    allowed_actions: ("view" | "retry" | "cancel" | "delete")[];
+    /** Action Unavailable Reason */
+    action_unavailable_reason: string | null;
     /** Id */
     id: string;
     /** Download Id */

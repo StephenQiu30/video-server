@@ -7,8 +7,12 @@ import ScreenplayDocumentDetailView from '@/components/screenplay/screenplay-doc
 export default function ScreenplayDocumentRoute() {
   const searchParams = useSearchParams();
   const documentId = searchParams?.get('documentId')?.trim() ?? '';
+  const analysisId = searchParams?.get('analysisId')?.trim() || undefined;
   return documentId ? (
-    <ScreenplayDocumentDetailView documentId={documentId} />
+    <ScreenplayDocumentDetailView
+      documentId={documentId}
+      analysisId={analysisId}
+    />
   ) : (
     <MissingScreenplayDocument />
   );
