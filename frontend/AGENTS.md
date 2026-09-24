@@ -4,7 +4,7 @@
 
 ## 技术与目录
 
-- 官方 Next.js App Router、React、TypeScript strict、Tailwind CSS、shadcn/ui（radix-nova、neutral、Phosphor）。工程参数由 package.json、tsconfig.json、components.json 管理。
+- 官方 Next.js App Router、React、TypeScript strict、Tailwind CSS、shadcn/ui、Radix 与 Phosphor。工程参数由 package.json、tsconfig.json、components.json 管理；当前组件配置不另定视觉标准。
 - 使用 pnpm 和唯一 pnpm-lock.yaml；不引入 npm/yarn 锁文件或额外生成包装脚本。
 - src/app 放路由、布局和元数据；src/components 放业务组件，ui 子目录放官方 shadcn 源码；业务专用 Hooks 与组件同目录；src/hooks 仅放跨业务共享 Hooks。
 - src/api 只放 @umijs/openapi 生成的请求函数与类型，禁止手写或修改。生成配置只在 openapi2ts.config.ts。
@@ -15,8 +15,8 @@
 
 ## 组件与验证
 
-- 先查官方 CLI 和文档，不使用旧设计反推组件实现。更新先预览差异；必要可访问性修复需有回归测试（Progress 需向 Radix 传 value）。
-- 页面无边框布局通过留白、排版组织；基础控件保留官方视觉与键盘语义，不追加旧版非官方属性或 variant。
+- 根 `design.md` 是唯一的视觉设计标准；先查官方 CLI 和文档确认组件 API、交互与可访问性，更新先预览差异；必要可访问性修复需有回归测试（Progress 需向 Radix 传 value）。
+- 页面与基础控件的视觉样式以根 `design.md` 为准，同时保留组件键盘、焦点和错误语义；不追加旧版非官方属性或 variant。
 - 页面或列表空状态统一使用 `@/components/layout/page-empty-notice`；页面级请求失败使用 `PageErrorNotice`，已有数据刷新或操作反馈使用 `FeedbackNotice`/Sonner message，不在业务页面复制左对齐的 Empty 结构。
 - Client Component 只用于交互、状态或浏览器能力；业务图标使用 Phosphor，品牌复用 public/logo.svg。
 - 桌面与 390px、明暗主题均须可用，检查可访问名称、焦点恢复、溢出和错误恢复。

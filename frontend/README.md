@@ -1,6 +1,6 @@
 # Frontend
 
-帧取 Web 前端，属于 video-server。使用 Next.js App Router、React、TypeScript strict、Tailwind CSS、官方 shadcn/ui（radix-nova / neutral / Phosphor）。工程遵循 create-next-app 的 src 目录与 @/* 别名；视觉标准见 [design.md](../design.md)。
+帧取 Web 前端，属于 video-server。使用 Next.js App Router、React、TypeScript strict、Tailwind CSS、shadcn/ui、Radix 与 Phosphor。工程遵循 create-next-app 的 src 目录与 @/* 别名；唯一视觉设计标准是根 [design.md](../design.md)。
 
 ## 开发与验证
 
@@ -59,7 +59,7 @@ pnpm dlx shadcn@latest add input --dry-run
 pnpm dlx shadcn@latest add input --diff input.tsx
 ```
 
-保留官方组件 API、焦点、错误与浮层行为。页面使用留白组织无边框布局，不强制覆盖基础控件边界。主题采用官方 neutral tokens 和圆角比例；cn 使用官方组件依赖的 cn 包。Progress 向 Radix 传递 value，确保辅助技术可读进度；该修正由测试保护。
+保留组件 API、焦点、错误与浮层行为；页面和基础控件的视觉样式以根 [design.md](../design.md) 为准，不通过全局 CSS 使组件变形。`components.json` 的配置仅说明当前实现，不是另一份设计标准。cn 使用官方组件依赖的 cn 包。Progress 向 Radix 传递 value，确保辅助技术可读进度；该修正由测试保护。
 
 Biome 对官方 ui 源码中有明确用途的角色、事件、数组 key 与图表 CSS 注入使用目录级规则豁免；业务代码继续执行完整规则。pnpm-workspace.yaml 明确拒绝不需要的 es5-ext 安装脚本。
 

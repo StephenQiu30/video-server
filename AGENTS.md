@@ -13,10 +13,10 @@
 ## 前端官方实现规范
 
 - 工程基线使用官方 create-next-app（App Router、TypeScript、Tailwind、src 目录）和 shadcn CLI；使用 pnpm 与唯一 pnpm-lock.yaml。
-- 基础组件采用官方 radix-nova / neutral / Phosphor 实现，不恢复旧组件的自定义 variant、asChild 或输入尺寸属性。业务页面通过官方组件组合实现功能。
-- 页面采用无边框内容布局；基础控件保留官方边界、焦点、错误和覆盖层行为，不通过全局规则强制删除。
-- 主题以官方 neutral tokens 为起点，遵循明暗主题和官方圆角比例。旧方案稿与旧项目样式不作为组件实现标准。
-- 详情见根 design.md。验证包含 pnpm lint、pnpm format:check、pnpm test、pnpm build，以及桌面和 390px 的真实浏览器交互。
+- 根 `design.md` 是唯一的界面视觉设计标准来源，颜色、排版、间距、圆角、边界与页面布局均以该文件为准；其他文档不得另定视觉标准。
+- 基础组件沿用现有 shadcn/ui、Radix 与 Phosphor 实现，业务页面通过组件组合实现功能。`components.json` 记录当前工程配置，不构成另一份视觉规范；官方文档用于组件 API、交互和可访问性校验。
+- 基础控件保留焦点、错误、键盘和覆盖层语义；视觉实现按 `design.md` 调整，避免全局 CSS 强制覆盖或使组件变形。
+- 验证包含 pnpm lint、pnpm format:check、pnpm test、pnpm build，以及桌面和 390px 的真实浏览器交互。
 
 ## 架构与数据边界
 

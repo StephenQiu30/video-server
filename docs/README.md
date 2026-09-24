@@ -59,7 +59,7 @@
 
 ## 3. 全局资源与前端规范
 
-- [前端实现规范](../design.md)：官方 Next.js/shadcn 基线、neutral 主题、响应式与可访问性规范。
+- [唯一界面视觉设计标准](../design.md)：页面与组件的视觉设计以此文件为准；前端工程、交互与可访问性实现见 [frontend/README.md](../frontend/README.md)。
 - [截图资源目录](images/README.md)：根 README 所使用的产品预览图与界面资产。
 
 - [跨宿主平台来源自动恢复](design/043-跨宿主平台来源自动恢复.md)：部署来源持久化、自动投影、租约与撤销。
