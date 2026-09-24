@@ -1,19 +1,20 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
+import { HistorySearchForm } from '@/components/intake/history-search-form';
 import {
   DEFAULT_PAGE_SIZE,
   PAGE_SIZE_OPTIONS,
 } from '@/components/layout/page-pagination';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 export function useHistoryRecordFilters() {
   const search = useSearchParams();
@@ -133,81 +134,42 @@ export function HistoryRecordFilters({
     ['screenplay', '剧本解析'],
   ];
   return (
-    <div className="mt-8 space-y-4">
-      <fieldset className="flex flex-wrap gap-2" aria-label="解析类型">
-        {categories.map(([value, label]) => (
-          <Button
-            key={value}
-            variant={category === value ? 'secondary' : 'ghost'}
-            aria-pressed={category === value}
-            onClick={() =>
-              update({
-                category: value,
-                subkind: '',
-                skill: '',
-                document_id: '',
-                download_id: '',
-              })
-            }
-          >
-            {label}
-          </Button>
-        ))}
-      </fieldset>
-      <form
-        className="flex flex-wrap items-end gap-3"
-        key={search.toString()}
-        onSubmit={(event) => {
-          event.preventDefault();
-          const data = new FormData(event.currentTarget);
-          update({
-            q: String(data.get('q') ?? ''),
-            from: String(data.get('from') ?? ''),
-            to: String(data.get('to') ?? ''),
-          });
+    <div className="mt-8 flex flex-col gap-4">
+      <ToggleGroup
+        type="single"
+        value={category}
+        aria-label="解析类型"
+        className="flex-wrap"
+        onValueChange={(value) => {
+          if (value)
+            update({
+              category: value,
+              subkind: '',
+              skill: '',
+              document_id: '',
+              download_id: '',
+            });
         }}
       >
-        <label
-          htmlFor="history-title"
-          className="grid flex-1 gap-2 text-sm min-w-48"
-        >
-          内容标题
-          <Input
-            id="history-title"
-            name="q"
-            defaultValue={search.get('q') ?? ''}
-            maxLength={100}
-            placeholder="搜索内容标题"
-          />
-        </label>
-        <label htmlFor="history-from" className="grid gap-2 text-sm">
-          开始日期
-          <Input
-            type="date"
-            id="history-from"
-            name="from"
-            defaultValue={search.get('from') ?? ''}
-          />
-        </label>
-        <label htmlFor="history-to" className="grid gap-2 text-sm">
-          结束日期
-          <Input
-            type="date"
-            id="history-to"
-            name="to"
-            defaultValue={search.get('to') ?? ''}
-            min={search.get('from') ?? undefined}
-          />
-        </label>
-        <Button type="submit" variant="outline">
-          筛选
-        </Button>
-        {state.hasFilters ? (
-          <Button type="button" variant="ghost" onClick={state.reset}>
-            清除筛选
-          </Button>
-        ) : null}
-      </form>
+        {categories.map(([value, label]) => (
+          <ToggleGroupItem key={value} value={value}>
+            {label}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+      <HistorySearchForm
+        key={JSON.stringify([
+          search.get('q'),
+          search.get('from'),
+          search.get('to'),
+        ])}
+        query={search.get('q') ?? ''}
+        from={search.get('from') ?? ''}
+        to={search.get('to') ?? ''}
+        hasFilters={state.hasFilters}
+        onApply={update}
+        onReset={state.reset}
+      />
       <div className="flex flex-wrap gap-3">
         <FilterSelect
           label="任务状态"
@@ -271,15 +233,17 @@ function FilterSelect({
 }) {
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger aria-label={label}>
+      <SelectTrigger aria-label={label} className="w-40">
         <SelectValue />
       </SelectTrigger>
-      <SelectContent>
-        {options.map(([id, text]) => (
-          <SelectItem value={id} key={id}>
-            {text}
-          </SelectItem>
-        ))}
+      <SelectContent position="popper" align="start">
+        <SelectGroup>
+          {options.map(([id, text]) => (
+            <SelectItem value={id} key={id}>
+              {text}
+            </SelectItem>
+          ))}
+        </SelectGroup>
       </SelectContent>
     </Select>
   );
