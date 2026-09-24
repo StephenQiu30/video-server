@@ -1,13 +1,11 @@
 'use client';
 
-import { DownloadSimple, X } from '@phosphor-icons/react';
-import type { FormEvent, KeyboardEvent } from 'react';
+import { DownloadSimple } from '@phosphor-icons/react';
+import type { ClipboardEvent, FormEvent, KeyboardEvent } from 'react';
 import { IntakeSubmitButton } from '@/components/intake/intake-control-row';
-import { Button } from '@/components/ui/button';
-import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Form } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
-import { Textarea } from '@/components/ui/textarea';
 
 export function LinkDownloadForm({
   busy,
@@ -31,61 +29,51 @@ export function LinkDownloadForm({
     onInspect();
   };
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (
-      event.key === 'Enter' &&
-      !event.shiftKey &&
-      !event.nativeEvent.isComposing
-    ) {
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
       event.preventDefault();
       onInspect();
     }
   };
 
+  const handlePaste = (event: ClipboardEvent<HTMLInputElement>) => {
+    const pasted = event.clipboardData.getData('text');
+    if (!/[\r\n]/.test(pasted)) return;
+    event.preventDefault();
+    const start = event.currentTarget.selectionStart ?? url.length;
+    const end = event.currentTarget.selectionEnd ?? start;
+    onUrlChange(
+      `${url.slice(0, start)}${pasted.replace(/\s+/g, ' ')}${url.slice(end)}`.slice(
+        0,
+        4096,
+      ),
+    );
+  };
+
   return (
-    <Form className="flex flex-col gap-4" onSubmit={submit}>
-      <Field data-invalid={invalid || undefined}>
-        <FieldLabel htmlFor="public-media-input">公开视频地址</FieldLabel>
-        <Textarea
-          aria-describedby={invalid ? 'download-workspace-error' : undefined}
-          aria-invalid={invalid || undefined}
-          autoComplete="url"
-          disabled={disabled}
-          id="public-media-input"
-          maxLength={4096}
-          onChange={(event) => onUrlChange(event.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="粘贴公开媒体链接，或包含链接的完整分享文案"
-          rows={3}
-          value={url}
-        />
-        <FieldDescription>
-          支持完整分享文案。按 Enter 解析，Shift+Enter 换行。
-        </FieldDescription>
-      </Field>
-      <div className="flex items-center justify-end gap-2">
-        {url ? (
-          <Button
-            aria-label="清空链接"
-            disabled={disabled}
-            onClick={() => onUrlChange('')}
-            size="lg"
-            type="button"
-            variant="ghost"
-          >
-            <X aria-hidden data-icon="inline-start" />
-            清空
-          </Button>
-        ) : null}
-        <IntakeSubmitButton disabled={disabled} size="lg">
-          {busy ? (
-            <Spinner aria-hidden data-icon="inline-start" />
-          ) : (
-            <DownloadSimple aria-hidden data-icon="inline-start" />
-          )}
-          {busy ? '解析中…' : hasResult ? '重新解析' : '解析媒体'}
-        </IntakeSubmitButton>
-      </div>
+    <Form className="flex w-full items-center gap-2" onSubmit={submit}>
+      <Input
+        aria-describedby={invalid ? 'download-workspace-error' : undefined}
+        aria-invalid={invalid || undefined}
+        aria-label="公开视频地址"
+        autoComplete="url"
+        disabled={disabled}
+        id="public-media-input"
+        maxLength={4096}
+        onChange={(event) => onUrlChange(event.target.value)}
+        onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
+        placeholder="粘贴公开媒体链接或完整分享文案"
+        value={url}
+      />
+      <IntakeSubmitButton disabled={disabled}>
+        {busy ? (
+          <Spinner aria-hidden data-icon="inline-start" />
+        ) : (
+          <DownloadSimple aria-hidden data-icon="inline-start" />
+        )}
+        {busy ? '解析中…' : hasResult ? '重新解析' : '解析媒体'}
+      </IntakeSubmitButton>
     </Form>
   );
 }

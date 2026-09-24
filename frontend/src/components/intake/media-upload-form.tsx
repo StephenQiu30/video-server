@@ -119,16 +119,14 @@ export function MediaUploadForm({
           <Progress aria-label={phaseLabels[phase]} value={progress} />
         </div>
       ) : null}
-      <div className="flex justify-end">
-        <IntakeSubmitButton disabled={busy} size="lg">
-          {busy ? (
-            <Spinner aria-hidden data-icon="inline-start" />
-          ) : (
-            <UploadSimple aria-hidden data-icon="inline-start" />
-          )}
-          {busy ? '处理中…' : '上传视频'}
-        </IntakeSubmitButton>
-      </div>
+      <IntakeSubmitButton className="w-full" disabled={busy} size="lg">
+        {busy ? (
+          <Spinner aria-hidden data-icon="inline-start" />
+        ) : (
+          <UploadSimple aria-hidden data-icon="inline-start" />
+        )}
+        {busy ? '处理中…' : '上传视频'}
+      </IntakeSubmitButton>
     </Form>
   );
 }
