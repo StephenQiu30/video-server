@@ -44,14 +44,15 @@ def test_bilibili_tls_media_port_is_scoped_to_its_cdn() -> None:
     assert scoped_deny < public_allow
 
 
-def test_destination_policy_is_single_and_allows_synthetic_public_range() -> None:
+def test_destination_policy_allows_docker_desktop_synthetic_public_ranges() -> None:
     policy = (CONFIG_ROOT / "blocked-destinations.conf").read_text(encoding="utf-8")
 
-    # Transparent proxies and Docker Desktop answer public DNS through 198.18/15;
-    # the single policy must allow that synthetic range so media egress works on
-    # every machine.
+    # Docker Desktop resolves public DNS to synthetic IPv4 and IPv6 ranges; the
+    # egress proxy must allow both while keeping other special ranges blocked.
     assert "acl docker_desktop_public dst 198.18.0.0/15" in policy
     assert "acl blocked_destination dst 198.18.0.0/15" not in policy
+    assert "acl docker_desktop_public dst 2001:2::/48" in policy
+    assert "acl blocked_destination dst 2001:2::/48" not in policy
     for blocked in (
         "10.0.0.0/8",
         "100.64.0.0/10",
