@@ -17,11 +17,7 @@ import {
   ItemTitle,
 } from '@/components/ui/item';
 
-import {
-  ANALYTICS_CHART_COLOR,
-  formatInteger,
-  formatPercent,
-} from './analytics-format';
+import { formatInteger, formatPercent } from './analytics-format';
 
 enum DownloadAnalyticsStatusCode {
   Succeeded = 'succeeded',
@@ -32,19 +28,19 @@ enum DownloadAnalyticsStatusCode {
 
 const statusConfig = {
   [DownloadAnalyticsStatusCode.Succeeded]: {
-    color: ANALYTICS_CHART_COLOR,
+    color: 'var(--chart-1)',
     label: '成功',
   },
   [DownloadAnalyticsStatusCode.Active]: {
-    color: ANALYTICS_CHART_COLOR,
+    color: 'var(--chart-2)',
     label: '进行中',
   },
   [DownloadAnalyticsStatusCode.Failed]: {
-    color: ANALYTICS_CHART_COLOR,
+    color: 'var(--chart-3)',
     label: '失败',
   },
   [DownloadAnalyticsStatusCode.Cancelled]: {
-    color: ANALYTICS_CHART_COLOR,
+    color: 'var(--chart-4)',
     label: '取消',
   },
 } satisfies ChartConfig;
@@ -159,7 +155,8 @@ export function StatusDistributionChart({
                 <ItemTitle className="flex items-center gap-2">
                   <span
                     aria-hidden
-                    className="size-1.5 rounded-full bg-chart-2"
+                    className="size-1.5 rounded-full"
+                    style={{ backgroundColor: statusConfig[item.status].color }}
                   />
                   {statusConfig[item.status].label}
                 </ItemTitle>

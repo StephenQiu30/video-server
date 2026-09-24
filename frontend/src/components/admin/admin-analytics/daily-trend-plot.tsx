@@ -11,13 +11,13 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart';
 
-import { ANALYTICS_CHART_COLOR, formatShortDate } from './analytics-format';
+import { formatShortDate } from './analytics-format';
 
 type DailyPoint = API.DownloadAnalyticsResponse['daily'][number];
 
 const trendConfig = {
-  total: { color: ANALYTICS_CHART_COLOR, label: '全部任务' },
-  succeeded: { color: ANALYTICS_CHART_COLOR, label: '成功任务' },
+  total: { color: 'var(--chart-2)', label: '全部任务' },
+  succeeded: { color: 'var(--chart-1)', label: '成功任务' },
 } satisfies ChartConfig;
 
 export function DailyTrendPlot({ points }: { points: DailyPoint[] }) {
@@ -83,7 +83,7 @@ export function DailyTrendPlot({ points }: { points: DailyPoint[] }) {
           isAnimationActive={false}
           stroke="var(--color-total)"
           strokeWidth={2}
-          type="natural"
+          type="monotone"
         />
         <Area
           dataKey="succeeded"
@@ -91,7 +91,7 @@ export function DailyTrendPlot({ points }: { points: DailyPoint[] }) {
           isAnimationActive={false}
           stroke="var(--color-succeeded)"
           strokeWidth={2}
-          type="natural"
+          type="monotone"
         />
         <ChartLegend content={<ChartLegendContent />} />
       </AreaChart>

@@ -16,7 +16,7 @@
 - 页面基底为白，文字为近黑；层次由 shadcn neutral 的 `background`、`foreground`、`card`、`muted`、`border` 等语义 token 表达。
 - 深色模式为上述中性色的反转。主题只配置在 `frontend/src/app/globals.css` 的 light/dark token 中，不在业务组件里写一套手工 `dark:` 色彩覆盖。
 - Logo 保留原有品牌色，不加黑白滤镜；页面基底和主要操作使用黑白/灰阶。不要使用彩色 mesh、彩色渐变、彩色装饰背景、霓虹光晕或彩色链接作为页面主视觉。
-- 图表使用不同明度的灰阶，并配合文字、图例或形状区分数据。错误状态可沿用 shadcn 官方 `destructive` 语义；状态不能只靠颜色传达。
+- 下载分析图表采用 shadcn 官方 Chart（Recharts）组合，以白色页面底面搭配深浅蓝色数据系列；深色模式沿用深色底面与对应蓝色 token。颜色统一配置为 `globals.css` 的 `chart-*` token，图例、提示和数据系列保持一致，并配合文字区分数据。错误状态可沿用 shadcn 官方 `destructive` 语义；状态不能只靠颜色传达。
 - 正文和标题使用项目现有的 Geist 与中文系统回退字体。页面标题按内容层级排版，避免把普通页面标题做成营销海报字。
 
 ## 布局与密度

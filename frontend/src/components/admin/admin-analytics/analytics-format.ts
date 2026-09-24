@@ -9,7 +9,7 @@ const dateFormatter = new Intl.DateTimeFormat('zh-CN', {
   timeZone: 'UTC',
 });
 
-export const ANALYTICS_CHART_COLOR = 'var(--chart-2)';
+export const ANALYTICS_CHART_COLOR = 'var(--chart-1)';
 
 export function formatInteger(value: number): string {
   return integerFormatter.format(value);

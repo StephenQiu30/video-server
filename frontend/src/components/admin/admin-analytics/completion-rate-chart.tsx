@@ -105,7 +105,7 @@ export function CompletionRateChart({ daily }: { daily: DailyPoint[] }) {
             isAnimationActive={false}
             stroke="var(--color-rate)"
             strokeWidth={2}
-            type="natural"
+            type="monotone"
           />
         </AreaChart>
       </ChartContainer>
