@@ -71,7 +71,7 @@ export function AuthField({
   return (
     <Field data-invalid={Boolean(error)}>
       <FieldLabel htmlFor={`${idPrefix}-${name}`}>{label}</FieldLabel>
-      <InputGroup className="bg-input">{children}</InputGroup>
+      <InputGroup>{children}</InputGroup>
       {description ? (
         <FieldDescription id={`${name}-description`}>
           {description}

@@ -39,7 +39,7 @@ export function ContentIntakeHero({
   }, [mode]);
 
   return (
-    <div className="pt-10 sm:pt-12 lg:pt-14" ref={rootRef}>
+    <div className="pt-12 sm:pt-16" ref={rootRef}>
       <EditorialIntro
         description="解析公开视频、图片与合集链接，或上传本地视频与剧本文档。"
         title={
@@ -52,17 +52,16 @@ export function ContentIntakeHero({
       />
 
       <Tabs
-        className="mt-7 flex-col gap-0"
+        className="mt-8 flex-col gap-0"
         onValueChange={(value) => onModeChange(value as IntakeMode)}
         value={mode}
       >
         <TabsList
           aria-label="选择内容来源"
-          className="grid h-9 w-full grid-cols-3 gap-0 p-0 lg:inline-flex lg:w-fit lg:gap-6 lg:p-0"
-          variant="line"
+          className="grid w-full grid-cols-3 gap-1 sm:inline-flex sm:w-fit sm:gap-2"
         >
           <TabsTrigger
-            className="min-w-0 px-1 sm:px-2 lg:px-0"
+            className="min-w-0 px-2 sm:px-4"
             disabled={disabled}
             value="link"
           >
@@ -70,7 +69,7 @@ export function ContentIntakeHero({
             链接解析
           </TabsTrigger>
           <TabsTrigger
-            className="min-w-0 px-1 sm:px-2 lg:px-0"
+            className="min-w-0 px-2 sm:px-4"
             disabled={disabled}
             value="video"
           >
@@ -78,7 +77,7 @@ export function ContentIntakeHero({
             本地视频
           </TabsTrigger>
           <TabsTrigger
-            className="min-w-0 px-1 sm:px-2 lg:px-0"
+            className="min-w-0 px-2 sm:px-4"
             disabled={disabled}
             value="screenplay"
           >

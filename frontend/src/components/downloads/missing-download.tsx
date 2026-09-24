@@ -9,7 +9,7 @@ export default function MissingDownload() {
         description="请从下载记录重新打开任务，或返回首页创建新的下载。"
         title="下载任务不存在"
         titleAs="h1"
-        titleClassName="text-[36px] font-medium leading-[1.02] tracking-[-0.05em] sm:text-[52px]"
+        titleClassName="text-[clamp(2.5rem,4vw,3rem)] font-semibold leading-none tracking-[-0.05em]"
       />
     </div>
   );

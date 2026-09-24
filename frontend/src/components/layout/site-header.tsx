@@ -76,8 +76,8 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 bg-background">
-      <div className="content-shell flex h-20 items-center justify-between">
+    <header className="sticky top-0 z-40 bg-card">
+      <div className="content-shell flex h-16 items-center justify-between">
         <BrandLink />
         <div
           aria-busy={(headerAuthPending && loading) || undefined}
@@ -129,7 +129,7 @@ export function SiteHeader() {
                   <ThemeToggle />
                   {publicView ? (
                     <div className="flex shrink-0 justify-end">
-                      <Button asChild className="px-4 text-[15px]" size="lg">
+                      <Button asChild className="h-7 px-2 text-sm" size="sm">
                         <Link href="/user/login">登录</Link>
                       </Button>
                     </div>

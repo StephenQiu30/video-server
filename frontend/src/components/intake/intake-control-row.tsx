@@ -41,7 +41,7 @@ export function IntakeSubmitButton({
 }: React.ComponentProps<typeof Button>) {
   return (
     <Button
-      className={cn('h-12 px-4', className)}
+      className={cn('h-12 rounded-full px-4', className)}
       size="lg"
       type="submit"
       {...props}

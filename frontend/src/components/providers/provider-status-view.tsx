@@ -145,12 +145,12 @@ export function ProviderStatusView() {
               <div className="flex flex-col gap-5">
                 <Table className="min-w-[980px] table-fixed">
                   <TableCaption className="sr-only">平台能力状态</TableCaption>
-                  <TableHeader className="bg-muted/35">
+                  <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="w-[27%] px-4">平台</TableHead>
+                      <TableHead className="w-[27%] px-3">平台</TableHead>
                       <TableHead className="w-[24%] px-4">状态与接入</TableHead>
-                      <TableHead className="w-[34%] px-4">已登记能力</TableHead>
-                      <TableHead className="w-[15%] px-4 text-right">
+                      <TableHead className="w-[34%] px-3">已登记能力</TableHead>
+                      <TableHead className="w-[15%] px-3 text-right">
                         操作
                       </TableHead>
                     </TableRow>

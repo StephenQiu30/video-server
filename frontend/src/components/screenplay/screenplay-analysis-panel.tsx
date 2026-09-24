@@ -99,7 +99,7 @@ export default function ScreenplayAnalysisPanel({
         <>
           <div className="max-w-3xl">
             <h2
-              className="text-[32px] font-medium leading-none tracking-[-0.045em] sm:text-[44px]"
+              className="text-[clamp(1.5rem,3vw,2rem)] font-semibold leading-tight tracking-[-0.04em]"
               id="screenplay-analysis-title"
             >
               剧本分析与改写

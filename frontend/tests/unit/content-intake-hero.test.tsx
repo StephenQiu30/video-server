@@ -32,7 +32,7 @@ describe('ContentIntakeHero', () => {
     );
     expect(container.querySelector('[data-slot="tabs-list"]')).toHaveClass(
       'w-full',
-      'lg:w-fit',
+      'sm:w-fit',
     );
   });
 });

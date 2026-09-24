@@ -34,7 +34,9 @@ export function PublicHomeCapabilities({
               {eyebrow}
             </span>
           </div>
-          <h3 className="text-base font-medium leading-snug">{title}</h3>
+          <h3 className="text-xl font-semibold leading-7 tracking-[-0.03em]">
+            {title}
+          </h3>
           <p className="text-sm leading-6 text-muted-foreground">
             {description}
           </p>

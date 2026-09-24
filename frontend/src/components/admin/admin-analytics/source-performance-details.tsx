@@ -19,7 +19,7 @@ export function SourcePerformanceDetails({ sources }: { sources: Source[] }) {
     <div className="mt-7">
       <Table className="min-w-[900px] table-fixed">
         <TableCaption className="sr-only">各视频源下载表现</TableCaption>
-        <TableHeader className="bg-muted/35">
+        <TableHeader>
           <TableRow className="hover:bg-transparent">
             <SourceHead>视频源</SourceHead>
             <SourceHead numeric>任务</SourceHead>
@@ -33,7 +33,7 @@ export function SourcePerformanceDetails({ sources }: { sources: Source[] }) {
           {sources.map((source) => (
             <TableRow key={source.source_key}>
               <TableHead
-                className="px-4 py-5 text-left align-middle whitespace-normal"
+                className="px-3 py-2 text-left align-middle whitespace-normal"
                 scope="row"
               >
                 <p className="truncate font-medium">{sourceLabel(source)}</p>
@@ -45,7 +45,7 @@ export function SourcePerformanceDetails({ sources }: { sources: Source[] }) {
               <MetricCell value={formatPercent(source.success_rate)} />
               <MetricCell value={formatInteger(source.unique_users)} />
               <MetricCell value={formatBytes(source.downloaded_bytes)} />
-              <TableCell className="px-4 py-5 whitespace-normal">
+              <TableCell className="px-3 py-2 whitespace-normal">
                 <StatusSummary source={source} />
               </TableCell>
             </TableRow>
@@ -78,7 +78,7 @@ function SourceHead({
 
 function MetricCell({ value }: { value: string }) {
   return (
-    <TableCell className="px-4 py-5 text-right text-xs tabular-nums whitespace-normal">
+    <TableCell className="px-3 py-2 text-right text-xs tabular-nums whitespace-normal">
       {value}
     </TableCell>
   );

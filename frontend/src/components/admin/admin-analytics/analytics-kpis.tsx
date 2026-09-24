@@ -76,7 +76,7 @@ export function AnalyticsKpis({
                   <metric.icon aria-hidden className="size-4" />
                   {metric.label}
                 </ItemTitle>
-                <p className="mt-3 text-[clamp(2rem,4vw,3.25rem)] font-medium leading-none tracking-[-0.055em] tabular-nums">
+                <p className="mt-3 text-[clamp(2rem,4vw,3rem)] font-semibold leading-none tracking-[-0.05em] tabular-nums">
                   {metric.value}
                 </p>
                 <ItemDescription className="mt-3 min-h-9 leading-5 sm:min-h-0">

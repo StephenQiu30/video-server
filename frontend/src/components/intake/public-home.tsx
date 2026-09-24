@@ -51,11 +51,13 @@ const safeguards = [
 export function PublicHome() {
   return (
     <div className="flex flex-col pb-6" data-home-view-root="public">
-      <div
-        className="grid gap-12 pb-20 pt-10 sm:pt-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:gap-24 lg:pb-28 lg:pt-14"
-        data-slot="borderless-section"
+      <section
+        className="relative isolate pb-24 pt-16 sm:pb-32 sm:pt-24"
+        data-slot="hero-band"
       >
+        <div aria-hidden className="hero-mesh" />
         <EditorialIntro
+          className="relative max-w-4xl"
           description="开源、自托管地完成公开视频解析、本地视频与剧本文档导入、制品管理和 AI 分析。数据与运行边界由你掌控。"
           eyebrow="帧取 FrameFetch · 开源视频工作流"
           title={
@@ -67,13 +69,18 @@ export function PublicHome() {
           titleClassName="max-w-4xl sm:whitespace-nowrap"
         >
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild size="lg">
+            <Button asChild className="rounded-full" size="lg">
               <Link href="/user/register">
                 创建本地账户
                 <ArrowRightIcon aria-hidden data-icon="inline-end" />
               </Link>
             </Button>
-            <Button asChild size="lg" variant="secondary">
+            <Button
+              asChild
+              className="rounded-full"
+              size="lg"
+              variant="secondary"
+            >
               <a
                 href={siteConfig.repositoryUrl}
                 rel="noreferrer"
@@ -86,25 +93,27 @@ export function PublicHome() {
             </Button>
           </div>
         </EditorialIntro>
+      </section>
 
-        <div className="self-end lg:pb-1">
+      <section className="py-16 sm:py-24" aria-labelledby="workflow-title">
+        <div className="max-w-xl">
           <Badge className="w-fit" variant="secondary">
             工作流
           </Badge>
           <h2
-            className="mt-4 text-xl font-medium leading-snug"
+            className="mt-4 text-2xl font-semibold leading-8 tracking-[-0.04em]"
             id="workflow-title"
           >
             一套可审计的完整链路
           </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2 text-base text-muted-foreground">
             从识别到交付，每一步都有明确边界。
           </p>
           <div className="mt-8">
             <PublicHomeWorkflow items={workflow} />
           </div>
         </div>
-      </div>
+      </section>
 
       <div
         className="scroll-mt-24 py-20 lg:py-28"
@@ -137,7 +146,7 @@ export function PublicHome() {
           <Badge className="w-fit" variant="secondary">
             安全边界
           </Badge>
-          <h3 className="mt-4 text-xl font-medium leading-snug">
+          <h3 className="mt-4 text-xl font-semibold leading-7 tracking-[-0.03em]">
             运行与授权边界
           </h3>
           <p className="mt-2 text-sm text-muted-foreground">

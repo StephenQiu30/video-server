@@ -69,7 +69,7 @@ export function ProviderRow({
   const localCodex = isLocalCodexProvider(item.key);
   return (
     <TableRow>
-      <TableCell className="max-w-0 px-4 py-5">
+      <TableCell className="max-w-0 px-3 py-2">
         <div className="flex min-w-0 flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-medium">{item.display_name}</h3>
@@ -79,7 +79,7 @@ export function ProviderRow({
           <p className="truncate text-xs text-muted-foreground">{item.key}</p>
         </div>
       </TableCell>
-      <TableCell className="max-w-0 px-4 py-5">
+      <TableCell className="max-w-0 px-3 py-2">
         <div className="flex min-w-0 flex-col gap-1">
           <span className="truncate font-mono text-xs">{item.model}</span>
           <span className="truncate text-sm text-muted-foreground">
@@ -91,10 +91,10 @@ export function ProviderRow({
           </span>
         </div>
       </TableCell>
-      <TableCell className="px-4 py-5">
+      <TableCell className="px-3 py-2">
         <Badge variant="secondary">{providerEngineLabel(item.engine)}</Badge>
       </TableCell>
-      <TableCell className="px-4 py-5 text-right whitespace-nowrap">
+      <TableCell className="px-3 py-2 text-right whitespace-nowrap">
         <div className="flex flex-wrap items-center justify-end gap-2">
           {!item.is_active ? (
             <Button onClick={onActivate} size="sm" variant="outline">
@@ -139,12 +139,12 @@ export function ProviderTable({
   return (
     <Table className="min-w-[780px] table-fixed">
       <TableCaption className="sr-only">AI Provider 配置列表</TableCaption>
-      <TableHeader className="bg-muted/35">
+      <TableHeader>
         <TableRow className="hover:bg-transparent">
-          <TableHead className="w-[25%] px-4">服务</TableHead>
-          <TableHead className="w-[32%] px-4">模型与连接</TableHead>
-          <TableHead className="w-[16%] px-4">执行引擎</TableHead>
-          <TableHead className="w-[27%] px-4 text-right">操作</TableHead>
+          <TableHead className="w-[25%] px-3">服务</TableHead>
+          <TableHead className="w-[32%] px-3">模型与连接</TableHead>
+          <TableHead className="w-[16%] px-3">执行引擎</TableHead>
+          <TableHead className="w-[27%] px-3 text-right">操作</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

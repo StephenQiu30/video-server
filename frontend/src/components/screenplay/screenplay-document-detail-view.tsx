@@ -131,7 +131,7 @@ export default function ScreenplayDocumentDetailView({
               >
                 {documentStatusLabels[state.document.status]}
               </Badge>
-              <h1 className="mt-4 break-words text-[clamp(2.25rem,4vw,3.75rem)] font-medium leading-[0.98] tracking-[-0.055em]">
+              <h1 className="mt-4 break-words text-[clamp(2rem,4vw,3rem)] font-semibold leading-none tracking-[-0.05em]">
                 {state.document.title}
               </h1>
               <p className="mt-3 break-all text-sm text-muted-foreground">

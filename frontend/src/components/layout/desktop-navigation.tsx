@@ -102,8 +102,8 @@ function NavigationLink({
         asChild
         className={cn(
           navigationMenuTriggerStyle(),
-          'rounded-md px-3.5 text-[15px] text-foreground',
-          active && 'bg-muted',
+          'rounded-full px-3 text-sm text-muted-foreground hover:text-foreground',
+          active && 'bg-muted text-foreground',
         )}
       >
         <Link

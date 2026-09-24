@@ -9,7 +9,7 @@ export function MissingScreenplayDocument() {
         description="请返回剧本文档列表，选择一个仍可访问的文档。"
         title="剧本文档不存在"
         titleAs="h1"
-        titleClassName="text-[36px] font-medium leading-[1.02] tracking-[-0.05em] sm:text-[52px]"
+        titleClassName="text-[clamp(2.5rem,4vw,3rem)] font-semibold leading-none tracking-[-0.05em]"
       />
     </div>
   );

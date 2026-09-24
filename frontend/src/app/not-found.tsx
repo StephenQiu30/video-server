@@ -10,7 +10,7 @@ export default function NotFound() {
       eyebrow="404"
       title="页面，没有找到。"
       titleAs="h1"
-      titleClassName="text-[clamp(3.5rem,8vw,6rem)] font-medium leading-[0.94] tracking-[-0.065em]"
+      titleClassName="text-[clamp(2.5rem,4vw,3rem)] font-semibold leading-none tracking-[-0.05em]"
     />
   );
 }

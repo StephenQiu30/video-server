@@ -96,7 +96,7 @@ export function ProviderStatusItem({
     <>
       <TableRow>
         <TableHead
-          className="max-w-0 px-4 py-5 text-left align-middle whitespace-normal"
+          className="max-w-0 px-3 py-2 text-left align-middle whitespace-normal"
           scope="row"
         >
           <div className="flex min-w-0 flex-col gap-1">
@@ -106,7 +106,7 @@ export function ProviderStatusItem({
             </p>
           </div>
         </TableHead>
-        <TableCell className="px-4 py-5 whitespace-normal">
+        <TableCell className="px-3 py-2 whitespace-normal">
           <div className="flex flex-wrap gap-1.5">
             <Badge variant={statusVariant(provider)}>
               {statusLabel(provider)}
@@ -116,10 +116,10 @@ export function ProviderStatusItem({
             </Badge>
           </div>
         </TableCell>
-        <TableCell className="px-4 py-5 text-sm leading-6 text-muted-foreground whitespace-normal">
+        <TableCell className="px-3 py-2 text-sm leading-6 text-muted-foreground whitespace-normal">
           {capabilities || '暂无已登记能力'}
         </TableCell>
-        <TableCell className="px-4 py-5 text-right whitespace-nowrap">
+        <TableCell className="px-3 py-2 text-right whitespace-nowrap">
           <Button
             aria-controls={expanded ? detailsId : undefined}
             aria-expanded={expanded}
@@ -141,7 +141,7 @@ export function ProviderStatusItem({
       </TableRow>
       {expanded ? (
         <TableRow>
-          <TableCell colSpan={4} className="bg-muted/20 px-4 py-5">
+          <TableCell colSpan={4} className="bg-muted/20 px-3 py-2">
             <div
               className="grid gap-5 text-sm leading-6 text-muted-foreground sm:grid-cols-2"
               id={detailsId}

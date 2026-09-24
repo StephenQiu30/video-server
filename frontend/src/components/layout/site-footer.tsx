@@ -10,8 +10,8 @@ import { siteConfig } from '@/lib/site';
 
 export function SiteFooter({ className }: { className?: string }) {
   return (
-    <footer className={cn('shrink-0 bg-background', className)}>
-      <div className="content-shell flex min-h-16 flex-col justify-between gap-3 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center">
+    <footer className={cn('shrink-0 bg-card', className)}>
+      <div className="content-shell flex min-h-16 flex-col justify-between gap-3 py-5 text-sm text-muted-foreground sm:flex-row sm:items-center">
         <div className="flex items-center gap-4">
           <Link className="focus-ring font-medium text-foreground" href="/">
             帧取 · FrameFetch
@@ -42,7 +42,7 @@ function FooterLink({ children, href }: { children: string; href: string }) {
     <NavigationMenuItem>
       <NavigationMenuLink
         asChild
-        className="focus-ring rounded-md p-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground focus:bg-transparent"
+        className="focus-ring rounded-sm p-0 text-sm text-muted-foreground hover:bg-transparent hover:text-foreground focus:bg-transparent"
       >
         <Link href={href}>{children}</Link>
       </NavigationMenuLink>

@@ -44,7 +44,7 @@ export function ScreenplayCompletedAnalysis({
       <div className="flex flex-col gap-6">
         <div className="min-w-0 w-full">
           <h2
-            className="w-full text-[32px] font-medium leading-[1.05] tracking-[-0.045em] sm:text-[44px]"
+            className="w-full text-[clamp(1.5rem,3vw,2rem)] font-semibold leading-tight tracking-[-0.04em]"
             id="screenplay-analysis-title"
           >
             {title}

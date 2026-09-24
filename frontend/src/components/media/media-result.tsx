@@ -26,7 +26,7 @@ export function MediaResult({
         <div className="w-full" data-slot="media-result-frame">
           {media}
         </div>
-        <Heading className="mt-5 break-words text-pretty text-xl font-medium leading-8 tracking-[-0.025em] sm:text-2xl">
+        <Heading className="mt-5 break-words text-pretty text-xl font-semibold leading-7 tracking-[-0.03em] sm:text-2xl sm:leading-8">
           {title}
         </Heading>
         {metadata}

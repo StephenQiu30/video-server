@@ -90,21 +90,21 @@ export function UserList({
     <div className="overflow-x-auto rounded-md">
       <Table className="min-w-[760px] table-fixed">
         <TableCaption className="sr-only">用户账户列表</TableCaption>
-        <TableHeader className="bg-muted/35">
+        <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead className="px-4 text-xs font-normal text-muted-foreground">
+            <TableHead className="px-3 text-xs font-normal text-muted-foreground">
               用户名
             </TableHead>
-            <TableHead className="px-4 text-xs font-normal text-muted-foreground">
+            <TableHead className="px-3 text-xs font-normal text-muted-foreground">
               邮箱
             </TableHead>
-            <TableHead className="px-4 text-xs font-normal text-muted-foreground">
+            <TableHead className="px-3 text-xs font-normal text-muted-foreground">
               身份与状态
             </TableHead>
-            <TableHead className="px-4 text-xs font-normal text-muted-foreground">
+            <TableHead className="px-3 text-xs font-normal text-muted-foreground">
               注册日期
             </TableHead>
-            <TableHead className="px-4 text-right text-xs font-normal text-muted-foreground">
+            <TableHead className="px-3 text-right text-xs font-normal text-muted-foreground">
               操作
             </TableHead>
           </TableRow>
@@ -112,17 +112,17 @@ export function UserList({
         <TableBody>
           {items.map((item) => (
             <TableRow key={item.id}>
-              <TableCell className="max-w-0 truncate px-4 py-5 font-medium">
+              <TableCell className="max-w-0 truncate px-3 py-2 font-medium">
                 {item.username}
               </TableCell>
-              <TableCell className="max-w-0 truncate px-4 py-5 text-muted-foreground">
+              <TableCell className="max-w-0 truncate px-3 py-2 text-muted-foreground">
                 {item.email}
               </TableCell>
-              <TableCell className="px-4 py-5">{badges(item)}</TableCell>
-              <TableCell className="px-4 py-5 text-xs text-muted-foreground tabular-nums">
+              <TableCell className="px-3 py-2">{badges(item)}</TableCell>
+              <TableCell className="px-3 py-2 text-xs text-muted-foreground tabular-nums">
                 {formatUserDate(item.created_at)}
               </TableCell>
-              <TableCell className="px-4 py-5 text-right whitespace-nowrap">
+              <TableCell className="px-3 py-2 text-right whitespace-nowrap">
                 {action(item)}
               </TableCell>
             </TableRow>

@@ -33,13 +33,13 @@ export function EditorialIntro({
       {...props}
     >
       {eyebrow ? (
-        <p className="text-xs font-medium text-muted-foreground">{eyebrow}</p>
+        <p className="font-mono text-xs text-muted-foreground">{eyebrow}</p>
       ) : null}
       <Heading
         className={cn(
           as === 'h1'
             ? 'editorial-title'
-            : 'text-balance text-[clamp(2.25rem,4vw,3.75rem)] font-medium leading-[0.98] tracking-[-0.055em]',
+            : 'text-balance text-[clamp(1.5rem,3vw,2rem)] font-semibold leading-10 tracking-[-0.04em]',
           eyebrow && 'mt-5',
           titleClassName,
         )}
@@ -49,7 +49,7 @@ export function EditorialIntro({
       </Heading>
       <p
         className={cn(
-          'mt-5 max-w-2xl text-[15px] leading-7 text-muted-foreground',
+          'mt-4 max-w-2xl text-lg leading-7 text-muted-foreground',
           descriptionClassName,
         )}
       >
