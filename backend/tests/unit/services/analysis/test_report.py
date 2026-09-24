@@ -111,7 +111,7 @@ def test_visual_report_keeps_the_editorial_structure_in_english() -> None:
     assert "## How to read this analysis" in markdown
 
 
-def test_screenplay_report_uses_coverage_sections_and_explains_evidence() -> None:
+def test_screenplay_report_uses_coverage_sections_without_internal_ids() -> None:
     result = replace(
         screenplay_analysis_result(),
         title="剧本 [分析] <草稿>",
@@ -124,11 +124,12 @@ def test_screenplay_report_uses_coverage_sections_and_explains_evidence() -> Non
     assert "## 一、阅读摘要" in markdown
     assert "- 逐场景分析：1 个源场景，已按原文顺序覆盖" in markdown
     assert "## 五、逐场景分析" in markdown
-    assert "### 场景 1：scene-1" in markdown
+    assert "### 场景 1" in markdown
+    assert "scene-1" not in markdown
     assert "## 八、优先修改建议" in markdown
     assert "> 本项没有独立发现。" in markdown
-    assert "## 九、证据说明" in markdown
-    assert "逐场景分析已经由服务端校验为完整、唯一且保持原文顺序" in markdown
+    assert "## 九、阅读说明" in markdown
+    assert "分析判断仍需对照原文核查" in markdown
     assert markdown.endswith("\n")
 
 

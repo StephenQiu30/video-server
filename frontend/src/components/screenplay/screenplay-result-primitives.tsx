@@ -37,7 +37,6 @@ export function EvidenceList({
                 <p className="mt-2 leading-7 text-muted-foreground">
                   {item.description}
                 </p>
-                <EvidenceIds ids={item.evidence_scene_ids} />
               </li>
             </Item>
           ))}
@@ -46,14 +45,6 @@ export function EvidenceList({
         <p className="py-7 text-muted-foreground">本项没有独立发现。</p>
       )}
     </div>
-  );
-}
-
-export function EvidenceIds({ ids }: { ids: string[] }) {
-  return (
-    <p className="mt-3 break-all font-mono text-xs text-muted-foreground">
-      证据：{ids.join(' · ')}
-    </p>
   );
 }
 

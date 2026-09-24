@@ -58,7 +58,6 @@ def _analysis_report(result: ScreenplayAnalysisResult) -> str:
                     f"- 外部目标：{_inline(character.goal)}",
                     f"- 核心冲突：{_inline(character.conflict)}",
                     f"- 人物弧光：{_inline(character.arc)}",
-                    f"- 证据场景：{_scene_refs(character.evidence_scene_ids)}",
                     "",
                 )
             )
@@ -68,7 +67,7 @@ def _analysis_report(result: ScreenplayAnalysisResult) -> str:
     for index, scene in enumerate(result.scenes, start=1):
         lines.extend(
             (
-                f"### 场景 {index}：{_inline(scene.source_scene_id)}",
+                f"### 场景 {index}",
                 "",
                 f"- 场景功能：{_inline(scene.purpose)}",
                 f"- 冲突压力：{_inline(scene.conflict)}",
@@ -79,7 +78,7 @@ def _analysis_report(result: ScreenplayAnalysisResult) -> str:
         lines.extend(f"- 发现：{_inline(item)}" for item in scene.findings)
         if not scene.findings:
             lines.append("- 发现：本场没有独立发现。")
-        lines.extend((f"- 证据场景：{_inline(scene.source_scene_id)}", ""))
+        lines.append("")
     lines.extend(("## 六、对白与写作", ""))
     _evidence_items(lines, "对白发现", result.dialogue_findings)
     lines.extend(("## 七、文本优势", ""))
@@ -88,11 +87,10 @@ def _analysis_report(result: ScreenplayAnalysisResult) -> str:
     _evidence_items(lines, "建议清单", result.priority_revisions)
     lines.extend(
         (
-            "## 九、证据说明",
+            "## 九、阅读说明",
             "",
-            "报告中的证据场景 ID 对应规范化剧本的源场景。"
-            "逐场景分析已经由服务端校验为完整、唯一且保持原文顺序；"
-            "全局结论只引用这些源场景。",
+            "场景序号按上传剧本的规范化文本顺序排列。"
+            "服务端校验了逐场景覆盖与顺序；分析判断仍需对照原文核查。",
             "",
         )
     )
@@ -145,14 +143,9 @@ def _evidence_items(
                 "",
                 _inline(item.description),
                 "",
-                f"证据场景：{_scene_refs(item.evidence_scene_ids)}",
                 "",
             )
         )
-
-
-def _scene_refs(values: tuple[str, ...]) -> str:
-    return ", ".join(_inline(value) for value in values)
 
 
 def _inline(value: str) -> str:

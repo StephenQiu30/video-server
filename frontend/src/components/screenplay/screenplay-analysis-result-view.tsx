@@ -5,7 +5,6 @@ import { cn } from 'cn';
 import AnalysisReportPreview from '@/components/analysis/analysis-report-preview';
 import {
   Detail,
-  EvidenceIds,
   EvidenceList,
   languageLabel,
   Metric,
@@ -76,7 +75,6 @@ export default function ScreenplayAnalysisResultView({
                     <Detail label="冲突">{character.conflict}</Detail>
                     <Detail label="人物弧">{character.arc}</Detail>
                   </ItemGroup>
-                  <EvidenceIds ids={character.evidence_scene_ids} />
                 </li>
               </Item>
             ))}
@@ -112,7 +110,6 @@ export default function ScreenplayAnalysisResultView({
                       ))}
                     </ul>
                   ) : null}
-                  <EvidenceIds ids={[scene.source_scene_id]} />
                 </div>
               </li>
             </Item>
