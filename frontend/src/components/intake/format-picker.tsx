@@ -52,7 +52,11 @@ export default function FormatPicker({
         return (
           <FieldLabel htmlFor={format.id} key={format.id}>
             <Field orientation="horizontal">
-              <RadioGroupItem id={format.id} value={format.id} />
+              {/* FieldContent aligns direct controls to the first text line.
+                  Stretch a layout wrapper to center the radio against both lines. */}
+              <div className="flex self-stretch items-center">
+                <RadioGroupItem id={format.id} value={format.id} />
+              </div>
               <FieldContent>
                 <FieldTitle>
                   {plan

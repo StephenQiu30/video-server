@@ -125,7 +125,7 @@ export default function DownloadWorkspace() {
           : !snapshot
             ? '正在确认接单，请稍候，无需重复提交。'
             : intent.pending
-              ? '任务在后台处理，切换页面不会中断解析。'
+              ? '后台处理中，可继续浏览。'
               : snapshot.status === IntentStatusCode.Ready
                 ? intent.inspection
                   ? '解析已完成，正在打开结果页。'
@@ -139,19 +139,28 @@ export default function DownloadWorkspace() {
       toast.dismiss(PARSE_STATUS_TOAST_ID);
       return;
     }
-    toast.loading(showPendingToast ? intentStatusTitle : '正在提交解析请求', {
-      id: PARSE_STATUS_TOAST_ID,
-      description: showPendingToast
-        ? intentStatusDescription
-        : '请稍候，无需重复提交。',
-      duration: Number.POSITIVE_INFINITY,
-      action: canCancelToast
-        ? {
-            label: intent.cancelling ? '正在取消…' : '取消解析',
-            onClick: () => cancelFromToast(),
-          }
-        : undefined,
-    });
+    toast.loading(
+      intent.cancelling
+        ? '正在取消解析'
+        : showPendingToast
+          ? intentStatusTitle
+          : '正在提交解析请求',
+      {
+        id: PARSE_STATUS_TOAST_ID,
+        position: 'bottom-right',
+        description: showPendingToast
+          ? intentStatusDescription
+          : '请稍候，无需重复提交。',
+        duration: Number.POSITIVE_INFINITY,
+        cancel:
+          canCancelToast && !intent.cancelling
+            ? {
+                label: '取消解析',
+                onClick: () => cancelFromToast(),
+              }
+            : undefined,
+      },
+    );
   }, [
     showPendingToast,
     showSubmittingToast,
