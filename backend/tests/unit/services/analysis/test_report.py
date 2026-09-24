@@ -121,14 +121,14 @@ def test_screenplay_report_uses_coverage_sections_without_internal_ids() -> None
     markdown = render_screenplay_report_markdown(result)
 
     assert markdown.startswith("# 剧本 \\[分析\\] &lt;草稿&gt;")
-    assert "## 一、阅读摘要" in markdown
+    assert "## 一、审稿重点" in markdown
     assert "- 逐场景分析：1 个源场景，已按原文顺序覆盖" in markdown
-    assert "## 五、逐场景分析" in markdown
+    assert "## 六、逐场景附录" in markdown
     assert "### 场景 1" in markdown
     assert "scene-1" not in markdown
-    assert "## 八、优先修改建议" in markdown
+    assert "### 优先修改" in markdown
     assert "> 本项没有独立发现。" in markdown
-    assert "## 九、阅读说明" in markdown
+    assert "## 七、阅读说明" in markdown
     assert "分析判断仍需对照原文核查" in markdown
     assert markdown.endswith("\n")
 

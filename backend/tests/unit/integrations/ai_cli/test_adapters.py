@@ -187,7 +187,7 @@ async def test_claude_screenplay_rejects_oversized_schema_before_process(
     screenplay = replace(
         screenplay,
         source_scene_ids=tuple(
-            f"scene-{index:04d}-{'a' * 110}" for index in range(1, 121)
+            f"scene-{index:04d}-{'a' * 300}" for index in range(1, 121)
         ),
     )
 

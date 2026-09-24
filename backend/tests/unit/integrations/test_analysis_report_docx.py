@@ -19,7 +19,7 @@ def test_docx_report_is_valid_and_uses_business_brief_geometry() -> None:
     assert round(section.page_height.inches, 2) == 11
     assert round(section.left_margin.inches, 2) == 1
     assert document.core_properties.title == "产品 [演示](https://invalid.example)"
-    assert document.core_properties.subject == "Editorial video analysis"
+    assert document.core_properties.subject == "Editorial analysis report"
     assert len(document.tables) == 1
     paragraphs = "\n".join(paragraph.text for paragraph in document.paragraphs)
     assert "先说结论：这支片子最值得看什么" in paragraphs
@@ -32,5 +32,6 @@ def test_docx_report_is_valid_and_uses_business_brief_geometry() -> None:
     assert 'w:w="2040"' in xml
     assert 'w:w="120"' in xml
     assert 'w:fill="F2F4F7"' in xml
-    assert "EDITORIAL BREAKDOWN" in header_xml
+    assert "ANALYSIS REPORT" in header_xml
+    assert "EDITORIAL REVIEW" in header_xml
     assert "展示主要界面。" in xml
