@@ -118,3 +118,19 @@ def test_egress_proxy_uses_pinned_squid_without_a_go_build_surface() -> None:
             "-f",
             "/etc/squid/squid.conf",
         ]
+
+
+def test_douyin_cold_media_port_remains_domain_scoped() -> None:
+    config = CONFIG.read_text(encoding="utf-8")
+    assert "acl safe_ports port 8889" in config
+    assert "acl ssl_ports port 8889" in config
+    assert "acl douyin_cold_media dstdomain .wmzfylgdsz.com" in config
+    deny = config.index("http_access deny douyin_cold_media_port !douyin_cold_media")
+    allow = config.index(
+        "http_access allow docker_clients douyin_cold_media_port "
+        "douyin_cold_media docker_desktop_synthetic_dns"
+    )
+    assert deny < config.index("http_access allow docker_clients")
+    assert config.index("http_access deny ip_literal_url") < allow
+    assert config.index("http_access deny blocked_name") < allow
+    assert "http_access deny blocked_destination" in config

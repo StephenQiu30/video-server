@@ -7,7 +7,7 @@ import math
 import re
 import secrets
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
@@ -132,6 +132,8 @@ class MediaRunnerHttpClient:
         nonce: Callable[[], str] | None = None,
         admission: ProviderRouteAdmission | None = None,
         expected_access_mode: ProviderAccessMode | None = None,
+        reject_guest: Callable[[ProviderAccessContextRef], Awaitable[None]]
+        | None = None,
     ) -> None:
         if len(secret) < 32:
             raise ValueError("runner HMAC secret must contain at least 32 bytes")
@@ -144,6 +146,7 @@ class MediaRunnerHttpClient:
         self._owns_client = client is None
         self._admission = admission
         self._expected_access_mode = expected_access_mode
+        self._reject_guest = reject_guest
         self._client = client or httpx.AsyncClient(base_url=base_url)
 
     async def engine_catalog(self) -> EngineCatalogResponse:
@@ -195,6 +198,7 @@ class MediaRunnerHttpClient:
 
     async def inspect(self, url: str) -> RunnerInspection:
         context_ready = False
+        context = None
         try:
             context = (
                 await self.context(url)
@@ -231,6 +235,15 @@ class MediaRunnerHttpClient:
                     raise MediaInspectionConfigurationMissing from exc
                 raise MediaInspectionAuthRequired from exc
             if exc.code == "guest_context_required":
+                if (
+                    context is not None
+                    and context.access_mode is ProviderAccessMode.GUEST
+                    and self._reject_guest is not None
+                ):
+                    try:
+                        await self._reject_guest(context)
+                    except Exception:
+                        raise MediaInspectionTemporarilyUnavailable from None
                 raise MediaInspectionGuestContextRequired(
                     before_media_io=not context_ready
                 ) from exc

@@ -1,6 +1,6 @@
 """Short transactions own guest single-flight, global slots and fenced publication."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import cast
 
 from sqlalchemy import select, text
@@ -15,6 +15,11 @@ from app.services.provider_guest import (
     GuestMaintenanceLease,
     GuestScope,
     GuestState,
+)
+from app.services.provider_types import (
+    ProviderAccessContextRef,
+    ProviderAccessMode,
+    ProviderKey,
 )
 
 _PREPARING = ("preparing", "refreshing")
@@ -38,6 +43,24 @@ class GuestContexts:
         async with self._sessions() as session:
             row = await session.get(Row, scope.key)
             return None if row is None else _snapshot(row, scope)
+
+    async def reject(self, context: ProviderAccessContextRef) -> None:
+        """Expire only the visitor revision actually rejected by upstream."""
+        if context.access_mode is not ProviderAccessMode.GUEST:
+            return
+        scope = GuestScope(
+            ProviderKey(context.provider_key),
+            context.profile_version,
+            context.client_profile_id,
+            context.egress_affinity_id,
+        )
+        observed = await self.read(scope)
+        if (
+            observed is None
+            or context.credential_version_id != f"guest-{observed.revision}"
+        ):
+            return
+        await self.invalidate(observed, now=datetime.now(UTC))
 
     async def claim(
         self, scope: GuestScope, owner: str, *, now: datetime

@@ -158,7 +158,10 @@ class YtDlpCommandBuilder:
             argv=command,
             request=request,
             egress_proxy=egress_proxy,
-            authenticated=cookie_jar is not None,
+            authenticated=(
+                cookie_jar is not None
+                and self._settings.runner_access_mode is not ProviderAccessMode.GUEST
+            ),
         )
 
     @staticmethod

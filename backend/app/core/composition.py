@@ -73,6 +73,7 @@ from app.repositories.providers.canary_repository import (
 from app.repositories.providers.catalog_repository import (
     SqlAlchemyProviderCatalogRepository,
 )
+from app.repositories.providers.guest_contexts import GuestContexts
 from app.repositories.providers.route_cooldowns import SqlAlchemyProviderRouteCooldowns
 from app.repositories.providers.status_evidence import (
     MergedProviderStatusEvidenceReader,
@@ -221,7 +222,9 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
     ai_provider_repository = SqlAlchemyAiProviderRepository(sessions)
     store = repository
     runner = media_runner_router(
-        settings, ProviderRouteAdmission(SqlAlchemyProviderRouteCooldowns(sessions))
+        settings,
+        ProviderRouteAdmission(SqlAlchemyProviderRouteCooldowns(sessions)),
+        reject_guest=GuestContexts(sessions).reject,
     )
     storage = MinioObjectStorage(settings, enable_public_signing=True)
     import_storage = MinioObjectStorage.for_imports(settings)

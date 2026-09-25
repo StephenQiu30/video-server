@@ -87,8 +87,10 @@ allowlist 选择，不把其他域行返回后再过滤。Runner 每次生成一
 出口目的地址策略由固定版本 Squid 与只读 ACL 文件实现。所有环境统一使用
 `backend/egress/blocked-destinations.conf`：放行透明代理与 Docker Desktop 用于公网
 DNS 的合成段 `198.18.0.0/15`，其余私网段、字面量 IP 与非 Web 端口一律拒绝。Bilibili
-媒体 CDN 的 4483/8082 例外仅对受控 CDN 域名开放。修改后必须重建 `egress-proxy`，
-仅重启其他业务容器不会应用镜像或挂载配置变化。
+媒体 CDN 的 4483/8082 与抖音冷媒体 CDN `*.wmzfylgdsz.com` 的 TLS 8889 例外仅对指定域名开放。
+只修改只读挂载的 ACL 时，先执行 `squid -k parse -f /etc/squid/squid.conf` 校验，再用
+`squid -k reconfigure -f /etc/squid/squid.conf` 热加载；镜像、挂载或网络配置变化则重建 `egress-proxy`。
+仅重启其他业务容器不会应用代理配置变化。
 
 访问地址：
 

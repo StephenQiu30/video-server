@@ -260,6 +260,11 @@ async def test_guest_wait_only_applies_before_media_request(
     http = httpx.AsyncClient(
         base_url="http://runner", transport=httpx.MockTransport(respond)
     )
+    rejected = []
+
+    async def reject_guest(context: ProviderAccessContextRef) -> None:
+        rejected.append(context)
+
     client = MediaRunnerHttpClient(
         base_url="http://runner",
         secret=b"s" * 32,
@@ -268,17 +273,26 @@ async def test_guest_wait_only_applies_before_media_request(
         download_timeout_seconds=1,
         expected_access_mode=ProviderAccessMode.GUEST,
         client=http,
+        reject_guest=reject_guest,
     )
 
     async def context(_url: str) -> ProviderAccessContextRef:
         if not context_ready:
             raise MediaRunnerClientError("guest_context_required", 503)
-        return _access_context()
+        from dataclasses import replace
+
+        return replace(
+            _access_context(),
+            provider_key="douyin",
+            access_mode=ProviderAccessMode.GUEST,
+            credential_version_id="guest-1",
+        )
 
     monkeypatch.setattr(client, "context", context)
     with pytest.raises(MediaInspectionGuestContextRequired) as captured:
         await client.inspect("https://www.douyin.com/video/123")
     assert captured.value.before_media_io is not context_ready
+    assert len(rejected) == int(context_ready)
     await http.aclose()
 
 

@@ -24,6 +24,7 @@ from app.integrations.url_security import FernetUrlEnvelope, MediaUrlValidator
 from app.repositories.downloads.execution import DownloadExecutionRepository
 from app.repositories.downloads.intent_repository import IntentRepository
 from app.repositories.downloads.repository import SqlAlchemyDownloadRepository
+from app.repositories.providers.guest_contexts import GuestContexts
 from app.repositories.providers.route_cooldowns import SqlAlchemyProviderRouteCooldowns
 from app.services.download_execution.models import DownloadExecutionSettings
 from app.services.download_execution.service import DownloadExecution
@@ -67,7 +68,9 @@ def build_runtime(settings: Settings) -> DownloadWorkerRuntime:
     repository = DownloadExecutionRepository(raw_repository)
     workspace_cleaner = SharedWorkspaceCleaner(settings.runner_workspace_root)
     runner = media_runner_router(
-        settings, ProviderRouteAdmission(SqlAlchemyProviderRouteCooldowns(sessions))
+        settings,
+        ProviderRouteAdmission(SqlAlchemyProviderRouteCooldowns(sessions)),
+        reject_guest=GuestContexts(sessions).reject,
     )
     storage = MinioObjectStorage(settings)
     thumbnail_recovery = ArtifactThumbnailRecovery(

@@ -6,6 +6,7 @@ from pathlib import Path
 import httpx
 import pytest
 from app.services.downloads.rules.enums import Container
+from app.services.provider_types import ProviderAccessMode
 from app.workers.runner import commands as commands_module
 from app.workers.runner.commands import MediaCommands
 from app.workers.runner.errors import RunnerFailure
@@ -1420,3 +1421,24 @@ async def test_segment_prefix_probe_bounds_bytes_uses_proxy_and_cleans_up(
     )
     assert observed == {"proxy": configured.runner_egress_proxy, "closed": True}
     assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.asyncio
+async def test_guest_cookie_rejection_requests_guest_refresh(tmp_path: Path) -> None:
+    config = settings(tmp_path).model_copy(
+        update={"runner_access_mode": ProviderAccessMode.GUEST}
+    )
+    commands = MediaCommands(
+        config,
+        FailingSupervisor(
+            b"ERROR: Fresh cookies (not necessarily logged in) are needed"
+        ),
+    )
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect(
+            "https://www.douyin.com/video/123",
+            tmp_path,
+            cookie_jar=tmp_path / "guest.txt",
+        )
+    assert caught.value.code == "guest_context_required"
+    assert caught.value.status == 503

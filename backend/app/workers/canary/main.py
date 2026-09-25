@@ -17,6 +17,7 @@ from app.integrations.media_runner_factory import (
 from app.repositories.providers.canary_repository import (
     SqlAlchemyProviderCanaryRepository,
 )
+from app.repositories.providers.guest_contexts import GuestContexts
 from app.repositories.providers.route_cooldowns import SqlAlchemyProviderRouteCooldowns
 from app.services.provider_route_admission import ProviderRouteAdmission
 from app.workers.canary.runner import ProviderCanaryRunner
@@ -62,7 +63,9 @@ def build_runtime(settings: Settings) -> ProviderCanaryRuntime:
     anonymous = anonymous_media_runner(settings, admission)
     operators = operator_media_runners(settings, admission)
     runner = ProviderCanaryRunner(
-        anonymous, operators, guests=guest_media_runners(settings, admission)
+        anonymous,
+        operators,
+        guests=guest_media_runners(settings, admission, GuestContexts(sessions).reject),
     )
     service = ProviderCanaryService(
         repository,

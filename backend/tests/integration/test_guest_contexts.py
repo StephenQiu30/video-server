@@ -9,7 +9,11 @@ from app.models.provider_guest_context import ProviderGuestContextRow
 from app.repositories.errors import LeaseConflict
 from app.repositories.providers.guest_contexts import GuestContexts
 from app.services.provider_guest import GuestScope
-from app.services.provider_types import ProviderKey
+from app.services.provider_types import (
+    ProviderAccessContextRef,
+    ProviderAccessMode,
+    ProviderKey,
+)
 from cryptography.fernet import Fernet
 from sqlalchemy import inspect, text
 from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -208,3 +212,29 @@ async def test_guest_schema_empty_and_repeated_preserves_active_lease():
                 lease, b"encrypted", now=NOW, valid_until=NOW + timedelta(minutes=5)
             )
         ).state == "ready"
+
+
+async def test_upstream_guest_rejection_expires_only_matching_revision(postgres_engine):
+    repo = repository(postgres_engine)
+    now = datetime.now(UTC)
+    lease = await repo.claim(SCOPE, "worker", now=now)
+    await repo.publish(
+        lease, b"visitor", now=now, valid_until=now + timedelta(minutes=15)
+    )
+    context = ProviderAccessContextRef(
+        provider_key="douyin",
+        profile_version=SCOPE.profile_version,
+        access_mode=ProviderAccessMode.GUEST,
+        credential_version_id="guest-0",
+        egress_affinity_id=SCOPE.egress_affinity_id,
+        client_profile_id=SCOPE.client_profile_id,
+        attestation_provider_version=None,
+        engine_commit="test",
+    )
+    await repo.reject(context)
+    assert (await repo.read(SCOPE)).state == "ready"
+    await repo.reject(replace(context, credential_version_id="guest-1"))
+    current = await repo.read(SCOPE)
+    assert current.state == "cooling" and current.ciphertext is None
+    assert current.reason_code == "provider_guest_context_required"
+    assert await repo.claim(SCOPE, "refresh", now=current.retry_at) is not None
