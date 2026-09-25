@@ -111,8 +111,11 @@ export function UserList({
             {
               id: '邮箱',
               header: '邮箱',
-              className: 'whitespace-normal',
-              cell: (item) => <span className="break-all">{item.email}</span>,
+              cell: (item) => (
+                <span className="block truncate" title={item.email}>
+                  {item.email}
+                </span>
+              ),
             },
             {
               id: '身份与状态',

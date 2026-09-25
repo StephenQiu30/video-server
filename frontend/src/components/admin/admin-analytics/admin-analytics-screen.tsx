@@ -53,7 +53,7 @@ export function AdminAnalyticsScreen({
         <PageNavigation fallbackHref="/account" />
         <PageHeader
           action={
-            <div className="flex flex-col gap-3 sm:items-end">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 {data ? (
                   <p className="text-xs text-muted-foreground tabular-nums">

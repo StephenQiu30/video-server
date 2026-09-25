@@ -132,7 +132,7 @@ export function OperationLogsView() {
           setPage(1);
         }}
       >
-        <FieldGroup className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <FieldGroup className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_repeat(4,minmax(0,1fr))]">
           <Field>
             <FieldLabel htmlFor="log-search">操作人或操作名称</FieldLabel>
             <div className="flex gap-2">

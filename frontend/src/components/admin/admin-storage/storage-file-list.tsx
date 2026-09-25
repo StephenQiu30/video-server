@@ -49,31 +49,31 @@ export function StorageFileList({
             {
               id: '类型',
               header: '类型',
-              className: 'whitespace-normal',
+              className: 'w-28 whitespace-normal',
               cell: (item) => <> {storageCategoryLabels[item.category]} </>,
             },
             {
               id: '对象数',
               header: '对象数',
-              className: 'text-right tabular-nums whitespace-normal',
+              className: 'w-20 text-right tabular-nums whitespace-normal',
               cell: (item) => <> {item.object_count} </>,
             },
             {
               id: '创建时间',
               header: '创建时间',
-              className: 'tabular-nums whitespace-normal',
+              className: 'w-44 tabular-nums whitespace-normal',
               cell: (item) => <> {formatStorageDate(item.created_at)} </>,
             },
             {
               id: '大小',
               header: '大小',
-              className: 'text-right tabular-nums whitespace-normal',
+              className: 'w-24 text-right tabular-nums whitespace-normal',
               cell: (item) => <> {formatStorageSize(item.size_bytes)} </>,
             },
             {
               id: '操作',
               header: '操作',
-              className: 'text-right whitespace-normal',
+              className: 'w-20 text-right whitespace-normal',
               cell: (item) => (
                 <>
                   <Button

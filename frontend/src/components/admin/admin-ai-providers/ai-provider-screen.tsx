@@ -111,9 +111,7 @@ export function AiProviderScreen({
                 <ExecutionRoute active={active} />
               </div>
               <div className="lg:text-right">
-                <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
-                  Model
-                </p>
+                <p className="text-xs text-muted-foreground">模型</p>
                 <p className="mt-1 font-mono text-sm">{active.model}</p>
               </div>
             </div>

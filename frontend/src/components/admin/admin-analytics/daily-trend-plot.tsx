@@ -77,13 +77,15 @@ export function DailyTrendPlot({ points }: { points: DailyPoint[] }) {
           }
           cursor={false}
         />
+        {/* Linear segments keep succeeded <= total between daily points;
+            spline smoothing could draw impossible values. */}
         <Area
           dataKey="total"
           fill="url(#fillTotal)"
           isAnimationActive={false}
           stroke="var(--color-total)"
           strokeWidth={2}
-          type="monotone"
+          type="linear"
         />
         <Area
           dataKey="succeeded"
@@ -91,7 +93,7 @@ export function DailyTrendPlot({ points }: { points: DailyPoint[] }) {
           isAnimationActive={false}
           stroke="var(--color-succeeded)"
           strokeWidth={2}
-          type="monotone"
+          type="linear"
         />
         <ChartLegend content={<ChartLegendContent />} />
       </AreaChart>
