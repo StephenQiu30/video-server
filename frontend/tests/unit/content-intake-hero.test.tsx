@@ -33,7 +33,7 @@ describe('ContentIntakeHero', () => {
     );
     expect(container.querySelector('[data-slot="tabs-list"]')).toHaveClass(
       'w-full',
-      'sm:w-fit',
+      'grid-cols-3',
     );
     expect(container.querySelector('[data-slot="tabs-list"]')).toHaveAttribute(
       'data-variant',

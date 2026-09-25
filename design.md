@@ -9,7 +9,8 @@
 - 组合页面时优先使用已有的 Button、Badge、Card、Dialog、DropdownMenu、Field、Input、InputGroup、NavigationMenu、Select、Table、Tabs、Textarea、Tooltip 等组件。交互状态使用组件自带的 `variant`、`size` 和 Radix 状态属性。
 - 页面级 `className` 只负责布局：宽度、网格、排列、间距与响应式位置。不要用它改写组件的颜色、字号、圆角、阴影、高度、内边距或边框。
 
-- 首页的链接解析、本地视频与剧本文档统一采用 56px 的大尺寸输入区与同排操作按钮。依据用户对入口可发现性的要求，Input 使用共享 `controlSize="xl"`、Button 使用共享 `size="xl"`；仅扩展尺寸，保留官方颜色、圆角、焦点与错误状态，默认尺寸不变。
+- 链接解析、本地视频与剧本文档使用共享大尺寸输入区与同排操作按钮。Input 使用 `controlSize="xl"`、Button 使用 `size="xl"`，高度 56px；保留官方颜色、圆角、焦点与错误状态，默认尺寸不变。
+- 首页通过布局体现开阔感，不等比例放大文字和组件。标题与说明复用其他页面的 PageHeader 字级；三个功能入口等宽铺满内容容器，输入与同排操作按钮沿用共享尺寸。通过标题、切换区、操作区的分组间距组织首屏，左右边界与导航栏一致。
 
 ## 色彩与字体
 
