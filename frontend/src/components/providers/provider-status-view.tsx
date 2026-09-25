@@ -134,12 +134,16 @@ export function ProviderStatusView() {
                   <TableCaption className="sr-only">平台能力状态</TableCaption>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[27%]">平台</TableHead>
-                      <TableHead className="w-[24%]">状态与接入</TableHead>
+                      <TableHead className="w-[35%] sm:w-[27%]">平台</TableHead>
+                      <TableHead className="w-[40%] sm:w-[24%]">
+                        状态与接入
+                      </TableHead>
                       <TableHead className="hidden w-[34%] sm:table-cell">
                         已登记能力
                       </TableHead>
-                      <TableHead className="w-[15%] text-right">操作</TableHead>
+                      <TableHead className="w-[25%] text-right sm:w-[15%]">
+                        操作
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

@@ -118,13 +118,14 @@ export function ProviderStatusItem({
         </TableCell>
         <TableCell className="text-right whitespace-nowrap">
           <Button
+            aria-label="验证详情"
             aria-controls={expanded ? detailsId : undefined}
             aria-expanded={expanded}
             onClick={() => setExpanded((current) => !current)}
             size="sm"
             variant="ghost"
           >
-            验证详情
+            <span className="hidden sm:inline">验证</span>详情
             <CaretDownIcon
               aria-hidden
               className={cn(
@@ -137,9 +138,9 @@ export function ProviderStatusItem({
       </TableRow>
       {expanded ? (
         <TableRow>
-          <TableCell colSpan={4}>
+          <TableCell className="whitespace-normal" colSpan={4}>
             <div
-              className="grid gap-5 text-sm leading-6 text-muted-foreground sm:grid-cols-2"
+              className="grid grid-cols-1 gap-5 text-sm leading-6 text-muted-foreground sm:grid-cols-2"
               id={detailsId}
             >
               <div>

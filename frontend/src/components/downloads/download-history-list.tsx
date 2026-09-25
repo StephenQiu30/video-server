@@ -1,4 +1,4 @@
-import { ArrowClockwise, DownloadSimple } from '@phosphor-icons/react';
+import { ArrowClockwise, DownloadSimple, Eye } from '@phosphor-icons/react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { DownloadDeleteDialog } from '@/components/downloads/download-delete-dialog';
@@ -87,7 +87,7 @@ export default function DownloadHistoryList({
             {
               id: 'actions',
               header: '操作',
-              className: 'w-28 text-right sm:w-[240px]',
+              className: 'w-20 text-right sm:w-[240px]',
               hideable: false,
               cell: (item) => (
                 <HistoryActions
@@ -123,10 +123,10 @@ function HistoryContent({ item }: { item: API.DownloadHistoryItemResponse }) {
   return (
     <Link
       aria-label={item.title}
-      className="focus-ring grid min-w-0 grid-cols-[64px_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[96px_minmax(0,1fr)]"
+      className="focus-ring grid min-w-0 grid-cols-1 items-center gap-3 sm:grid-cols-[96px_minmax(0,1fr)]"
       href={detailHref}
     >
-      <div>
+      <div className="hidden sm:block">
         <MediaCover
           alt={`${item.title} 媒体封面`}
           className="w-16 sm:w-24"
@@ -211,7 +211,10 @@ function HistoryActions({
         </Button>
       ) : recovery === 'reimport' ? (
         <Button asChild size="sm" variant="ghost">
-          <Link href="/">返回首页重新导入</Link>
+          <Link href="/">
+            <ArrowClockwise aria-hidden data-icon="inline-start" />
+            <span className="sr-only sm:not-sr-only">返回首页重新导入</span>
+          </Link>
         </Button>
       ) : recovery === 'retry' ? (
         <Button
@@ -229,7 +232,10 @@ function HistoryActions({
         </Button>
       ) : (
         <Button asChild size="sm" variant="ghost">
-          <Link href={detailHref}>查看任务</Link>
+          <Link href={detailHref}>
+            <Eye aria-hidden data-icon="inline-start" />
+            <span className="sr-only sm:not-sr-only">查看任务</span>
+          </Link>
         </Button>
       )}
       <DownloadDeleteDialog
