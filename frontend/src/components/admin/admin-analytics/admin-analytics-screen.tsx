@@ -7,10 +7,10 @@ import { DailyTrendChart } from '@/components/admin/admin-analytics/daily-trend-
 import { SourceBreakdown } from '@/components/admin/admin-analytics/source-breakdown';
 import { SourcePerformance } from '@/components/admin/admin-analytics/source-performance';
 import { StatusDistributionChart } from '@/components/admin/admin-analytics/status-distribution-chart';
-import { BackLink } from '@/components/layout/back-link';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
+import { PageNavigation } from '@/components/layout/page-navigation';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -50,7 +50,7 @@ export function AdminAnalyticsScreen({
   return (
     <div aria-busy={loading} className="flex flex-col gap-16 sm:gap-20">
       <div>
-        <BackLink className="mb-4" fallbackHref="/account" />
+        <PageNavigation fallbackHref="/account" />
         <PageHeader
           action={
             <div className="flex flex-col gap-3 sm:items-end">

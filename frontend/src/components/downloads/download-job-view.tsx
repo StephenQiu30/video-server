@@ -13,11 +13,11 @@ import {
 } from '@/components/downloads/download-state-model';
 import DownloadVideoPreview from '@/components/downloads/download-video-preview';
 import { useDownloadJob } from '@/components/downloads/use-download-job';
-import { BackLink } from '@/components/layout/back-link';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { markNavigationPush } from '@/components/layout/navigation-history';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
+import { PageNavigation } from '@/components/layout/page-navigation';
 import MediaCover, {
   mediaFrameAspectRatio,
 } from '@/components/media/media-cover';
@@ -81,7 +81,7 @@ export default function DownloadJobView({
   if (state.removed) {
     return (
       <div className="inner-page">
-        <BackLink fallbackHref="/history" />
+        <PageNavigation fallbackHref="/history" />
         <PageEmptyNotice
           title="下载任务已删除"
           titleAs="h1"
@@ -100,20 +100,21 @@ export default function DownloadJobView({
 
   return (
     <div className="inner-page">
-      <div className="flex items-center justify-between gap-4">
-        <BackLink fallbackHref="/history" />
-        {state.job ? (
-          <DownloadDeleteDialog
-            active={!isTerminalDownloadStatus(state.job.status)}
-            busy={state.action === 'delete'}
-            disabled={state.action !== null}
-            onDelete={remove}
-          />
-        ) : null}
-      </div>
+      <PageNavigation
+        fallbackHref="/history"
+        action={
+          state.job ? (
+            <DownloadDeleteDialog
+              active={!isTerminalDownloadStatus(state.job.status)}
+              busy={state.action === 'delete'}
+              disabled={state.action !== null}
+              onDelete={remove}
+            />
+          ) : null
+        }
+      />
       {state.error && !state.job ? (
         <PageErrorNotice
-          className="mt-8"
           message={state.error}
           onRetry={state.errorKind === 'load' ? state.refresh : undefined}
           retryLabel="重新加载"
@@ -276,7 +277,7 @@ function errorTitle(kind: 'load' | 'sync' | 'action' | null) {
 function DownloadJobSkeleton() {
   return (
     <div className="inner-page">
-      <BackLink fallbackHref="/history" />
+      <PageNavigation fallbackHref="/history" />
       <div className={mediaResultGridClassName}>
         <div>
           <AspectRatio ratio={mediaFrameAspectRatio}>

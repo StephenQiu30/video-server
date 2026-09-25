@@ -4,10 +4,10 @@ import { ArrowClockwise } from '@phosphor-icons/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { deleteDocument as deleteScreenplayDocument } from '@/api/documents';
-import { BackLink } from '@/components/layout/back-link';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
+import { PageNavigation } from '@/components/layout/page-navigation';
 import {
   DEFAULT_PAGE_SIZE,
   PagePagination,
@@ -53,7 +53,7 @@ export default function ScreenplayDocumentsView() {
 
   return (
     <div className="inner-page">
-      <BackLink className="mb-4" fallbackHref="/" />
+      <PageNavigation fallbackHref="/" />
       <PageHeader
         action={
           <div className="flex flex-col gap-2 sm:flex-row">

@@ -6,9 +6,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { deleteDocument as deleteScreenplayDocument } from '@/api/documents';
-import { BackLink } from '@/components/layout/back-link';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
+import { PageNavigation } from '@/components/layout/page-navigation';
 import ScreenplayAnalysisPanel from '@/components/screenplay/screenplay-analysis-panel';
 import { ScreenplayDocumentDeleteDialog } from '@/components/screenplay/screenplay-document-delete-dialog';
 import {
@@ -104,7 +104,7 @@ export default function ScreenplayDocumentDetailView({
 
   return (
     <div className="inner-page">
-      <BackLink fallbackHref="/documents" />
+      <PageNavigation fallbackHref="/documents" />
       {state.error || actionError ? (
         <FeedbackNotice
           action={
@@ -114,7 +114,7 @@ export default function ScreenplayDocumentDetailView({
               </Button>
             ) : null
           }
-          className="mt-8"
+          className="mb-6"
           description={state.error ?? actionError ?? ''}
           title={state.error ? '无法读取剧本文档' : '操作未完成'}
           tone="error"
@@ -122,7 +122,7 @@ export default function ScreenplayDocumentDetailView({
       ) : null}
       {state.document ? (
         <>
-          <header className="mt-7 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
+          <header className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
             <div className="min-w-0">
               <Badge
                 aria-live="polite"
@@ -130,7 +130,7 @@ export default function ScreenplayDocumentDetailView({
               >
                 {documentStatusLabels[state.document.status]}
               </Badge>
-              <h1 className="mt-4 break-words text-[clamp(2rem,4vw,3rem)] font-semibold leading-none tracking-[-0.05em]">
+              <h1 className="mt-4 break-words text-2xl font-semibold tracking-tight sm:text-3xl">
                 {state.document.title}
               </h1>
               <p className="mt-3 break-all text-sm text-muted-foreground">
@@ -206,8 +206,8 @@ function DocumentDetailSkeleton() {
       <span className="sr-only" role="status">
         正在读取剧本文档
       </span>
-      <BackLink fallbackHref="/documents" />
-      <div className="mt-8">
+      <PageNavigation fallbackHref="/documents" />
+      <div>
         <Skeleton className="h-6 w-24" />
         <Skeleton className="mt-4 h-12 w-2/5" />
         <Skeleton className="mt-3 h-4 w-1/3" />
@@ -255,9 +255,8 @@ function DocumentDetailError({
 }) {
   return (
     <div className="inner-page">
-      <BackLink fallbackHref="/documents" />
+      <PageNavigation fallbackHref="/documents" />
       <PageErrorNotice
-        className="mt-4"
         message={error}
         onRetry={onRetry}
         retryLabel="重新加载"

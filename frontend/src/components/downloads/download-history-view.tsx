@@ -14,12 +14,12 @@ import {
 } from '@/components/downloads/download-state-model';
 import { useDownloadActions } from '@/components/downloads/use-download-actions';
 import { useDownloadHistory } from '@/components/downloads/use-download-history';
-import { BackLink } from '@/components/layout/back-link';
 import { BulkSelectionBar } from '@/components/layout/bulk-selection-bar';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { markNavigationPush } from '@/components/layout/navigation-history';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
+import { PageNavigation } from '@/components/layout/page-navigation';
 import {
   DEFAULT_PAGE_SIZE,
   PagePagination,
@@ -156,7 +156,7 @@ export default function DownloadHistoryView() {
 
   return (
     <div className="inner-page">
-      <BackLink className="mb-4" fallbackHref="/" />
+      <PageNavigation fallbackHref="/" />
       <PageHeader
         action={
           <div className="flex flex-wrap gap-2">

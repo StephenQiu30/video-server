@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { ProtectedRoute } from '@/components/auth/protected-route';
 import DownloadRoute from '@/components/downloads/download-route';
-import { BackLink } from '@/components/layout/back-link';
+import { PageNavigation } from '@/components/layout/page-navigation';
 import { mediaFrameAspectRatio } from '@/components/media/media-cover';
 import { mediaResultGridClassName } from '@/components/media/media-result';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
@@ -22,7 +22,7 @@ export default function DownloadDetailPage() {
 function DetailSkeleton() {
   return (
     <div className="inner-page">
-      <BackLink fallbackHref="/history" />
+      <PageNavigation fallbackHref="/history" />
       <div className={mediaResultGridClassName}>
         <div>
           <AspectRatio ratio={mediaFrameAspectRatio}>

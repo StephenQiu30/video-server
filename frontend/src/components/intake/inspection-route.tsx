@@ -12,10 +12,10 @@ import InspectionWorkspace from '@/components/intake/inspection-workspace';
 import { useIntakeDraft } from '@/components/intake/intake-draft-provider';
 import { SourceDiscoveryWorkspace } from '@/components/intake/source-discovery-workspace';
 import { rememberDownloadIntent } from '@/components/intake/use-download-intent';
-import { BackLink } from '@/components/layout/back-link';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { markNavigationPush } from '@/components/layout/navigation-history';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
+import { PageNavigation } from '@/components/layout/page-navigation';
 import { mediaFrameAspectRatio } from '@/components/media/media-cover';
 import { mediaResultGridClassName } from '@/components/media/media-result';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
@@ -170,10 +170,10 @@ export default function InspectionRoute() {
 
   return (
     <div className="inner-page" data-slot="inspection-route">
-      <BackLink fallbackHref="/" />
+      <PageNavigation fallbackHref="/" />
       {error ? (
         <FeedbackNotice
-          className="mt-5"
+          className="mb-6"
           title="操作未完成"
           description={error}
           tone="error"

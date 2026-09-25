@@ -1,8 +1,8 @@
 import { ArrowClockwise } from '@phosphor-icons/react';
-import { BackLink } from '@/components/layout/back-link';
 import type { BulkDeleteOptions } from '@/components/layout/bulk-delete-selection';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageHeader } from '@/components/layout/page-header';
+import { PageNavigation } from '@/components/layout/page-navigation';
 import { PagePagination } from '@/components/layout/page-pagination';
 import { Button } from '@/components/ui/button';
 
@@ -68,7 +68,7 @@ export function AdminUsersScreen({
   return (
     <div aria-busy={result.loading} className="flex flex-col gap-6">
       <div>
-        <BackLink className="mb-4" fallbackHref="/account" />
+        <PageNavigation fallbackHref="/account" />
         <PageHeader
           action={
             <p className="text-xs text-muted-foreground tabular-nums">

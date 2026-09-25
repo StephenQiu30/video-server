@@ -25,12 +25,12 @@ import {
   intentHistoryActionLabel,
 } from '@/components/intake/intent-status';
 import { useBulkParseDownload } from '@/components/intake/use-bulk-parse-download';
-import { BackLink } from '@/components/layout/back-link';
 import { BulkSelectionBar } from '@/components/layout/bulk-selection-bar';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
+import { PageNavigation } from '@/components/layout/page-navigation';
 import { PagePagination } from '@/components/layout/page-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -99,7 +99,7 @@ export function IntentHistory({
   );
   return (
     <div className="inner-page">
-      <BackLink className="mb-4" fallbackHref="/" />
+      <PageNavigation fallbackHref="/" />
       <PageHeader
         action={
           <DropdownMenu>

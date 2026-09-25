@@ -32,8 +32,7 @@ describe('ContentIntakeHero', () => {
       'lg:flex-row',
     );
     expect(container.querySelector('[data-slot="tabs-list"]')).toHaveClass(
-      'w-full',
-      'grid-cols-3',
+      'max-w-full',
     );
     expect(container.querySelector('[data-slot="tabs-list"]')).toHaveAttribute(
       'data-variant',

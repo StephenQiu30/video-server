@@ -1,10 +1,10 @@
 import { ArrowClockwise, FolderOpen, Trash } from '@phosphor-icons/react';
-import { BackLink } from '@/components/layout/back-link';
 import type { BulkDeleteOptions } from '@/components/layout/bulk-delete-selection';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
+import { PageNavigation } from '@/components/layout/page-navigation';
 import { PagePagination } from '@/components/layout/page-pagination';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -72,7 +72,7 @@ export function AdminStorageScreen({
   return (
     <div aria-busy={loading} className="flex flex-col gap-6">
       <div>
-        <BackLink className="mb-4" fallbackHref="/account" />
+        <PageNavigation fallbackHref="/account" />
         <PageHeader
           action={
             <Button onClick={onOpenCleanup} variant="destructive">

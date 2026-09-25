@@ -3,11 +3,11 @@ import { ArrowClockwiseIcon } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { listOperationLogs } from '@/api/admin';
-import { BackLink } from '@/components/layout/back-link';
 import { DataTable } from '@/components/layout/data-table';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
+import { PageNavigation } from '@/components/layout/page-navigation';
 import {
   DEFAULT_PAGE_SIZE,
   PagePagination,
@@ -102,24 +102,26 @@ export function OperationLogsView() {
   });
   return (
     <div className="inner-page flex flex-col gap-6">
-      <BackLink className="self-start" fallbackHref="/" />
-      <PageHeader
-        title="系统操作日志"
-        description="查看全系统业务请求与管理员操作，追踪操作人、对象和执行结果。"
-        action={
-          <Button
-            variant="outline"
-            disabled={logs.isFetching}
-            onClick={() => {
-              if (page !== 1) setPage(1);
-              else void logs.refetch();
-            }}
-          >
-            <ArrowClockwiseIcon data-icon="inline-start" />
-            {logs.isFetching ? '更新中…' : '刷新'}
-          </Button>
-        }
-      />
+      <div>
+        <PageNavigation fallbackHref="/" />
+        <PageHeader
+          title="系统操作日志"
+          description="查看全系统业务请求与管理员操作，追踪操作人、对象和执行结果。"
+          action={
+            <Button
+              variant="outline"
+              disabled={logs.isFetching}
+              onClick={() => {
+                if (page !== 1) setPage(1);
+                else void logs.refetch();
+              }}
+            >
+              <ArrowClockwiseIcon data-icon="inline-start" />
+              {logs.isFetching ? '更新中…' : '刷新'}
+            </Button>
+          }
+        />
+      </div>
       <form
         onSubmit={(event) => {
           event.preventDefault();

@@ -16,11 +16,11 @@ import AnalysisResultView from '@/components/analysis/analysis-result-view';
 import { useAnalysisJob } from '@/components/analysis/use-analysis-job';
 import { useAnalysisSkills } from '@/components/analysis/use-analysis-skills';
 import { historyRecordLabel } from '@/components/intake/history-record-presentation';
-import { BackLink } from '@/components/layout/back-link';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
+import { PageNavigation } from '@/components/layout/page-navigation';
 import {
   DEFAULT_PAGE_SIZE,
   PagePagination,
@@ -35,7 +35,7 @@ export default function AnalysisDetailRoute() {
   const id = useSearchParams().get('analysisId')?.trim();
   return (
     <div className="inner-page">
-      <BackLink fallbackHref="/history/activity" />
+      <PageNavigation fallbackHref="/history/activity" />
       {id ? (
         <AnalysisDetail key={id} id={id} />
       ) : (
@@ -103,7 +103,6 @@ function AnalysisDetailContent({
   return (
     <>
       <PageHeader
-        className="mt-8"
         title={record.title}
         description={`${historyRecordLabel(record)} · ${skillName} · ${record.output_language}`}
       />

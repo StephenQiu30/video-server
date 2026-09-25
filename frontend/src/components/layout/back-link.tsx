@@ -47,10 +47,7 @@ export function BackLink({
   return (
     <Button
       asChild
-      className={cn(
-        '-ml-3 min-h-9 text-muted-foreground hover:text-foreground',
-        className,
-      )}
+      className={cn('text-muted-foreground hover:text-foreground', className)}
       variant="ghost"
     >
       <Link data-navigation-back="" href={fallbackHref} onClick={navigateBack}>

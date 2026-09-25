@@ -6,10 +6,10 @@ import { toast } from 'sonner';
 import { updateCurrentUser } from '@/api/users';
 import { ReadOnlyField } from '@/components/account/read-only-field';
 import { useAuth } from '@/components/auth/auth-provider';
-import { BackLink } from '@/components/layout/back-link';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
+import { PageNavigation } from '@/components/layout/page-navigation';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -104,7 +104,7 @@ export function AccountView() {
 
   return (
     <div>
-      <BackLink className="mb-4" fallbackHref="/" />
+      <PageNavigation fallbackHref="/" />
       <PageHeader
         description="管理公开用户名，并查看不会随任务变化的账户身份信息。"
         title="个人资料"

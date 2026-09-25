@@ -2,12 +2,11 @@
 
 import { ArrowClockwiseIcon, FunnelX } from '@phosphor-icons/react';
 import { type KeyboardEvent, useMemo, useState } from 'react';
-
-import { BackLink } from '@/components/layout/back-link';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
+import { PageNavigation } from '@/components/layout/page-navigation';
 import {
   DEFAULT_PAGE_SIZE,
   PagePagination,
@@ -50,7 +49,7 @@ export function ProviderStatusView() {
 
   return (
     <div className="inner-page">
-      <BackLink className="mb-4" fallbackHref="/" />
+      <PageNavigation fallbackHref="/" />
       <PageHeader
         action={
           <Button

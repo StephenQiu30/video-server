@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import AnalysisPanel from '@/components/analysis/analysis-panel';
 import DownloadJobView from '@/components/downloads/download-job-view';
 import MissingDownload from '@/components/downloads/missing-download';
-import { BackLink } from '@/components/layout/back-link';
+import { PageNavigation } from '@/components/layout/page-navigation';
 
 export default function DownloadRoute() {
   const searchParams = useSearchParams();
@@ -15,7 +15,7 @@ export default function DownloadRoute() {
   if (analysisId)
     return (
       <div className="inner-page">
-        <BackLink fallbackHref="/history" />
+        <PageNavigation fallbackHref="/history" />
         <AnalysisPanel
           downloadId={analysisId}
           analysisId={analysisId}
