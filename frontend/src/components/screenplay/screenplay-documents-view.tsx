@@ -63,7 +63,6 @@ export default function ScreenplayDocumentsView() {
               disabled={state.refreshing}
               onClick={state.refresh}
               type="button"
-              size="lg"
               variant="outline"
             >
               {state.refreshing ? (

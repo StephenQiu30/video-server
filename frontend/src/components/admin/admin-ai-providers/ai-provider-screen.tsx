@@ -83,7 +83,7 @@ export function AiProviderScreen({
               当前执行链路
             </p>
             <h2
-              className="mt-1 text-2xl font-medium tracking-[-0.035em]"
+              className="mt-1 text-xl font-semibold tracking-tight"
               id="active-ai-route"
             >
               Agent 与模型连接状态
@@ -141,7 +141,6 @@ export function AiProviderScreen({
           >
             Provider 配置
           </h2>
-          <p className="text-sm text-muted-foreground">共 {items.length} 条</p>
         </div>
         <div className="flex flex-col gap-1">
           {loading && items.length === 0 ? (

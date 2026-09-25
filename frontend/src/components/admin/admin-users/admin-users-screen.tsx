@@ -61,24 +61,12 @@ export function AdminUsersScreen({
   actions,
 }: AdminUsersScreenProps) {
   const pages = Math.max(1, Math.ceil(result.total / result.pageSize));
-  const first =
-    result.total === 0 ? 0 : (result.page - 1) * result.pageSize + 1;
-  const last = Math.min(result.page * result.pageSize, result.total);
 
   return (
     <div aria-busy={result.loading} className="flex flex-col gap-6">
       <div>
         <PageNavigation fallbackHref="/account" />
         <PageHeader
-          action={
-            <p className="text-xs text-muted-foreground tabular-nums">
-              共{' '}
-              <strong className="font-semibold text-foreground">
-                {result.total}
-              </strong>{' '}
-              个账户
-            </p>
-          }
           description="查找账户，并在不离开当前页面的情况下调整角色与启用状态。"
           title="用户管理"
         />
@@ -126,21 +114,15 @@ export function AdminUsersScreen({
       )}
 
       {result.total > 0 && (
-        <footer className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
-          <span>
-            显示 {first}–{last}，共 {result.total} 项
-          </span>
-          <PagePagination
-            pageSize={result.pageSize}
-            busy={result.loading}
-            onPageSizeChange={actions.onPageSizeChange}
-            ariaLabel="用户列表分页"
-            className="w-auto justify-end"
-            onPageChange={actions.onPageChange}
-            page={result.page}
-            pages={pages}
-          />
-        </footer>
+        <PagePagination
+          pageSize={result.pageSize}
+          busy={result.loading}
+          onPageSizeChange={actions.onPageSizeChange}
+          ariaLabel="用户列表分页"
+          onPageChange={actions.onPageChange}
+          page={result.page}
+          pages={pages}
+        />
       )}
 
       <UserEditor

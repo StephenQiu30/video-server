@@ -179,7 +179,7 @@ export function AccountView() {
             ) : null}
           </FieldGroup>
           <div className="mt-9 flex justify-start">
-            <Button disabled={saving || unchanged} size="lg" type="submit">
+            <Button disabled={saving || unchanged} type="submit">
               {saving ? (
                 <Spinner
                   aria-hidden

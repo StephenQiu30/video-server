@@ -156,7 +156,7 @@ export function ScreenplayUploadForm({
       <p className="mt-2 text-xs text-muted-foreground">{fileDescription}</p>
       {errorNotice}
       {progressNotice}
-      <Button className="mt-5 w-full" disabled={busy} size="lg" type="submit">
+      <Button className="mt-5 w-full" disabled={busy} type="submit">
         {busy ? (
           <Spinner aria-hidden data-icon="inline-start" />
         ) : (

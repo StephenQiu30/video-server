@@ -41,7 +41,6 @@ export function AuthPageFrame({
           <PageHeader
             description={description}
             title={title}
-            titleClassName="text-[clamp(2.5rem,4vw,3rem)]"
             titleId={titleId}
           />
           <div className="pt-8">{children}</div>

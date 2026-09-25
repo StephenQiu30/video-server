@@ -160,10 +160,10 @@ export default function DownloadHistoryView() {
       <PageHeader
         action={
           <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline" size="lg">
+            <Button asChild variant="outline">
               <Link href="/history/activity">我的处理记录</Link>
             </Button>
-            <Button asChild size="lg">
+            <Button asChild>
               <Link href="/">
                 <Plus data-icon="inline-start" />
                 解析新链接

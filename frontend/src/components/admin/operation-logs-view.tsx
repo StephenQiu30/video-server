@@ -236,9 +236,6 @@ export function OperationLogsView() {
         />
       ) : (
         <>
-          <p className="text-sm text-muted-foreground" role="status">
-            共 {logs.data.total} 条记录
-          </p>
           {logs.data.items.length ? (
             <DataTable<API.OperationLogResponse>
               data={logs.data.items}

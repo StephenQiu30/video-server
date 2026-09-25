@@ -74,10 +74,6 @@ export function ProviderCatalogScreen({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
-        <p>
-          共 <strong className="text-foreground">{result.items.length}</strong>{' '}
-          个目录条目
-        </p>
         <p>“仅目录”条目不会获得真实下载能力。</p>
       </div>
 
@@ -159,23 +155,17 @@ export function ProviderCatalogScreen({
               title="没有匹配的平台"
             />
           )}
-          <footer className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
-            <span>
-              显示 {visibleItems.length} 项，共 {filtered.length} 项
-            </span>
-            <PagePagination
-              pageSize={pageSize}
-              onPageSizeChange={(size) => {
-                setPageSize(size);
-                setPage(1);
-              }}
-              ariaLabel="平台目录分页"
-              className="w-auto justify-end"
-              onPageChange={setPage}
-              page={currentPage}
-              pages={pages}
-            />
-          </footer>
+          <PagePagination
+            pageSize={pageSize}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+            ariaLabel="平台目录分页"
+            onPageChange={setPage}
+            page={currentPage}
+            pages={pages}
+          />
         </div>
       )}
     </div>

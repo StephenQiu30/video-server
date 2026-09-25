@@ -60,7 +60,7 @@ export default function ScreenplayRewriteResultView({
             统一术语
           </h3>
           {result.glossary.length ? (
-            <Table className="mt-4 text-left">
+            <Table className="table-borderless mt-4 text-left">
               <TableCaption className="sr-only">
                 剧本改写统一术语表
               </TableCaption>

@@ -104,13 +104,15 @@ export function UserList({
               id: '用户名',
               header: '用户名',
               className: 'whitespace-normal',
-              cell: (item) => <> {item.username} </>,
+              cell: (item) => (
+                <span className="break-all">{item.username}</span>
+              ),
             },
             {
               id: '邮箱',
               header: '邮箱',
               className: 'whitespace-normal',
-              cell: (item) => <> {item.email} </>,
+              cell: (item) => <span className="break-all">{item.email}</span>,
             },
             {
               id: '身份与状态',

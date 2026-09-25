@@ -26,6 +26,7 @@ import {
 } from '@/components/intake/intent-status';
 import { useBulkParseDownload } from '@/components/intake/use-bulk-parse-download';
 import { BulkSelectionBar } from '@/components/layout/bulk-selection-bar';
+import { DataTable } from '@/components/layout/data-table';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
@@ -34,20 +35,13 @@ import { PageNavigation } from '@/components/layout/page-navigation';
 import { PagePagination } from '@/components/layout/page-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemGroup,
-  ItemTitle,
-} from '@/components/ui/item';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePageSelection } from '@/hooks/use-page-selection';
 import { privateQueryKey } from '@/lib/query-keys';
@@ -104,25 +98,27 @@ export function IntentHistory({
         action={
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="lg">
+              <Button>
                 <Plus data-icon="inline-start" />
                 新建解析
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {(
-                [
-                  ['link', '粘贴链接'],
-                  ['video', '上传视频'],
-                  ['screenplay', '上传剧本'],
-                ] as const
-              ).map(([mode, label]) => (
-                <DropdownMenuItem key={mode} asChild>
-                  <Link href="/" onClick={() => setMode(mode)}>
-                    {label}
-                  </Link>
-                </DropdownMenuItem>
-              ))}
+              <DropdownMenuGroup>
+                {(
+                  [
+                    ['link', '粘贴链接'],
+                    ['video', '上传视频'],
+                    ['screenplay', '上传剧本'],
+                  ] as const
+                ).map(([mode, label]) => (
+                  <DropdownMenuItem key={mode} asChild>
+                    <Link href="/" onClick={() => setMode(mode)}>
+                      {label}
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
         }
@@ -202,33 +198,6 @@ export function IntentHistory({
             }
           />
         ) : null}
-        {eligible.length > 0 ? (
-          <BulkSelectionBar
-            all={selection.all}
-            some={selection.some}
-            count={selection.selected.length}
-            busy={bulk.busy || history.isFetching}
-            onSelectAll={selection.toggleAll}
-          >
-            <Button
-              variant="outline"
-              disabled={bulk.busy || history.isFetching || !selection.some}
-              onClick={async () => {
-                const done = await bulk.execute(
-                  eligible.filter((item) =>
-                    selection.selected.includes(item.id),
-                  ),
-                );
-                selection.remove(done);
-              }}
-            >
-              批量下载（{selection.selected.length}）
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              按默认画质创建下载任务
-            </span>
-          </BulkSelectionBar>
-        ) : null}
         {bulk.busy ? (
           <p role="status">
             正在创建下载任务：{bulk.progress.completed} / {bulk.progress.total}
@@ -242,73 +211,104 @@ export function IntentHistory({
           />
         ) : null}
         {history.data?.items.length ? (
-          <>
-            <div
-              aria-hidden
-              className="mt-6 hidden px-3 grid-cols-[1rem_minmax(0,1fr)_11rem_10rem_7rem] gap-6 text-xs text-muted-foreground lg:grid"
-            >
-              <span className="w-4" />
-              <span>内容</span>
-              <span>提交时间</span>
-              <span>状态</span>
-              <span className="text-right">操作</span>
-            </div>
-            <ItemGroup className="mt-2 gap-2" aria-label="解析任务列表">
-              {history.data.items.map((item) => (
-                <Item
-                  key={`${item.record_type}:${item.id}`}
-                  role="listitem"
-                  className="grid grid-cols-[1rem_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 lg:grid-cols-[1rem_minmax(0,1fr)_11rem_10rem_7rem] lg:gap-x-6"
+          <div className="mt-4">
+            <DataTable
+              data={history.data.items}
+              caption="解析任务列表"
+              className="min-w-[760px]"
+              getRowId={(item) => `${item.record_type}:${item.id}`}
+              getRowLabel={(item) => item.title || '媒体解析'}
+              selection={{
+                ids: selection.selected.map((id) => `parse:${id}`),
+                busy: bulk.busy || history.isFetching,
+                eligible: (id) =>
+                  eligible.some((item) => `parse:${item.id}` === id),
+                toggle: (id, checked) =>
+                  selection.toggle(id.slice('parse:'.length), checked),
+              }}
+              toolbar={
+                <BulkSelectionBar
+                  count={selection.selected.length}
+                  busy={bulk.busy || history.isFetching}
+                  onClear={() => selection.toggleAll(false)}
                 >
-                  <div className="row-span-2 self-center lg:row-span-1">
-                    {' '}
-                    {eligible.some(
-                      (entry) =>
-                        entry.id === item.id && item.record_type === 'parse',
-                    ) ? (
-                      <Checkbox
-                        aria-label={`选择 ${item.title || '媒体解析'}`}
-                        checked={selection.selected.includes(item.id)}
-                        disabled={bulk.busy || history.isFetching}
-                        onCheckedChange={(checked) =>
-                          selection.toggle(item.id, checked === true)
-                        }
-                      />
-                    ) : null}
-                  </div>
-                  <ItemContent className="col-span-2 min-w-0 lg:col-span-1">
-                    <ItemTitle className="line-clamp-2 w-auto break-words">
-                      {item.title || '媒体解析'}
-                    </ItemTitle>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {historyRecordLabel(item)}
-                      {isAnalysisRecord(item)
-                        ? ` · ${skillNames.get(item.skill_id) ?? item.skill_id} · ${item.output_language}`
-                        : ''}
-                    </p>
-                    {isAnalysisRecord(item) &&
-                    item.source_availability === 'unavailable' ? (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        源文件不可用 · 已有结果仍可查看
+                  <Button
+                    variant="outline"
+                    disabled={
+                      bulk.busy || history.isFetching || !selection.some
+                    }
+                    onClick={async () => {
+                      const done = await bulk.execute(
+                        eligible.filter((item) =>
+                          selection.selected.includes(item.id),
+                        ),
+                      );
+                      selection.remove(done);
+                    }}
+                  >
+                    批量下载（{selection.selected.length}）
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    按默认画质创建下载任务
+                  </span>
+                </BulkSelectionBar>
+              }
+              columns={[
+                {
+                  id: 'content',
+                  header: '内容',
+                  cell: (item) => (
+                    <div className="min-w-0 whitespace-normal">
+                      <p className="line-clamp-2 break-words font-medium">
+                        {item.title || '媒体解析'}
                       </p>
-                    ) : null}
-                  </ItemContent>
-                  <time
-                    className="text-xs text-muted-foreground sm:text-sm"
-                    dateTime={item.created_at}
-                  >
-                    {new Date(item.created_at).toLocaleString('zh-CN', {
-                      hour12: false,
-                    })}
-                  </time>
-                  <Badge
-                    className="justify-self-end lg:justify-self-start"
-                    variant={historyRecordVariant(item)}
-                  >
-                    {historyRecordStatus(item)}
-                  </Badge>
-                  <ItemActions className="col-span-2 col-start-2 justify-end lg:col-span-1 lg:col-start-auto">
-                    {item.record_type !== 'parse' ? (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {historyRecordLabel(item)}
+                        {isAnalysisRecord(item)
+                          ? ` · ${skillNames.get(item.skill_id) ?? item.skill_id} · ${item.output_language}`
+                          : ''}
+                      </p>
+                      {isAnalysisRecord(item) &&
+                      item.source_availability === 'unavailable' ? (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          源文件不可用 · 已有结果仍可查看
+                        </p>
+                      ) : null}
+                    </div>
+                  ),
+                },
+                {
+                  id: 'created',
+                  header: '提交时间',
+                  className: 'w-44',
+                  cell: (item) => (
+                    <time
+                      className="text-muted-foreground"
+                      dateTime={item.created_at}
+                    >
+                      {new Date(item.created_at).toLocaleString('zh-CN', {
+                        hour12: false,
+                      })}
+                    </time>
+                  ),
+                },
+                {
+                  id: 'status',
+                  header: '状态',
+                  className: 'w-32',
+                  cell: (item) => (
+                    <Badge variant={historyRecordVariant(item)}>
+                      {historyRecordStatus(item)}
+                    </Badge>
+                  ),
+                },
+                {
+                  id: 'actions',
+                  header: '操作',
+                  className: 'w-28 text-right',
+                  hideable: false,
+                  cell: (item) =>
+                    item.record_type !== 'parse' ? (
                       <Button asChild variant="ghost" size="sm">
                         <Link href={historyRecordHref(item)}>
                           {item.record_type === 'document_parse'
@@ -334,12 +334,11 @@ export function IntentHistory({
                       >
                         {intentHistoryActionLabel(item.status)}
                       </Button>
-                    )}
-                  </ItemActions>
-                </Item>
-              ))}
-            </ItemGroup>
-          </>
+                    ),
+                },
+              ]}
+            />
+          </div>
         ) : null}
         {history.data ? (
           <PagePagination

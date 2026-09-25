@@ -171,7 +171,7 @@ describe('administrator provider catalog management', () => {
     });
     expect(screen.getAllByText('平台 3')).toHaveLength(1);
     expect(screen.queryByText('平台 12')).not.toBeInTheDocument();
-    expect(screen.getByText('显示 1 项，共 1 项')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '下一页' })).toBeDisabled();
   });
 });
 

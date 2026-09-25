@@ -105,7 +105,7 @@ export default function AnalysisPanel({
         ) : null}
         <div className="flex flex-col gap-6">
           <div className="min-w-0 w-full">
-            <h2 className="w-full text-[clamp(1.5rem,3vw,2rem)] font-semibold leading-tight tracking-[-0.04em]">
+            <h2 className="w-full text-xl font-semibold tracking-tight">
               {state.job.result.title}
             </h2>
           </div>
@@ -198,7 +198,7 @@ export default function AnalysisPanel({
       <div className="flex items-start justify-between gap-6">
         <div className="max-w-3xl">
           <h2
-            className="text-[clamp(1.5rem,3vw,2rem)] font-semibold leading-tight tracking-[-0.04em]"
+            className="text-xl font-semibold tracking-tight"
             id="analysis-title"
           >
             AI 智能分析

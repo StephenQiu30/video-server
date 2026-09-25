@@ -1,6 +1,5 @@
-import Link from 'next/link';
-
-import { EditorialIntro } from '@/components/layout/editorial-intro';
+import { PageHeader } from '@/components/layout/page-header';
+import { PageNavigation } from '@/components/layout/page-navigation';
 import { publicMetadata } from '@/lib/public-metadata';
 import { absoluteUrl, siteConfig } from '@/lib/site';
 
@@ -84,25 +83,15 @@ export default function GuidePage() {
     ],
   };
   return (
-    <article className="mx-auto w-full max-w-4xl py-10 sm:py-16">
+    <article className="inner-page">
       <script type="application/ld+json">
         {JSON.stringify(breadcrumbs).replace(/</g, '\\u003c')}
       </script>
-      <nav
-        aria-label="面包屑"
-        className="mb-10 flex gap-3 text-sm text-muted-foreground"
-      >
-        <Link className="focus-ring hover:text-foreground" href="/">
-          帧取
-        </Link>
-        <span aria-hidden>/</span>
-        <span aria-current="page">使用指南</span>
-      </nav>
-      <EditorialIntro
-        eyebrow="FrameFetch 使用指南"
-        title="从素材到分析报告"
-        description={description}
+      <PageNavigation
+        fallbackHref="/"
+        breadcrumbs={[{ label: '帧取', href: '/' }, { label: '使用指南' }]}
       />
+      <PageHeader title="从素材到分析报告" description={description} />
       <p className="mt-6 text-sm leading-7 text-muted-foreground">
         本指南介绍当前产品流程。配置与实现以链接的仓库文档为准，实例可用性以实际检查结果为准。
       </p>
@@ -130,7 +119,7 @@ export default function GuidePage() {
             key={id}
           >
             <h2
-              className="text-2xl font-medium tracking-tight"
+              className="text-xl font-semibold tracking-tight"
               id={`${id}-title`}
             >
               {sectionTitle}

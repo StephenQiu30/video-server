@@ -66,8 +66,6 @@ export function AdminStorageScreen({
   onConfirmDelete,
 }: AdminStorageScreenProps) {
   const pages = Math.max(1, Math.ceil(total / pageSize));
-  const first = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const last = Math.min(page * pageSize, total);
 
   return (
     <div aria-busy={loading} className="flex flex-col gap-6">
@@ -125,21 +123,15 @@ export function AdminStorageScreen({
       )}
 
       {total > 0 ? (
-        <footer className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
-          <span>
-            显示 {first}–{last}，共 {total} 项
-          </span>
-          <PagePagination
-            pageSize={pageSize}
-            busy={loading}
-            onPageSizeChange={onPageSizeChange}
-            ariaLabel="文件列表分页"
-            className="w-auto justify-end"
-            onPageChange={onPageChange}
-            page={page}
-            pages={pages}
-          />
-        </footer>
+        <PagePagination
+          pageSize={pageSize}
+          busy={loading}
+          onPageSizeChange={onPageSizeChange}
+          ariaLabel="文件列表分页"
+          onPageChange={onPageChange}
+          page={page}
+          pages={pages}
+        />
       ) : null}
 
       <StorageCleanupDialog

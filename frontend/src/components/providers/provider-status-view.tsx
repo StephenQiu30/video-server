@@ -56,7 +56,7 @@ export function ProviderStatusView() {
             aria-label={state.refreshing ? '正在刷新平台状态' : '刷新状态'}
             disabled={state.refreshing}
             onClick={state.retry}
-            variant="ghost"
+            variant="outline"
           >
             {state.refreshing ? (
               <Spinner aria-hidden data-icon="inline-start" />

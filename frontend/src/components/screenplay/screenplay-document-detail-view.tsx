@@ -146,7 +146,6 @@ export default function ScreenplayDocumentDetailView({
                 className="w-full sm:w-auto"
                 disabled={state.loading}
                 onClick={state.refresh}
-                size="lg"
                 type="button"
                 variant="outline"
               >

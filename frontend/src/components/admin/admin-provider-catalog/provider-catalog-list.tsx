@@ -39,7 +39,6 @@ export function ProviderCatalogList({
         <Button
           aria-label={`编辑平台 ${item.display_name}`}
           onClick={() => onEdit(item)}
-          size="lg"
           type="button"
           variant="ghost"
         >

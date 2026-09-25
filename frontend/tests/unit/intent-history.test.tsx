@@ -280,3 +280,47 @@ it('renders screenplay and video analyses as independent exact-id links', async 
     true,
   );
 });
+
+it('selects only downloadable parse rows even when another record has the same id', async () => {
+  const parse = {
+    ...intentFixture(),
+    record_type: 'parse',
+    status_group: 'completed',
+    title: '可下载链接',
+    created_at: '2026-09-24T00:00:00Z',
+  };
+  mockHttpResponses({
+    items: [
+      parse,
+      {
+        id: parse.id,
+        record_type: 'document_parse',
+        document_id: parse.id,
+        title: '同编号剧本',
+        status: 'ready',
+        status_group: 'completed',
+        created_at: parse.created_at,
+      },
+    ],
+    next_cursor: null,
+  });
+  render(<IntentHistoryPage />);
+  await screen.findByRole('table', { name: '解析任务列表' });
+  expect(screen.queryByRole('button', { name: /批量下载/ })).toBeNull();
+  expect(
+    screen.getByRole('checkbox', { name: '选择 同编号剧本' }),
+  ).toBeDisabled();
+  fireEvent.click(screen.getByRole('checkbox', { name: '选择本页可操作记录' }));
+  expect(
+    screen.getByRole('checkbox', { name: '选择 可下载链接' }),
+  ).toBeChecked();
+  expect(
+    screen.getByRole('checkbox', { name: '选择 同编号剧本' }),
+  ).not.toBeChecked();
+  expect(screen.getByRole('button', { name: '批量下载（1）' })).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: '取消选择' }));
+  expect(screen.queryByRole('button', { name: /批量下载/ })).toBeNull();
+  expect(httpRequests().every((request) => request.method === 'GET')).toBe(
+    true,
+  );
+});
