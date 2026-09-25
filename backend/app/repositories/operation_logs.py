@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID, uuid4
 
-from sqlalchemy import false, func, or_, select, update
+from sqlalchemy import delete, false, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.db import utc_now
@@ -76,6 +76,25 @@ class OperationLogStore:
                     resource_key=resource_key,
                 )
             )
+
+    async def purge_before(self, cutoff: datetime, *, limit: int) -> int:
+        """Delete one bounded batch of expired entries, oldest first."""
+        expired = (
+            select(OperationLogRow.id)
+            .where(OperationLogRow.created_at < cutoff)
+            .order_by(OperationLogRow.created_at, OperationLogRow.id)
+            .limit(limit)
+            .with_for_update(skip_locked=True)
+            .scalar_subquery()
+        )
+        async with self._sessions.begin() as session:
+            deleted = await session.scalars(
+                delete(OperationLogRow)
+                .where(OperationLogRow.id.in_(expired))
+                .returning(OperationLogRow.id)
+                .execution_options(synchronize_session=False)
+            )
+            return len(deleted.all())
 
     async def list(
         self,

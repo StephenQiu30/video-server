@@ -183,6 +183,9 @@ class Settings(BaseSettings):
     download_worker_threads: int = Field(default=4, ge=1, le=64)
     outbox_batch_size: int = Field(default=50, ge=1, le=200)
     outbox_poll_interval_seconds: float = Field(default=1.0, ge=0.1, le=60)
+    operation_log_retention_days: int = Field(default=180, ge=30, le=3650)
+    operation_log_purge_interval_seconds: float = Field(default=3600, ge=60, le=86400)
+    operation_log_purge_batch_size: int = Field(default=5000, ge=100, le=50_000)
     redis_url: str | None = None
 
     minio_endpoint: str = "localhost:19190"

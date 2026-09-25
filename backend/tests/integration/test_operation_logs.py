@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -273,3 +273,33 @@ async def test_provider_key_and_finalization_failure(postgres_engine, monkeypatc
             for row in page.items
         ]
     )
+
+
+async def test_purge_deletes_only_expired_entries_in_bounded_batches(postgres_engine):
+    sessions = create_session_factory(postgres_engine)
+    store = OperationLogStore(sessions)
+    now = datetime.now(UTC)
+    ids = [
+        await store.begin(
+            operation="deleteUser",
+            description="删除用户",
+            method="DELETE",
+            route="/api/admin/users/{user_id}",
+            resource_id=None,
+        )
+        for _ in range(4)
+    ]
+    ages = (timedelta(days=400), timedelta(days=200), timedelta(days=181), timedelta())
+    async with sessions.begin() as session:
+        for entry_id, age in zip(ids, ages, strict=True):
+            row = await session.get(OperationLogRow, entry_id)
+            assert row is not None
+            row.created_at = now - age
+    cutoff = now - timedelta(days=180)
+
+    assert await store.purge_before(cutoff, limit=2) == 2
+    assert await store.purge_before(cutoff, limit=2) == 1
+    assert await store.purge_before(cutoff, limit=2) == 0
+    async with sessions() as session:
+        remaining = (await session.scalars(select(OperationLogRow.id))).all()
+    assert remaining == [ids[3]]

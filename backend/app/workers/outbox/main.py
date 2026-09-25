@@ -12,8 +12,10 @@ from datetime import UTC, datetime, timedelta
 from app.core.config import get_settings_for_role
 from app.core.db import create_engine, create_session_factory
 from app.integrations.messaging import RabbitMqPublisher, RabbitMqTopology
+from app.repositories.operation_logs import OperationLogStore
 from app.repositories.outbox_repository import SqlAlchemyOutboxRepository
 from app.workers.outbox.loop import OutboxLoopSettings, OutboxPublisherLoop
+from app.workers.outbox.operation_log_retention import OperationLogRetention
 
 
 def _publisher_id() -> str:
@@ -25,7 +27,8 @@ def _publisher_id() -> str:
 async def run() -> None:
     settings = get_settings_for_role("outbox")
     engine = create_engine(settings.database_url)
-    repository = SqlAlchemyOutboxRepository(create_session_factory(engine))
+    sessions = create_session_factory(engine)
+    repository = SqlAlchemyOutboxRepository(sessions)
     publisher = RabbitMqPublisher(
         settings.rabbitmq_url,
         RabbitMqTopology(
@@ -55,6 +58,13 @@ async def run() -> None:
             poll_interval=settings.outbox_poll_interval_seconds,
         ),
     )
+    retention = OperationLogRetention(
+        OperationLogStore(sessions),
+        clock=lambda: datetime.now(UTC),
+        retention=timedelta(days=settings.operation_log_retention_days),
+        interval=settings.operation_log_purge_interval_seconds,
+        batch_size=settings.operation_log_purge_batch_size,
+    )
     stop = asyncio.Event()
     event_loop = asyncio.get_running_loop()
     try:
@@ -64,7 +74,14 @@ async def run() -> None:
             except NotImplementedError:
                 pass
         await publisher.start()
-        await publisher_loop.run(stop)
+        retention_task = asyncio.create_task(
+            retention.run(stop), name="operation-log-retention"
+        )
+        try:
+            await publisher_loop.run(stop)
+        finally:
+            stop.set()
+            await retention_task
     finally:
         try:
             await publisher.close()

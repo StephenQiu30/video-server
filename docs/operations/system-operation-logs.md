@@ -2,7 +2,7 @@
 
 ## 入口与权限
 
-管理员账户菜单和移动端管理员导航提供 `/admin/operation-logs`。普通主导航不再提供解析中心。后端 `GET /api/admin/operation-logs` 使用管理员认证；查询跨账户数据，禁止缓存。没有日志删除或修改接口。
+管理员账户菜单和移动端管理员导航提供 `/admin/operation-logs`。普通主导航不再提供解析中心。后端 `GET /api/admin/operation-logs` 使用管理员认证；查询跨账户数据，禁止缓存。没有日志删除或修改接口；过期记录只由后台保留策略清理。
 
 个人解析结果、文档解析和 AI 分析记录保留在 `/history/activity`，从下载记录中的“我的处理记录”以及素材详情进入，仍使用原有 owner 权限。该业务记录页支持原有解析结果批量下载，不是系统审计入口。
 
@@ -20,6 +20,20 @@
 
 持久化内容限制为日志 ID、时间、操作人 ID/名称、静态操作名称、路由模板、对象 UUID 或平台/AI 服务标识、请求结果/任务状态和错误码。不保存请求正文、查询参数、密码、密钥、Cookie、原始媒体链接、提示词或模型响应。新增资源的对象 UUID 或平台/AI 服务标识 从响应明确的 ID 字段提取。
 
+## 保留与清理
+
+日志默认保留 180 天。`outbox` Worker 每小时按 `created_at` 删除早于保留期的记录（含"结果未确认"记录），每批最多 5000 条、单次最多 20 批，剩余积压由后续轮次继续清理；多实例并发时跳过已被锁定的行。清理失败只记录 `operation_log_retention_failed`，不影响 Outbox 投递。可通过以下环境变量调整：
+
+| 变量 | 默认值 | 范围 |
+| --- | --- | --- |
+| `OPERATION_LOG_RETENTION_DAYS` | 180 | 30–3650 |
+| `OPERATION_LOG_PURGE_INTERVAL_SECONDS` | 3600 | 60–86400 |
+| `OPERATION_LOG_PURGE_BATCH_SIZE` | 5000 | 100–50000 |
+
+缩短保留期会在下一轮清理中删除超出新期限的记录，且不可恢复。
+
+## 查询
+
 日志按时间与 ID 倒序展示；支持操作人/名称/ID 搜索、管理员/接口/系统任务范围、结果及时间区间筛选。默认每页 10 条，可选 20、50 条，分页位于右侧。详情只读。
 
 ## 部署与验证
@@ -30,7 +44,7 @@
 
 ```sh
 cd backend
-uv run pytest tests/integration/test_operation_logs.py
+uv run pytest tests/integration/test_operation_logs.py tests/unit/workers/outbox/test_operation_log_retention.py
 cd ../frontend
 pnpm test -- tests/unit/operation-logs.test.tsx tests/unit/basic-layout.test.tsx tests/unit/intent-history.test.tsx
 ```
