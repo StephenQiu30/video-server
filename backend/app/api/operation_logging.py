@@ -7,6 +7,7 @@ from collections.abc import Awaitable, Callable, Coroutine
 from contextvars import ContextVar
 from typing import Any
 from uuid import UUID
+from weakref import WeakKeyDictionary
 
 from fastapi import Request
 from fastapi.routing import APIRoute, iter_route_contexts
@@ -122,6 +123,23 @@ async def record_operation(
 class OperationLogRoute(APIRoute):
     def get_route_handler(self) -> Callable[[Request], Coroutine[Any, Any, Response]]:
         handler = super().get_route_handler()
+        # Included routers keep the unprefixed original route, so the public
+        # template is resolved once per application rather than per request.
+        paths: WeakKeyDictionary[Any, str] = WeakKeyDictionary()
+
+        def public_path(request: Request) -> str:
+            path = paths.get(request.app)
+            if path is None:
+                path = next(
+                    (
+                        context.path
+                        for context in iter_route_contexts(request.app.routes)
+                        if context.original_route is self and context.path is not None
+                    ),
+                    self.path,
+                )
+                paths[request.app] = path
+            return path
 
         async def audited(request: Request) -> Response:
             if request.method not in {"POST", "PUT", "PATCH", "DELETE"}:
@@ -131,11 +149,7 @@ class OperationLogRoute(APIRoute):
                 handler,
                 operation=self.operation_id or self.name,
                 description=self.summary or self.name,
-                route=next(
-                    context.path
-                    for context in iter_route_contexts(request.app.routes)
-                    if context.original_route is self and context.path is not None
-                ),
+                route=public_path(request),
             )
 
         return audited

@@ -1442,7 +1442,7 @@ requires-dist = [
     { name = "botocore", specifier = ">=1.40,<2" },
     { name = "cryptography", specifier = ">=45,<47" },
     { name = "email-validator", specifier = ">=2.2,<3" },
-    { name = "fastapi", specifier = ">=0.115,<1" },
+    { name = "fastapi", specifier = ">=0.139,<1" },
     { name = "httpx", specifier = ">=0.28,<1" },
     { name = "langchain-deepseek", specifier = "==1.1.0" },
     { name = "langchain-openai", specifier = ">=1.1.9,<2" },
