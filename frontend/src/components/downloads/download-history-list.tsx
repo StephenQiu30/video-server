@@ -51,7 +51,7 @@ export default function DownloadHistoryList({
           data={data.items}
           getRowId={(item) => item.id}
           getRowLabel={(item) => item.title}
-          className="min-w-[760px]"
+          className="sm:min-w-[760px]"
           selection={
             selection
               ? {
@@ -72,7 +72,9 @@ export default function DownloadHistoryList({
             {
               id: 'status',
               header: '状态',
-              className: 'w-32',
+              // Narrow screens show the status inside the content cell so
+              // the row actions stay reachable without horizontal scrolling.
+              className: 'hidden w-32 sm:table-cell',
               cell: (item) => (
                 <Badge variant={statusVariant(item.status)}>
                   {downloadStatusLabels[item.status]}
@@ -85,7 +87,7 @@ export default function DownloadHistoryList({
             {
               id: 'actions',
               header: '操作',
-              className: 'w-[240px] text-right',
+              className: 'w-28 text-right sm:w-[240px]',
               hideable: false,
               cell: (item) => (
                 <HistoryActions
@@ -154,6 +156,13 @@ function HistoryContent({ item }: { item: API.DownloadHistoryItemResponse }) {
             </>
           ) : null}
         </div>
+        <Badge
+          className="mt-1.5 sm:hidden"
+          variant={statusVariant(item.status)}
+        >
+          {downloadStatusLabels[item.status]}
+          {isActiveDownloadStatus(item.status) ? ` · ${item.progress}%` : ''}
+        </Badge>
       </div>
     </Link>
   );
@@ -198,7 +207,7 @@ function HistoryActions({
           ) : (
             <DownloadSimple data-icon="inline-start" />
           )}
-          获取文件
+          <span className="sr-only sm:not-sr-only">获取文件</span>
         </Button>
       ) : recovery === 'reimport' ? (
         <Button asChild size="sm" variant="ghost">
@@ -216,7 +225,7 @@ function HistoryActions({
           ) : (
             <ArrowClockwise data-icon="inline-start" />
           )}
-          重新下载
+          <span className="sr-only sm:not-sr-only">重新下载</span>
         </Button>
       ) : (
         <Button asChild size="sm" variant="ghost">

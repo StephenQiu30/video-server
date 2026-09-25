@@ -216,7 +216,7 @@ export function IntentHistory({
             <DataTable
               data={history.data.items}
               caption="解析任务列表"
-              className="min-w-[760px]"
+              className="sm:min-w-[760px]"
               getRowId={(item) => `${item.record_type}:${item.id}`}
               getRowLabel={(item) => item.title || '媒体解析'}
               selection={{
@@ -275,13 +275,19 @@ export function IntentHistory({
                           源文件不可用 · 已有结果仍可查看
                         </p>
                       ) : null}
+                      <Badge
+                        className="mt-1.5 sm:hidden"
+                        variant={historyRecordVariant(item)}
+                      >
+                        {historyRecordStatus(item)}
+                      </Badge>
                     </div>
                   ),
                 },
                 {
                   id: 'created',
                   header: '提交时间',
-                  className: 'w-44',
+                  className: 'hidden w-44 sm:table-cell',
                   cell: (item) => (
                     <time
                       className="text-muted-foreground"
@@ -296,7 +302,8 @@ export function IntentHistory({
                 {
                   id: 'status',
                   header: '状态',
-                  className: 'w-32',
+                  // Shown inside the content cell on narrow screens.
+                  className: 'hidden w-32 sm:table-cell',
                   cell: (item) => (
                     <Badge variant={historyRecordVariant(item)}>
                       {historyRecordStatus(item)}

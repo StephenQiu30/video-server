@@ -44,7 +44,7 @@ export function ScreenplayDocumentList({
             getRowId={(document) => document.id}
             getRowLabel={(document) => document.title}
             caption="剧本文档列表"
-            className="min-w-[900px] table-fixed"
+            className="table-fixed sm:min-w-[900px]"
             columns={DocumentRowColumns(onDelete, pendingDeleteId)}
           />
         ) : null}
@@ -75,7 +75,7 @@ function DocumentRowColumns(
         return (
           <div className="flex min-w-0 flex-col gap-1">
             <Link
-              className="focus-ring line-clamp-2 rounded-sm text-[15px] font-medium leading-snug hover:text-muted-foreground"
+              className="focus-ring line-clamp-2 rounded-sm text-sm font-medium leading-snug hover:text-muted-foreground"
               href={detailHref}
             >
               {document.title}
@@ -83,6 +83,12 @@ function DocumentRowColumns(
             <span className="truncate text-xs text-muted-foreground">
               {document.original_filename}
             </span>
+            <Badge
+              className="mt-0.5 sm:hidden"
+              variant={documentStatusVariant(document.status)}
+            >
+              {documentStatusLabels[document.status]}
+            </Badge>
           </div>
         );
       },
@@ -90,7 +96,7 @@ function DocumentRowColumns(
     {
       id: '格式与更新时间',
       header: '格式与更新时间',
-      className: 'w-[15%] whitespace-normal',
+      className: 'hidden w-[15%] whitespace-normal sm:table-cell',
       cell: (document) => {
         return (
           <div className="flex flex-col gap-1">
@@ -105,7 +111,7 @@ function DocumentRowColumns(
     {
       id: '内容统计',
       header: '内容统计',
-      className: 'w-[22%] whitespace-normal',
+      className: 'hidden w-[22%] whitespace-normal sm:table-cell',
       cell: (document) => {
         return (
           <div className="flex flex-col gap-1">
@@ -123,7 +129,8 @@ function DocumentRowColumns(
     {
       id: '状态',
       header: '状态',
-      className: 'w-[13%] whitespace-normal',
+      // Shown inside the document cell on narrow screens.
+      className: 'hidden w-[13%] whitespace-normal sm:table-cell',
       cell: (document) => {
         return (
           <Badge variant={documentStatusVariant(document.status)}>
@@ -135,7 +142,7 @@ function DocumentRowColumns(
     {
       id: '操作',
       header: '操作',
-      className: 'w-[16%] text-right whitespace-normal',
+      className: 'w-24 text-right whitespace-normal sm:w-[16%]',
       cell: (document) => {
         const pending = pendingDeleteId === document.id;
         return (

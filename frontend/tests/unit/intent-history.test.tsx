@@ -174,7 +174,9 @@ it('opens failed history in a read-only dialog without restoring it as the curre
   const detailButton = await screen.findByRole('button', { name: '查看详情' });
   fireEvent.click(detailButton);
   expect(await screen.findByRole('dialog')).toBeVisible();
-  expect(screen.getByText('本次解析未完成')).toBeVisible();
+  // The status renders in its column and, for narrow screens, inside the
+  // content cell; CSS shows exactly one of them.
+  expect(screen.getAllByText('本次解析未完成')).toHaveLength(2);
   expect(await screen.findByText(/该链接明确需要平台账号权限/)).toBeVisible();
   expect(httpRequests().map((request) => request.url)).toEqual([
     '/api/download-intents/history/records',

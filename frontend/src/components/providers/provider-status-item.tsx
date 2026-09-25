@@ -113,7 +113,7 @@ export function ProviderStatusItem({
             </p>
           </div>
         </TableCell>
-        <TableCell className="whitespace-normal">
+        <TableCell className="hidden whitespace-normal sm:table-cell">
           {capabilities || '暂无已登记能力'}
         </TableCell>
         <TableCell className="text-right whitespace-nowrap">
