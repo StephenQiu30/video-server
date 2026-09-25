@@ -603,7 +603,22 @@ services:
       - youtube_pot_net
       - proxy_uplink_net
     healthcheck:
-      test: ["CMD", "squid", "-k", "check", "-f", "/etc/squid/squid.conf"]
+      # Compose does not recreate this container when only the bind-mounted
+      # policy changes, and Squid never rereads it on its own. Reload a changed
+      # policy after it parses; a policy that fails to parse keeps the running
+      # one and marks the proxy unhealthy.
+      test:
+        - CMD-SHELL
+        - >-
+          m=/tmp/squid-policy-loaded;
+          [ -e "$$m" ] || touch -r /proc/1 "$$m" || exit 1;
+          if [ -n "$$(find /etc/squid/squid.conf /etc/squid/blocked-destinations.conf -newer "$$m")" ]; then
+          touch "$$m.next" &&
+          squid -k parse -f /etc/squid/squid.conf >/dev/null 2>&1 &&
+          squid -k reconfigure -f /etc/squid/squid.conf &&
+          mv "$$m.next" "$$m" || exit 1;
+          fi;
+          squid -k check -f /etc/squid/squid.conf
       interval: 10s
       timeout: 5s
       retries: 12

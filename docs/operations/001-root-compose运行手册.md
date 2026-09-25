@@ -88,9 +88,12 @@ allowlist 选择，不把其他域行返回后再过滤。Runner 每次生成一
 `backend/egress/blocked-destinations.conf`：放行透明代理与 Docker Desktop 用于公网
 DNS 的合成段 `198.18.0.0/15`，其余私网段、字面量 IP 与非 Web 端口一律拒绝。Bilibili
 媒体 CDN 的 4483/8082 与抖音冷媒体 CDN `*.wmzfylgdsz.com` 的 TLS 8889 例外仅对指定域名开放。
-只修改只读挂载的 ACL 时，先执行 `squid -k parse -f /etc/squid/squid.conf` 校验，再用
-`squid -k reconfigure -f /etc/squid/squid.conf` 热加载；镜像、挂载或网络配置变化则重建 `egress-proxy`。
-仅重启其他业务容器不会应用代理配置变化。
+`docker compose up` 不会因为只读挂载的 `squid.conf` 或 `blocked-destinations.conf` 内容变化而重建
+`egress-proxy`，Squid 也不会自行重读配置；旧策略会在新代码需要的目的地上直接拒绝，表现为重启后首次解析或下载失败。
+因此健康检查每 10 秒比较两个策略文件的修改时间：有变化时先 `squid -k parse` 校验，通过后执行
+`squid -k reconfigure` 热加载；校验失败时继续使用正在运行的旧策略并把容器标为 unhealthy，修正文件后自动恢复。
+策略修改应原地写入文件（`git checkout`/普通编辑器保存均可）；若某个编辑器以替换文件方式保存导致容器内看不到新内容，
+重建 `egress-proxy`。镜像、挂载或网络配置变化同样需要重建 `egress-proxy`。
 
 访问地址：
 

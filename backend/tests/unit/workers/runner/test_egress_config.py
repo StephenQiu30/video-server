@@ -110,14 +110,27 @@ def test_egress_proxy_uses_pinned_squid_without_a_go_build_surface() -> None:
         assert proxy["volumes"][0] == (
             "./backend/egress/squid.conf:/etc/squid/squid.conf:ro"
         )
-        assert proxy["healthcheck"]["test"] == [
-            "CMD",
-            "squid",
-            "-k",
-            "check",
-            "-f",
-            "/etc/squid/squid.conf",
-        ]
+        kind, script = proxy["healthcheck"]["test"]
+        assert kind == "CMD-SHELL"
+        assert script.endswith("squid -k check -f /etc/squid/squid.conf")
+
+
+def test_egress_proxy_reloads_changed_policy_only_after_it_parses() -> None:
+    # `compose up` leaves this container running when only a mounted policy
+    # file changes; a stale policy silently blocks newly allowed media hosts.
+    for filename in ("docker-compose.yml", "docker-compose-prod.yml"):
+        _, script = load_compose(filename)["services"]["egress-proxy"][
+            "healthcheck"
+        ]["test"]
+        assert (
+            "find /etc/squid/squid.conf /etc/squid/blocked-destinations.conf -newer"
+            in script
+        )
+        parse = script.index("squid -k parse -f /etc/squid/squid.conf")
+        reload = script.index("squid -k reconfigure -f /etc/squid/squid.conf")
+        commit = script.index('mv "$$m.next" "$$m"')
+        assert parse < reload < commit
+        assert "|| exit 1; fi;" in script
 
 
 def test_douyin_cold_media_port_remains_domain_scoped() -> None:
