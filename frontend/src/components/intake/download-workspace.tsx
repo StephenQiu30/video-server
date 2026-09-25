@@ -89,6 +89,12 @@ export default function DownloadWorkspace() {
     snapshot?.status !== IntentStatusCode.ActionRequired;
   const showSubmittingToast = busy === 'inspect' && !showPendingToast;
   const canCancelToast = showPendingToast && !!snapshot;
+  const showFailureToast =
+    showTerminalStatus &&
+    !intent.error &&
+    !intentAuthorization &&
+    (snapshot?.status === IntentStatusCode.Failed ||
+      snapshot?.status === IntentStatusCode.Expired);
   const showIntentAction =
     mode === 'link' &&
     !!intent.attempt &&
@@ -97,6 +103,7 @@ export default function DownloadWorkspace() {
       !!intent.error ||
       snapshot?.status === IntentStatusCode.ActionRequired ||
       (showTerminalStatus &&
+        !showFailureToast &&
         (snapshot?.status === IntentStatusCode.Failed ||
           snapshot?.status === IntentStatusCode.Expired)));
   const intentStatusError =
@@ -135,6 +142,15 @@ export default function DownloadWorkspace() {
     void intent.cancel();
   });
   useEffect(() => {
+    if (showFailureToast) {
+      toast.error(intentStatusTitle, {
+        id: PARSE_STATUS_TOAST_ID,
+        description: intentStatusDescription,
+        duration: 8000,
+        cancel: undefined,
+      });
+      return;
+    }
     if (!showPendingToast && !showSubmittingToast) {
       toast.dismiss(PARSE_STATUS_TOAST_ID);
       return;
@@ -162,6 +178,7 @@ export default function DownloadWorkspace() {
       },
     );
   }, [
+    showFailureToast,
     showPendingToast,
     showSubmittingToast,
     canCancelToast,
@@ -245,6 +262,12 @@ export default function DownloadWorkspace() {
   useEffect(() => {
     if (mediaImport.notice) toast.info(mediaImport.notice);
   }, [mediaImport.notice]);
+
+  useEffect(() => {
+    if (error && !urlInvalid && !authorizationTarget) {
+      toast.error('操作未完成', { description: error });
+    }
+  }, [error, urlInvalid, authorizationTarget]);
 
   function clearLinkResult() {
     if (!intent.pending) {
@@ -458,7 +481,7 @@ export default function DownloadWorkspace() {
       ) : null}
       {(
         mode === 'link'
-          ? error
+          ? error && (urlInvalid || authorizationTarget)
           : mode === 'video'
             ? mediaImport.error
             : null

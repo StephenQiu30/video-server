@@ -155,3 +155,29 @@ it('does not restore a completed download into the homepage', async () => {
     sessionStorage.removeItem('framefetch-active-intent');
   }
 });
+
+it('shows parse failures once in Sonner without an inline status panel', async () => {
+  mockHttpResponses(
+    intentFixture({
+      status: 'failed',
+      inspection_id: null,
+      reason_code: 'provider_unavailable',
+    }),
+  );
+  renderEntry();
+  enter('https://youtu.be/owned');
+  await waitFor(() =>
+    expect(
+      document.querySelector('[data-sonner-toast][data-type="error"]'),
+    ).toHaveTextContent('本次解析未完成'),
+  );
+  expect(document.querySelectorAll('[data-sonner-toast]')).toHaveLength(1);
+  expect(
+    document.querySelector('[data-slot="parse-intent-status"]'),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: '取消解析' })).toBeNull();
+  expect(screen.getByRole('button', { name: '解析媒体' })).toBeEnabled();
+  expect(screen.getByLabelText('公开视频地址')).toHaveValue(
+    'https://youtu.be/owned',
+  );
+});
