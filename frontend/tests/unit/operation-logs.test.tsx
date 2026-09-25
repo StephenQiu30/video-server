@@ -57,3 +57,18 @@ it('shows empty state without a permanent spinner', async () => {
   ).toBeVisible();
   expect(screen.queryByLabelText('正在读取操作日志')).not.toBeInTheDocument();
 });
+it('includes the whole selected end minute', async () => {
+  mockHttpResponses({ items: [], total: 0, page: 1, page_size: 10 });
+  render(<OperationLogsView />);
+  await screen.findByRole('heading', { name: '暂无操作日志' });
+  fireEvent.change(screen.getByLabelText('结束时间'), {
+    target: { value: '2026-09-25T10:30' },
+  });
+  await waitFor(() =>
+    expect(httpRequests().at(-1)?.params).toMatchObject({
+      created_to: new Date(
+        new Date('2026-09-25T10:30').getTime() + 59_999,
+      ).toISOString(),
+    }),
+  );
+});

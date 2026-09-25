@@ -92,7 +92,10 @@ export function OperationLogsView() {
           ? ('request' as const)
           : undefined,
     created_from: from ? new Date(from).toISOString() : undefined,
-    created_to: to ? new Date(to).toISOString() : undefined,
+    // datetime-local has minute precision; include the whole selected minute.
+    created_to: to
+      ? new Date(new Date(to).getTime() + 59_999).toISOString()
+      : undefined,
   };
   const invalidDates = !!(from && to && from > to);
   const logs = useQuery({
