@@ -1,11 +1,13 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
+import { useId } from 'react';
 import { HistorySearchForm } from '@/components/intake/history-search-form';
 import {
   DEFAULT_PAGE_SIZE,
   PAGE_SIZE_OPTIONS,
 } from '@/components/layout/page-pagination';
+import { Field, FieldLabel } from '@/components/ui/field';
 import {
   Select,
   SelectContent,
@@ -170,7 +172,7 @@ export function HistoryRecordFilters({
         onApply={update}
         onReset={state.reset}
       />
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-end gap-3">
         <FilterSelect
           label="任务状态"
           value={search.get('status') ?? 'all'}
@@ -211,7 +213,7 @@ export function HistoryRecordFilters({
           />
         ) : null}
         {search.get('document_id') || search.get('download_id') ? (
-          <span className="self-center text-sm text-muted-foreground">
+          <span className="pb-2 text-sm text-muted-foreground">
             仅查看此素材的记录
           </span>
         ) : null}
@@ -231,20 +233,24 @@ function FilterSelect({
   onChange: (value: string) => void;
   options: string[][];
 }) {
+  const id = useId();
   return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger aria-label={label} className="w-40">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent position="popper" align="start">
-        <SelectGroup>
-          {options.map(([id, text]) => (
-            <SelectItem value={id} key={id}>
-              {text}
-            </SelectItem>
-          ))}
-        </SelectGroup>
-      </SelectContent>
-    </Select>
+    <Field className="w-40">
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger id={id} className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent position="popper" align="start">
+          <SelectGroup>
+            {options.map(([option, text]) => (
+              <SelectItem value={option} key={option}>
+                {text}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+    </Field>
   );
 }

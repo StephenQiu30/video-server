@@ -1,6 +1,6 @@
 'use client';
 
-import { CaretDown } from '@phosphor-icons/react';
+import { SlidersHorizontal } from '@phosphor-icons/react';
 import {
   type CellContext,
   type ColumnDef,
@@ -108,43 +108,12 @@ export function DataTable<T extends RowData>({
   });
   return (
     <div className="flex min-w-0 flex-col gap-3">
+      {/* Bulk actions take a row only while they have content. */}
       <div
-        className="flex flex-wrap items-center justify-between gap-3"
+        className="flex flex-wrap items-center gap-3 empty:hidden"
         data-slot="table-toolbar"
       >
-        {toolbar ?? bulkSelection?.toolbar ?? <span />}
-        <div className="ml-auto shrink-0">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                显示列
-                <CaretDown data-icon="inline-end" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuGroup>
-                {table
-                  .getAllLeafColumns()
-                  .filter((column) => column.getCanHide())
-                  .map((column) => (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      checked={column.getIsVisible()}
-                      disabled={
-                        column.getIsVisible() &&
-                        table.getVisibleLeafColumns().length === 1
-                      }
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {columns.find((item) => item.id === column.id)?.header}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        {toolbar ?? bulkSelection?.toolbar}
       </div>
       <div className="min-w-0">
         <Table className={cn('table-borderless table-fixed', className)}>
@@ -185,6 +154,44 @@ export function DataTable<T extends RowData>({
                     )}
                   </TableHead>
                 ))}
+                <TableHead className="w-10 text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="显示列"
+                      >
+                        <SlidersHorizontal aria-hidden />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuGroup>
+                        {table
+                          .getAllLeafColumns()
+                          .filter((column) => column.getCanHide())
+                          .map((column) => (
+                            <DropdownMenuCheckboxItem
+                              key={column.id}
+                              checked={column.getIsVisible()}
+                              disabled={
+                                column.getIsVisible() &&
+                                table.getVisibleLeafColumns().length === 1
+                              }
+                              onCheckedChange={(value) =>
+                                column.toggleVisibility(!!value)
+                              }
+                            >
+                              {
+                                columns.find((item) => item.id === column.id)
+                                  ?.header
+                              }
+                            </DropdownMenuCheckboxItem>
+                          ))}
+                      </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableHead>
               </TableRow>
             ))}
           </TableHeader>
@@ -217,6 +224,7 @@ export function DataTable<T extends RowData>({
                     <table.FlexRender cell={cell} />
                   </TableCell>
                 ))}
+                <TableCell aria-hidden />
               </TableRow>
             ))}
           </TableBody>
