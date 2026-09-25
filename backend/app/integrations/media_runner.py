@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import math
 import re
 import secrets
@@ -235,13 +236,9 @@ class MediaRunnerHttpClient:
                     raise MediaInspectionConfigurationMissing from exc
                 raise MediaInspectionAuthRequired from exc
             if exc.code == "guest_context_required":
-                if (
-                    context is not None
-                    and context.access_mode is ProviderAccessMode.GUEST
-                    and self._reject_guest is not None
-                ):
+                if context is not None:
                     try:
-                        await self._reject_guest(context)
+                        await self._expire_rejected_guest(context)
                     except Exception:
                         raise MediaInspectionTemporarilyUnavailable from None
                 raise MediaInspectionGuestContextRequired(
@@ -404,18 +401,26 @@ class MediaRunnerHttpClient:
                 timeout_code="download_timeout",
             )
 
-        response = (
-            await execute()
-            if self._admission is None
-            else await self._admission.run(
-                access_context,
-                execute,
-                owner=task_id,
-                probe=lambda deadline: self._inspect_response(
-                    url, access_context, deadline
-                ),
+        try:
+            response = (
+                await execute()
+                if self._admission is None
+                else await self._admission.run(
+                    access_context,
+                    execute,
+                    owner=task_id,
+                    probe=lambda deadline: self._inspect_response(
+                        url, access_context, deadline
+                    ),
+                )
             )
-        )
+        except MediaRunnerClientError as exc:
+            if exc.code == "guest_context_required":
+                # The original rejection stays authoritative for retry policy;
+                # a failed expiry only delays the next guest refresh.
+                with contextlib.suppress(Exception):
+                    await self._expire_rejected_guest(access_context)
+            raise
         workspace = Path(response.workspace_path).resolve()
         artifact = (workspace / response.artifact.relative_path).resolve()
         outside_root = not workspace.is_relative_to(self._workspace_root)
@@ -458,6 +463,13 @@ class MediaRunnerHttpClient:
             self._inspect_timeout,
             timeout_code="runner_unavailable",
         )
+
+    async def _expire_rejected_guest(self, context: ProviderAccessContextRef) -> None:
+        if (
+            context.access_mode is ProviderAccessMode.GUEST
+            and self._reject_guest is not None
+        ):
+            await self._reject_guest(context)
 
     async def close(self) -> None:
         if self._owns_client:
