@@ -6,6 +6,7 @@ type PageHeaderProps = {
   className?: string;
   description?: ReactNode;
   title: ReactNode;
+  size?: 'default' | 'lg';
   titleClassName?: string;
   titleId?: string;
 };
@@ -15,6 +16,7 @@ export function PageHeader({
   className,
   description,
   title,
+  size = 'default',
   titleClassName,
   titleId,
 }: PageHeaderProps) {
@@ -29,7 +31,8 @@ export function PageHeader({
       <div className="min-w-0 max-w-4xl">
         <h1
           className={cn(
-            'text-balance text-2xl font-semibold tracking-tight sm:text-3xl',
+            'text-balance font-semibold tracking-tight',
+            size === 'lg' ? 'text-3xl sm:text-4xl' : 'text-2xl sm:text-3xl',
             titleClassName,
           )}
           id={titleId}
@@ -37,7 +40,12 @@ export function PageHeader({
           {title}
         </h1>
         {description ? (
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          <p
+            className={cn(
+              'mt-2 leading-6 text-muted-foreground',
+              size === 'lg' ? 'text-base' : 'text-sm',
+            )}
+          >
             {description}
           </p>
         ) : null}

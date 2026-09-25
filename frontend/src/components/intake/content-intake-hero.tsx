@@ -24,8 +24,9 @@ export function ContentIntakeHero({
   videoForm: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-10 py-10 sm:gap-12 sm:py-24">
+    <div className="inner-page flex flex-col gap-10 sm:gap-12">
       <PageHeader
+        size="lg"
         description="解析公开视频、图片与合集链接，或上传本地视频与剧本文档。"
         title="把素材，带回本地。"
       />
