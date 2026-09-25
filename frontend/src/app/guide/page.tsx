@@ -92,7 +92,7 @@ export default function GuidePage() {
         breadcrumbs={[{ label: '帧取', href: '/' }, { label: '使用指南' }]}
       />
       <PageHeader title="从素材到分析报告" description={description} />
-      <p className="mt-6 text-sm leading-7 text-muted-foreground">
+      <p className="mt-6 max-w-3xl text-sm leading-7 text-muted-foreground">
         本指南介绍当前产品流程。配置与实现以链接的仓库文档为准，实例可用性以实际检查结果为准。
       </p>
       <nav aria-label="指南目录" className="mt-10">
@@ -126,7 +126,7 @@ export default function GuidePage() {
             </h2>
             {paragraphs.map((paragraph) => (
               <p
-                className="mt-5 leading-8 text-muted-foreground"
+                className="mt-5 max-w-3xl leading-8 text-muted-foreground"
                 key={paragraph}
               >
                 {paragraph}
