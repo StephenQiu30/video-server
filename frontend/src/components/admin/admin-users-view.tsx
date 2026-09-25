@@ -116,11 +116,13 @@ export function AdminUsersView() {
       toast.success(`已更新 ${editing.username} 的账户权限。`);
       await loadUsers();
     } catch (reason) {
-      setEditError(
-        reason instanceof Error && !(reason instanceof ApiError)
-          ? reason.message
-          : displayError(reason),
-      );
+      if (reason instanceof ApiError) {
+        toast.error('保存失败', { description: displayError(reason) });
+      } else {
+        setEditError(
+          reason instanceof Error ? reason.message : displayError(reason),
+        );
+      }
     } finally {
       setSaving(false);
     }

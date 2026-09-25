@@ -137,11 +137,8 @@ export function AdminAiProvidersView() {
       setEditor(EMPTY_AI_PROVIDER_EDITOR);
       await load();
     } catch (reason) {
-      setEditor((current) => ({
-        ...current,
-        saving: false,
-        error: displayError(reason),
-      }));
+      toast.error('保存失败', { description: displayError(reason) });
+      setEditor((current) => ({ ...current, saving: false }));
     }
   }
 
@@ -154,7 +151,7 @@ export function AdminAiProvidersView() {
       toast.success(`“${item.display_name}”已成为当前分析线路。`);
       await load();
     } catch (reason) {
-      setError(displayError(reason));
+      toast.error('操作未完成', { description: displayError(reason) });
     }
   }
 
@@ -169,7 +166,7 @@ export function AdminAiProvidersView() {
       setDeleteTarget(null);
       await load();
     } catch (reason) {
-      setError(displayError(reason));
+      toast.error('操作未完成', { description: displayError(reason) });
     } finally {
       setDeleting(false);
     }

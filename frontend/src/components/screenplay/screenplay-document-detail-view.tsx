@@ -107,6 +107,7 @@ export default function ScreenplayDocumentDetailView({
       <PageNavigation fallbackHref="/documents" />
       {state.error || actionError ? (
         <FeedbackNotice
+          presentation={state.error ? 'inline' : 'toast'}
           action={
             state.error ? (
               <Button onClick={state.refresh} size="sm" variant="outline">

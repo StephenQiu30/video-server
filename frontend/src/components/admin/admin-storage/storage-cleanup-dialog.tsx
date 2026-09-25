@@ -1,6 +1,6 @@
-import { Trash, WarningCircle } from '@phosphor-icons/react';
+import { Trash } from '@phosphor-icons/react';
 
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -67,10 +67,12 @@ export function StorageCleanupDialog({
           </p>
         </div>
         {error ? (
-          <Alert variant="destructive">
-            <WarningCircle aria-hidden />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+          <FeedbackNotice
+            presentation="toast"
+            title="操作未完成"
+            description={error}
+            tone="error"
+          />
         ) : null}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={cleaning}>取消</AlertDialogCancel>

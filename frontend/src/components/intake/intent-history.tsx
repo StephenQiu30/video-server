@@ -205,6 +205,7 @@ export function IntentHistory({
         ) : null}
         {bulk.message ? (
           <FeedbackNotice
+            presentation="toast"
             className="my-4"
             title="批量下载结果"
             description={bulk.message}

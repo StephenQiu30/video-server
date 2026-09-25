@@ -15,7 +15,7 @@ import {
   mockHttpError,
   mockHttpResponses,
 } from '../helpers/http';
-import { render } from '../helpers/query-render';
+import { renderWithToasts as render } from '../helpers/query-render';
 import { emitTaskUpdate } from '../helpers/websocket';
 
 const runtime = vi.hoisted(() => ({

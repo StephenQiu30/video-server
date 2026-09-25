@@ -8,7 +8,7 @@ import {
   IntakePickerButton,
   IntakeSubmitButton,
 } from '@/components/intake/intake-control-row';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -62,7 +62,9 @@ export function ScreenplayUploadForm({
 
   const filePicker = (
     <IntakePickerButton
-      aria-describedby={error ? 'screenplay-upload-error' : undefined}
+      aria-describedby={
+        error && fileInvalid ? 'screenplay-upload-error' : undefined
+      }
       aria-invalid={fileInvalid || undefined}
       className={workspace ? 'flex-1' : 'w-full'}
       disabled={busy}
@@ -98,10 +100,14 @@ export function ScreenplayUploadForm({
     ? formatFileSize(file.size)
     : 'DOCX、PDF、TXT、Markdown 或 Fountain';
   const errorNotice = error ? (
-    <Alert className="mt-3" id="screenplay-upload-error" variant="destructive">
-      <AlertTitle>无法上传剧本</AlertTitle>
-      <AlertDescription>{error}</AlertDescription>
-    </Alert>
+    <FeedbackNotice
+      presentation={fileInvalid ? 'inline' : 'toast'}
+      className="mt-3"
+      descriptionId="screenplay-upload-error"
+      title="无法上传剧本"
+      description={error}
+      tone="error"
+    />
   ) : null;
   const progressNotice = busy ? (
     <div className="mt-4">

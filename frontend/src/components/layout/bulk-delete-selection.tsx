@@ -158,6 +158,7 @@ function SelectionProvider({
       ) : null}
       {errors.length ? (
         <FeedbackNotice
+          presentation="toast"
           tone="error"
           title="部分项目删除失败，已保留选择"
           description={[...new Set(errors)].join('；')}

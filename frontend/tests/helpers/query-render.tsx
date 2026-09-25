@@ -4,8 +4,10 @@ import {
   renderHook as renderReactHook,
 } from '@testing-library/react';
 import type { ComponentType, ReactElement, ReactNode } from 'react';
+import { toast } from 'sonner';
 import { IntakeDraftProvider } from '@/components/intake/intake-draft-provider';
 import { QueryProvider } from '@/components/layout/query-provider';
+import { Toaster } from '@/components/ui/sonner';
 
 function withQueries(Wrapper?: ComponentType<{ children: ReactNode }>) {
   return function TestProviders({ children }: { children: ReactNode }) {
@@ -33,3 +35,15 @@ export const renderHook: typeof renderReactHook = (callback, options) =>
     ...options,
     wrapper: withQueries(options?.wrapper),
   });
+
+/** Match the application root for tests that exercise operation notifications. */
+export const renderWithToasts: typeof render = (ui, options) => {
+  toast.dismiss();
+  return render(
+    <>
+      {ui}
+      <Toaster />
+    </>,
+    options,
+  );
+};

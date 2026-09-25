@@ -101,6 +101,7 @@ export default function ScreenplayDocumentsView() {
         ) : null}
         {actionError ? (
           <FeedbackNotice
+            presentation="toast"
             description={actionError}
             title="操作未完成"
             tone="error"

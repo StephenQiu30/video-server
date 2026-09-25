@@ -163,7 +163,6 @@ export default function DownloadWorkspace() {
           : '正在提交解析请求',
       {
         id: PARSE_STATUS_TOAST_ID,
-        position: 'bottom-right',
         description: showPendingToast
           ? intentStatusDescription
           : '请稍候，无需重复提交。',
@@ -487,6 +486,9 @@ export default function DownloadWorkspace() {
             : null
       ) ? (
         <FeedbackNotice
+          presentation={
+            mode === 'video' && !mediaImport.fileInvalid ? 'toast' : 'inline'
+          }
           action={
             mode === 'link' && authorizationTarget ? (
               <ProviderAuthorizationDialog

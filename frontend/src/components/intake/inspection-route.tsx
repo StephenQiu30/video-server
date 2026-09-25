@@ -173,6 +173,7 @@ export default function InspectionRoute() {
       <PageNavigation fallbackHref="/" />
       {error ? (
         <FeedbackNotice
+          presentation="toast"
           className="mb-6"
           title="操作未完成"
           description={error}

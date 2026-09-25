@@ -11,7 +11,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DownloadHistoryView from '@/components/downloads/download-history-view';
 import { useDownloadHistory } from '@/components/downloads/use-download-history';
 import { privateQueryKey } from '@/lib/query-keys';
-import { render, renderHook } from '../helpers/query-render';
+import {
+  renderWithToasts as render,
+  renderHook,
+} from '../helpers/query-render';
 
 const runtime = vi.hoisted(() => ({
   deleteDownload: vi.fn(),

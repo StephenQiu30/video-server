@@ -129,6 +129,7 @@ function AnalysisDetailContent({
       {state.error ? (
         <FeedbackNotice
           className="mt-6"
+          presentation={state.errorKind === 'action' ? 'toast' : 'inline'}
           title="无法完成操作"
           description={state.error}
           tone="error"

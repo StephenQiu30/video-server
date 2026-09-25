@@ -108,11 +108,8 @@ export function AdminProviderCatalogView() {
       setEditor(EMPTY_EDITOR);
       await loadCatalog();
     } catch (reason) {
-      setEditor((current) => ({
-        ...current,
-        saving: false,
-        error: displayError(reason),
-      }));
+      toast.error('保存失败', { description: displayError(reason) });
+      setEditor((current) => ({ ...current, saving: false }));
     }
   }
 

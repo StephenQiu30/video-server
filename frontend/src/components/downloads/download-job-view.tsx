@@ -210,6 +210,9 @@ export default function DownloadJobView({
                         </Button>
                       ) : undefined
                     }
+                    presentation={
+                      state.errorKind === 'action' ? 'toast' : 'inline'
+                    }
                     description={state.error}
                     title={errorTitle(state.errorKind)}
                     tone="error"

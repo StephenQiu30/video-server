@@ -82,6 +82,7 @@ export default function ScreenplayAnalysisPanel({
                 ) : undefined
               }
               className="mb-8"
+              presentation={state.errorKind === 'action' ? 'toast' : 'inline'}
               description={state.error}
               title="操作未完成"
               tone="error"
@@ -122,6 +123,7 @@ export default function ScreenplayAnalysisPanel({
                 ) : undefined
               }
               className="mt-6"
+              presentation={state.errorKind === 'action' ? 'toast' : 'inline'}
               description={state.error}
               title="操作未完成"
               tone="error"

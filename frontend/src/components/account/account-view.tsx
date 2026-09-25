@@ -172,6 +172,7 @@ export function AccountView() {
             </div>
             {notice ? (
               <FeedbackNotice
+                presentation="toast"
                 description={notice.text}
                 title="资料保存失败"
                 tone="error"

@@ -1,16 +1,11 @@
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import {
   type BulkDeleteOptions,
   BulkDeleteSelection,
 } from '@/components/layout/bulk-delete-selection';
 import { DataTable } from '@/components/layout/data-table';
+import { renderWithToasts as render } from '../helpers/query-render';
 
 function Fixture({ options }: { options: BulkDeleteOptions }) {
   return (

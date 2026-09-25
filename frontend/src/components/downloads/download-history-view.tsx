@@ -275,6 +275,7 @@ export default function DownloadHistoryView() {
       ) : null}
       {actionError ? (
         <FeedbackNotice
+          presentation="toast"
           className="mt-6"
           description={actionError}
           title="操作未完成"
@@ -289,6 +290,7 @@ export default function DownloadHistoryView() {
       ) : null}
       {bulkMessage ? (
         <FeedbackNotice
+          presentation="toast"
           className="my-4"
           title="批量操作结果"
           description={bulkMessage}

@@ -59,6 +59,7 @@ export default function AnalysisReportDownloadLink({
       />
       {error ? (
         <FeedbackNotice
+          presentation="toast"
           className="mt-2"
           description={error}
           title="报告下载失败"

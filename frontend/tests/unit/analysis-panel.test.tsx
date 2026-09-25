@@ -24,7 +24,7 @@ import {
   mockHttpError,
   mockHttpResponses,
 } from '../helpers/http';
-import { render } from '../helpers/query-render';
+import { renderWithToasts as render } from '../helpers/query-render';
 import { degradeLatestSocket, emitTaskUpdate } from '../helpers/websocket';
 
 describe('AnalysisPanel', () => {
