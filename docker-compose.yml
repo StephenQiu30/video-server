@@ -592,12 +592,13 @@ services:
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=16m,mode=1777
     entrypoint: ["squid"]
-    command: ["-N", "-f", "/etc/squid/squid.conf"]
+    command: ["-N", "-f", "/etc/squid/policy/squid.conf"]
     ports:
       - "127.0.0.1:${EGRESS_PROXY_HOST_PORT:-13128}:3128"
     volumes:
-      - ./backend/egress/squid.conf:/etc/squid/squid.conf:ro
-      - ./backend/egress/blocked-destinations.conf:/etc/squid/blocked-destinations.conf:ro
+      # Mount the directory, not single files: a git checkout or editor save
+      # replaces the file, and a single-file bind mount keeps the old inode.
+      - ./backend/egress:/etc/squid/policy:ro
     networks:
       - runner_egress_net
       - youtube_pot_net
@@ -612,13 +613,13 @@ services:
         - >-
           m=/tmp/squid-policy-loaded;
           [ -e "$$m" ] || touch -r /proc/1 "$$m" || exit 1;
-          if [ -n "$$(find /etc/squid/squid.conf /etc/squid/blocked-destinations.conf -newer "$$m")" ]; then
+          if [ -n "$$(find /etc/squid/policy -name '*.conf' -newer "$$m")" ]; then
           touch "$$m.next" &&
-          squid -k parse -f /etc/squid/squid.conf >/dev/null 2>&1 &&
-          squid -k reconfigure -f /etc/squid/squid.conf &&
+          squid -k parse -f /etc/squid/policy/squid.conf >/dev/null 2>&1 &&
+          squid -k reconfigure -f /etc/squid/policy/squid.conf &&
           mv "$$m.next" "$$m" || exit 1;
           fi;
-          squid -k check -f /etc/squid/squid.conf
+          squid -k check -f /etc/squid/policy/squid.conf
       interval: 10s
       timeout: 5s
       retries: 12

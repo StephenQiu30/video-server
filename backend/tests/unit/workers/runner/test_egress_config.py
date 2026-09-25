@@ -79,10 +79,7 @@ def test_destination_policy_allows_configured_synthetic_dns_ranges() -> None:
 
 def test_compose_mounts_single_destination_policy() -> None:
     variable = "EGRESS_DESTINATION_POLICY_FILE"
-    mount = (
-        "./backend/egress/blocked-destinations.conf"
-        ":/etc/squid/blocked-destinations.conf:ro"
-    )
+    mount = "./backend/egress:/etc/squid/policy:ro"
     for filename in ("docker-compose.yml", "docker-compose-prod.yml"):
         text = (REPOSITORY_ROOT / filename).read_text(encoding="utf-8")
         assert variable not in text
@@ -105,29 +102,26 @@ def test_egress_proxy_uses_pinned_squid_without_a_go_build_surface() -> None:
         assert proxy["image"] == SQUID_IMAGE
         assert "build" not in proxy
         assert proxy["entrypoint"] == ["squid"]
-        assert proxy["command"] == ["-N", "-f", "/etc/squid/squid.conf"]
+        assert proxy["command"] == ["-N", "-f", "/etc/squid/policy/squid.conf"]
         assert proxy["tmpfs"] == EXPECTED_TMPFS
-        assert proxy["volumes"][0] == (
-            "./backend/egress/squid.conf:/etc/squid/squid.conf:ro"
-        )
+        # A directory mount follows files replaced by git or editors; a
+        # single-file bind mount would keep serving the old inode on Linux.
+        assert proxy["volumes"] == ["./backend/egress:/etc/squid/policy:ro"]
         kind, script = proxy["healthcheck"]["test"]
         assert kind == "CMD-SHELL"
-        assert script.endswith("squid -k check -f /etc/squid/squid.conf")
+        assert script.endswith("squid -k check -f /etc/squid/policy/squid.conf")
 
 
 def test_egress_proxy_reloads_changed_policy_only_after_it_parses() -> None:
     # `compose up` leaves this container running when only a mounted policy
     # file changes; a stale policy silently blocks newly allowed media hosts.
     for filename in ("docker-compose.yml", "docker-compose-prod.yml"):
-        _, script = load_compose(filename)["services"]["egress-proxy"][
-            "healthcheck"
-        ]["test"]
-        assert (
-            "find /etc/squid/squid.conf /etc/squid/blocked-destinations.conf -newer"
-            in script
-        )
-        parse = script.index("squid -k parse -f /etc/squid/squid.conf")
-        reload = script.index("squid -k reconfigure -f /etc/squid/squid.conf")
+        _, script = load_compose(filename)["services"]["egress-proxy"]["healthcheck"][
+            "test"
+        ]
+        assert "find /etc/squid/policy -name '*.conf' -newer" in script
+        parse = script.index("squid -k parse -f /etc/squid/policy/squid.conf")
+        reload = script.index("squid -k reconfigure -f /etc/squid/policy/squid.conf")
         commit = script.index('mv "$$m.next" "$$m"')
         assert parse < reload < commit
         assert "|| exit 1; fi;" in script
