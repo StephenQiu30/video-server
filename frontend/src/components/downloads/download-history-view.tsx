@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { DownloadDeleteDialog } from '@/components/downloads/download-delete-dialog';
 import DownloadHistoryList from '@/components/downloads/download-history-list';
-import { DownloadHistorySummary } from '@/components/downloads/download-history-summary';
 import {
   DownloadStatusCode,
   downloadRecovery,
@@ -252,7 +251,6 @@ export default function DownloadHistoryView() {
         </Button>
       </FieldGroup>
 
-      <DownloadHistorySummary data={state.data} loading={state.loading} />
       {state.error && !state.data ? (
         <PageErrorNotice
           className="mt-6"
@@ -353,7 +351,7 @@ export default function DownloadHistoryView() {
         pendingActions={operations.pendingActions}
       />
 
-      {state.data && state.data.total > 0 ? (
+      {state.data ? (
         <PagePagination
           pageSize={pageSize}
           busy={state.refreshing}

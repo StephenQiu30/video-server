@@ -26,6 +26,7 @@ export function BulkSelectionBar({
   children: ReactNode;
 }) {
   const id = useId();
+  if (count === 0 && !onSelectAll) return null;
   return (
     <FieldSet
       className="min-w-0 flex-row flex-wrap items-center gap-3"

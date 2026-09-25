@@ -85,26 +85,21 @@ describe('download history', () => {
     );
   });
 
-  it('exposes loading and computed summary states', async () => {
+  it('shows pagination without redundant totals after loading', async () => {
     let resolveHistory!: (value: API.DownloadHistoryResponse) => void;
     runtime.getDownloadHistory.mockReturnValue(
       new Promise<API.DownloadHistoryResponse>((resolve) => {
         resolveHistory = resolve;
       }),
     );
-    const { container } = render(<DownloadHistoryView />);
-
-    const summary = container.querySelector(
-      '[data-slot="download-history-summary"]',
-    );
-    expect(summary).toHaveAttribute('aria-busy', 'true');
-    expect(
-      summary?.querySelector('[data-slot="skeleton"]'),
-    ).toBeInTheDocument();
+    render(<DownloadHistoryView />);
+    expect(screen.queryByText('共 1 项')).not.toBeInTheDocument();
 
     act(() => resolveHistory(history()));
-    await waitFor(() => expect(summary).toHaveAttribute('aria-busy', 'false'));
-    expect(summary).toHaveTextContent('共 1 项 · 已完成 1 · 进行中 0');
+    expect(
+      await screen.findByRole('navigation', { name: '下载记录分页' }),
+    ).toBeVisible();
+    expect(screen.queryByText('共 1 项')).not.toBeInTheDocument();
   });
 
   it('renders history rows and performs detail and file actions', async () => {
@@ -128,9 +123,7 @@ describe('download history', () => {
       'href',
       '/',
     );
-    expect(
-      screen.getByText('共 1 项 · 已完成 1 · 进行中 0'),
-    ).toBeInTheDocument();
+    expect(screen.queryByText('共 1 项')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: '示例视频' })).toHaveAttribute(
       'href',
       '/downloads/detail?jobId=history-job-1',
@@ -412,7 +405,7 @@ describe('download history', () => {
     ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '下一页' }));
     await screen.findByText('2 / 4');
-    expect(screen.getByText('勾选记录以批量操作')).toBeVisible();
+    expect(screen.queryByText('勾选记录以批量操作')).not.toBeInTheDocument();
     const select = screen.getByRole('combobox', {
       name: '下载记录分页每页条数',
     });

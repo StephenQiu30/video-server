@@ -37,7 +37,6 @@ export function ProviderStatusView() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const providers = state.data?.items ?? EMPTY_PROVIDERS;
-  const available = providers.filter(isCurrentlyAvailable).length;
   const filtered = useMemo(
     () => providers.filter((item) => matchesFilter(item, filter)),
     [filter, providers],
@@ -100,13 +99,7 @@ export function ProviderStatusView() {
         ) : null}
         {state.data ? (
           <>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-muted-foreground">
-                共{' '}
-                <strong className="text-foreground">{providers.length}</strong>{' '}
-                个已登记平台 · {available} 个当前可用 ·{' '}
-                {providers.length - available} 个需关注
-              </p>
+            <div className="flex justify-end">
               <ToggleGroup
                 type="single"
                 aria-label="筛选平台状态"
@@ -158,9 +151,6 @@ export function ProviderStatusView() {
                   </TableBody>
                 </Table>
                 <footer className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
-                  <span>
-                    显示 {visibleProviders.length} 项，共 {filtered.length} 项
-                  </span>
                   <PagePagination
                     pageSize={pageSize}
                     onPageSizeChange={(size) => {

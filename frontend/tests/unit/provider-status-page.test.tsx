@@ -208,7 +208,7 @@ describe('provider status page', () => {
     expect(
       within(xiaohongshu as HTMLElement).getByText('支持下载 · 当前降级'),
     ).toHaveAttribute('data-variant', 'secondary');
-    expect(screen.getByText(/0 个当前可用/)).toBeInTheDocument();
+    expect(screen.queryByText(/0 个当前可用/)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('radio', { name: '当前可用' }));
     expect(
