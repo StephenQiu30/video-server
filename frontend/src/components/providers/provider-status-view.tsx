@@ -58,8 +58,7 @@ export function ProviderStatusView() {
             aria-label={state.refreshing ? '正在刷新平台状态' : '刷新状态'}
             disabled={state.refreshing}
             onClick={state.retry}
-            size="lg"
-            variant="outline"
+            variant="ghost"
           >
             {state.refreshing ? (
               <Spinner aria-hidden data-icon="inline-start" />
@@ -139,7 +138,7 @@ export function ProviderStatusView() {
             </div>
             {visibleProviders.length > 0 ? (
               <div className="flex flex-col gap-5">
-                <Table className="min-w-[980px] table-fixed">
+                <Table className="table-borderless min-w-[980px] table-fixed">
                   <TableCaption className="sr-only">平台能力状态</TableCaption>
                   <TableHeader>
                     <TableRow>

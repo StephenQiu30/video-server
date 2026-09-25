@@ -146,8 +146,8 @@ export function DataTable<T extends RowData>({
           </DropdownMenu>
         </div>
       </div>
-      <div className="overflow-hidden rounded-md border">
-        <Table className={cn('table-fixed', className)}>
+      <div className="min-w-0">
+        <Table className={cn('table-borderless table-fixed', className)}>
           <TableCaption className="sr-only">{caption}</TableCaption>
           <TableHeader>
             {table.getHeaderGroups().map((group) => (

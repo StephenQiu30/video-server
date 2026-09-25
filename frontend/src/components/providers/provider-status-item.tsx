@@ -104,13 +104,13 @@ export function ProviderStatusItem({
           </div>
         </TableHead>
         <TableCell className="whitespace-normal">
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-col items-start gap-1.5">
             <Badge variant={statusVariant(provider)}>
               {statusLabel(provider)}
             </Badge>
-            <Badge variant="outline">
+            <p className="text-xs text-muted-foreground">
               {accessStateLabel(provider.access_state)}
-            </Badge>
+            </p>
           </div>
         </TableCell>
         <TableCell className="whitespace-normal">

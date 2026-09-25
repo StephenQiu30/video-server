@@ -168,6 +168,18 @@
 }
 
 @layer utilities {
+  /* Shared borderless layout, retaining official interactive states. */
+  .table-borderless [data-slot="table-row"] {
+    border-width: 0;
+  }
+
+  .table-borderless
+    [data-slot="table-body"]
+    > [data-slot="table-row"]
+    > :is(th, td) {
+    padding-block: 0.75rem;
+  }
+
   .content-shell {
     width: min(calc(100% - clamp(32px, calc(25vw - 96px), 160px)), 1376px);
     margin-inline: auto;
