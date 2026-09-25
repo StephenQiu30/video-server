@@ -39,6 +39,7 @@ const SelectionContext = createContext<null | {
   ids: string[];
   selection: ReturnType<typeof usePageSelection>;
   disabled: boolean;
+  toolbar: ReactNode;
 }>(null);
 
 /** The caller supplies only the visible, eligible rows and its existing deletion API. */
@@ -112,44 +113,44 @@ function SelectionProvider({
       if (request.current()) setBusy(false);
     }
   }
+  const toolbar = (
+    <BulkSelectionBar
+      count={selection.selected.length}
+      busy={disabled}
+      onClear={() => selection.toggleAll(false)}
+    >
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="outline" disabled={disabled || !selection.some}>
+            <Trash data-icon="inline-start" />
+            批量删除（{selection.selected.length}）
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              删除选中的 {selection.selected.length} 项？
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {options.description}此操作不可撤销。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={disabled || !selection.some}
+              onClick={() => void execute()}
+            >
+              确认删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </BulkSelectionBar>
+  );
   return (
-    <SelectionContext.Provider value={{ ids, selection, disabled }}>
-      <BulkSelectionBar
-        all={selection.all}
-        some={selection.some}
-        count={selection.selected.length}
-        busy={disabled}
-        onSelectAll={selection.toggleAll}
-      >
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline" disabled={disabled || !selection.some}>
-              <Trash data-icon="inline-start" />
-              批量删除（{selection.selected.length}）
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent size="sm">
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                删除选中的 {selection.selected.length} 项？
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                {options.description}此操作不可撤销。
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>取消</AlertDialogCancel>
-              <AlertDialogAction
-                variant="destructive"
-                disabled={disabled || !selection.some}
-                onClick={() => void execute()}
-              >
-                确认删除
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </BulkSelectionBar>
+    <SelectionContext.Provider value={{ ids, selection, disabled, toolbar }}>
       {busy ? (
         <p role="status">
           正在删除：{progress} / {total}
@@ -173,6 +174,7 @@ export function useBulkTableSelection() {
   const context = useContext(SelectionContext);
   if (!context) return undefined;
   return {
+    toolbar: context.toolbar,
     ids: context.selection.selected,
     busy: context.disabled,
     toggle: context.selection.toggle,

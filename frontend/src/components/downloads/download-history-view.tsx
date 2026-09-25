@@ -3,7 +3,7 @@
 import { ArrowClockwise, MagnifyingGlass, Plus } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DownloadDeleteDialog } from '@/components/downloads/download-delete-dialog';
 import DownloadHistoryList from '@/components/downloads/download-history-list';
 import { DownloadHistorySummary } from '@/components/downloads/download-history-summary';
@@ -63,6 +63,9 @@ export default function DownloadHistoryView() {
     'download' | 'retry' | 'delete' | null
   >(null);
   const bulkBusy = bulkAction !== null;
+  const bulkLock = useRef(false);
+  const actionsBusy =
+    bulkBusy || state.refreshing || operations.pendingActions.length > 0;
   const [bulkProgress, setBulkProgress] = useState({ completed: 0, total: 0 });
   const [bulkMessage, setBulkMessage] = useState('');
   const items = state.data?.items ?? [];
@@ -81,7 +84,7 @@ export default function DownloadHistoryView() {
     (item) => downloadRecovery(item) === 'retry',
   );
   async function runBulk(action: 'download' | 'retry' | 'delete') {
-    if (bulkBusy || state.refreshing) return;
+    if (actionsBusy || bulkLock.current) return;
     const targets =
       action === 'download'
         ? downloadable
@@ -89,6 +92,7 @@ export default function DownloadHistoryView() {
           ? retryable
           : selectedItems;
     if (!targets.length) return;
+    bulkLock.current = true;
     const request = scope.capture();
     setBulkAction(action);
     setBulkProgress({ completed: 0, total: targets.length });
@@ -112,6 +116,7 @@ export default function DownloadHistoryView() {
         );
       }
     } finally {
+      bulkLock.current = false;
       if (request.current()) setBulkAction(null);
     }
   }
@@ -279,45 +284,6 @@ export default function DownloadHistoryView() {
         />
       ) : null}
 
-      {items.length > 0 ? (
-        <BulkSelectionBar
-          all={selection.all}
-          some={selection.some}
-          count={selection.selected.length}
-          busy={bulkBusy || state.refreshing}
-          onSelectAll={selection.toggleAll}
-        >
-          <Button
-            variant="outline"
-            disabled={bulkBusy || state.refreshing || !downloadable.length}
-            onClick={() => void runBulk('download')}
-          >
-            {bulkAction === 'download' ? (
-              <Spinner aria-hidden data-icon="inline-start" />
-            ) : null}
-            批量下载（{downloadable.length}）
-          </Button>
-          <Button
-            variant="outline"
-            disabled={bulkBusy || state.refreshing || !retryable.length}
-            onClick={() => void runBulk('retry')}
-          >
-            {bulkAction === 'retry' ? (
-              <Spinner aria-hidden data-icon="inline-start" />
-            ) : null}
-            批量重试（{retryable.length}）
-          </Button>
-          <DownloadDeleteDialog
-            active={selectedItems.some((item) =>
-              isActiveDownloadStatus(item.status),
-            )}
-            busy={bulkAction === 'delete'}
-            disabled={bulkBusy || state.refreshing || !selectedItems.length}
-            count={selectedItems.length}
-            onDelete={() => runBulk('delete')}
-          />
-        </BulkSelectionBar>
-      ) : null}
       {bulkBusy ? (
         <p role="status">
           正在处理所选记录：{bulkProgress.completed} / {bulkProgress.total}
@@ -331,10 +297,53 @@ export default function DownloadHistoryView() {
         />
       ) : null}
       <DownloadHistoryList
+        toolbar={
+          items.length > 0 ? (
+            <BulkSelectionBar
+              count={selection.selected.length}
+              busy={actionsBusy}
+              onClear={() => selection.toggleAll(false)}
+            >
+              {downloadable.length > 0 || bulkAction === 'download' ? (
+                <Button
+                  variant="outline"
+                  disabled={actionsBusy || !downloadable.length}
+                  onClick={() => void runBulk('download')}
+                >
+                  {bulkAction === 'download' ? (
+                    <Spinner aria-hidden data-icon="inline-start" />
+                  ) : null}
+                  批量下载（{downloadable.length}）
+                </Button>
+              ) : null}
+              {retryable.length > 0 || bulkAction === 'retry' ? (
+                <Button
+                  variant="outline"
+                  disabled={actionsBusy || !retryable.length}
+                  onClick={() => void runBulk('retry')}
+                >
+                  {bulkAction === 'retry' ? (
+                    <Spinner aria-hidden data-icon="inline-start" />
+                  ) : null}
+                  批量重试（{retryable.length}）
+                </Button>
+              ) : null}
+              <DownloadDeleteDialog
+                active={selectedItems.some((item) =>
+                  isActiveDownloadStatus(item.status),
+                )}
+                busy={bulkAction === 'delete'}
+                disabled={actionsBusy || !selectedItems.length}
+                count={selectedItems.length}
+                onDelete={() => runBulk('delete')}
+              />
+            </BulkSelectionBar>
+          ) : null
+        }
         selection={{
           ids: selection.selected,
           toggle: selection.toggle,
-          busy: bulkBusy || state.refreshing,
+          busy: actionsBusy,
         }}
         data={state.data}
         loading={state.loading}
@@ -353,7 +362,7 @@ export default function DownloadHistoryView() {
             setHistory((current) => ({ ...current, page: 1 }));
           }}
           ariaLabel="下载记录分页"
-          className="mt-10 justify-end"
+          className="mt-4 justify-end"
           onPageChange={(page) =>
             setHistory((current) => ({ ...current, page }))
           }

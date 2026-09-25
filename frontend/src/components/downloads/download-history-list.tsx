@@ -1,5 +1,6 @@
 import { ArrowClockwise, DownloadSimple } from '@phosphor-icons/react';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { DownloadDeleteDialog } from '@/components/downloads/download-delete-dialog';
 import {
   DownloadStatusCode,
@@ -25,7 +26,9 @@ export default function DownloadHistoryList({
   onRetry,
   pendingActions,
   selection,
+  toolbar,
 }: {
+  toolbar?: ReactNode;
   data: API.DownloadHistoryResponse | null;
   loading: boolean;
   onDownload: (item: API.DownloadHistoryItemResponse) => void;
@@ -43,6 +46,7 @@ export default function DownloadHistoryList({
       {loading && !data ? <LoadingRows /> : null}
       {data?.items.length ? (
         <DataTable<API.DownloadHistoryItemResponse>
+          toolbar={toolbar}
           caption="下载记录"
           data={data.items}
           getRowId={(item) => item.id}

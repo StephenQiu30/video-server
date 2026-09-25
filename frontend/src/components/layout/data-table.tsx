@@ -60,6 +60,7 @@ export function DataTable<T extends RowData>({
   getRowLabel,
   selection: suppliedSelection,
   className,
+  toolbar,
 }: {
   data: T[];
   columns: DataColumn<T>[];
@@ -68,6 +69,7 @@ export function DataTable<T extends RowData>({
   getRowLabel?: (item: T) => string;
   selection?: TableSelection;
   className?: string;
+  toolbar?: ReactNode;
 }) {
   const bulkSelection = useBulkTableSelection();
   const selection = suppliedSelection ?? bulkSelection;
@@ -106,37 +108,43 @@ export function DataTable<T extends RowData>({
   });
   return (
     <div className="flex min-w-0 flex-col gap-3">
-      <div className="flex justify-end">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              显示列
-              <CaretDown data-icon="inline-end" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuGroup>
-              {table
-                .getAllLeafColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    checked={column.getIsVisible()}
-                    disabled={
-                      column.getIsVisible() &&
-                      table.getVisibleLeafColumns().length === 1
-                    }
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
-                  >
-                    {columns.find((item) => item.id === column.id)?.header}
-                  </DropdownMenuCheckboxItem>
-                ))}
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      <div
+        className="flex flex-wrap items-center justify-between gap-3"
+        data-slot="table-toolbar"
+      >
+        {toolbar ?? bulkSelection?.toolbar ?? <span />}
+        <div className="ml-auto shrink-0">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                显示列
+                <CaretDown data-icon="inline-end" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuGroup>
+                {table
+                  .getAllLeafColumns()
+                  .filter((column) => column.getCanHide())
+                  .map((column) => (
+                    <DropdownMenuCheckboxItem
+                      key={column.id}
+                      checked={column.getIsVisible()}
+                      disabled={
+                        column.getIsVisible() &&
+                        table.getVisibleLeafColumns().length === 1
+                      }
+                      onCheckedChange={(value) =>
+                        column.toggleVisibility(!!value)
+                      }
+                    >
+                      {columns.find((item) => item.id === column.id)?.header}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
       <div className="overflow-hidden rounded-md border">
         <Table className={cn('table-fixed', className)}>

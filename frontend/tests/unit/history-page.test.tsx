@@ -397,15 +397,22 @@ describe('download history', () => {
       history({ page, page_size, total: 31 }),
     );
     render(<DownloadHistoryView />);
-    await screen.findByRole('checkbox', { name: '全选本页' });
+    await screen.findByRole('checkbox', { name: '选择本页可操作记录' });
     await waitFor(() =>
-      expect(screen.getByRole('checkbox', { name: '全选本页' })).toBeEnabled(),
+      expect(
+        screen.getByRole('checkbox', { name: '选择本页可操作记录' }),
+      ).toBeEnabled(),
     );
-    fireEvent.click(screen.getByRole('checkbox', { name: '全选本页' }));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: '选择本页可操作记录' }),
+    );
     expect(screen.getByText('已选 1 项')).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: '批量重试（0）' }),
+    ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '下一页' }));
     await screen.findByText('2 / 4');
-    expect(screen.getByText('已选 0 项')).toBeVisible();
+    expect(screen.getByText('勾选记录以批量操作')).toBeVisible();
     const select = screen.getByRole('combobox', {
       name: '下载记录分页每页条数',
     });
@@ -442,11 +449,15 @@ describe('download history', () => {
       })
       .mockRejectedValueOnce(new Error('无法获取文件'));
     render(<DownloadHistoryView />);
-    await screen.findByRole('checkbox', { name: '全选本页' });
+    await screen.findByRole('checkbox', { name: '选择本页可操作记录' });
     await waitFor(() =>
-      expect(screen.getByRole('checkbox', { name: '全选本页' })).toBeEnabled(),
+      expect(
+        screen.getByRole('checkbox', { name: '选择本页可操作记录' }),
+      ).toBeEnabled(),
     );
-    fireEvent.click(screen.getByRole('checkbox', { name: '全选本页' }));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: '选择本页可操作记录' }),
+    );
     fireEvent.click(screen.getByRole('button', { name: '批量下载（2）' }));
     await screen.findByText(/已发起文件下载 1 项，失败 1 项/);
     expect(runtime.issueDownloadUrl).toHaveBeenCalledTimes(2);
@@ -478,11 +489,15 @@ describe('download history', () => {
       version: 2,
     }));
     render(<DownloadHistoryView />);
-    await screen.findByRole('checkbox', { name: '全选本页' });
+    await screen.findByRole('checkbox', { name: '选择本页可操作记录' });
     await waitFor(() =>
-      expect(screen.getByRole('checkbox', { name: '全选本页' })).toBeEnabled(),
+      expect(
+        screen.getByRole('checkbox', { name: '选择本页可操作记录' }),
+      ).toBeEnabled(),
     );
-    fireEvent.click(screen.getByRole('checkbox', { name: '全选本页' }));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: '选择本页可操作记录' }),
+    );
     fireEvent.click(screen.getByRole('button', { name: '批量重试（2）' }));
     await screen.findByText(/已提交重试 2 项，失败 0 项/);
     expect(runtime.retryDownload).toHaveBeenCalledTimes(2);
@@ -499,11 +514,15 @@ describe('download history', () => {
       .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(new Error('删除失败'));
     render(<DownloadHistoryView />);
-    await screen.findByRole('checkbox', { name: '全选本页' });
+    await screen.findByRole('checkbox', { name: '选择本页可操作记录' });
     await waitFor(() =>
-      expect(screen.getByRole('checkbox', { name: '全选本页' })).toBeEnabled(),
+      expect(
+        screen.getByRole('checkbox', { name: '选择本页可操作记录' }),
+      ).toBeEnabled(),
     );
-    fireEvent.click(screen.getByRole('checkbox', { name: '全选本页' }));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: '选择本页可操作记录' }),
+    );
     fireEvent.click(screen.getByRole('button', { name: '批量删除（2）' }));
     expect(runtime.deleteDownload).not.toHaveBeenCalled();
     expect(screen.getByText('删除选中的 2 项任务与文件？')).toBeVisible();

@@ -43,18 +43,31 @@ describe('bulk deletion', () => {
       screen.getByRole('checkbox', { name: '选择 protected' }),
     ).toBeDisabled();
     fireEvent.click(screen.getByRole('checkbox', { name: '选择 a' }));
-    expect(screen.getByRole('checkbox', { name: '全选本页' })).toHaveAttribute(
-      'aria-checked',
-      'mixed',
-    );
+    expect(
+      screen.getByRole('checkbox', { name: '选择本页可操作记录' }),
+    ).toHaveAttribute('aria-checked', 'mixed');
     fireEvent.click(
       screen.getByRole('checkbox', { name: '选择本页可操作记录' }),
     );
     expect(screen.getByRole('button', { name: '批量删除（2）' })).toBeEnabled();
     view.rerender(<Fixture options={{ ...config, scope: 'page-2' }} />);
     expect(
-      screen.getByRole('button', { name: '批量删除（0）' }),
-    ).toBeDisabled();
+      screen.queryByRole('button', { name: '批量删除（0）' }),
+    ).not.toBeInTheDocument();
+  });
+  it('shows actions only after selection and clears them without changing rows', () => {
+    render(<Fixture options={options()} />);
+    expect(
+      screen.queryByRole('button', { name: /批量删除/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByRole('checkbox')).toHaveLength(4);
+    fireEvent.click(screen.getByRole('checkbox', { name: '选择 a' }));
+    expect(screen.getByRole('button', { name: '批量删除（1）' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: '取消选择' }));
+    expect(screen.getByRole('checkbox', { name: '选择 a' })).not.toBeChecked();
+    expect(
+      screen.queryByRole('button', { name: /批量删除/ }),
+    ).not.toBeInTheDocument();
   });
   it('hides columns without changing selected records', async () => {
     render(<Fixture options={options()} />);
