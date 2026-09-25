@@ -2,27 +2,17 @@ import { CaretDown, PencilSimple, Trash } from '@phosphor-icons/react';
 import {
   type BulkDeleteOptions,
   BulkDeleteSelection,
-  SelectionCell,
-  SelectionHead,
 } from '@/components/layout/bulk-delete-selection';
-
+import { DataTable } from '@/components/layout/data-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 
 type UserListProps = {
   bulk?: BulkDeleteOptions;
@@ -59,18 +49,20 @@ export function UserList({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => onEdit(item)}>
-              <PencilSimple aria-hidden />
-              编辑用户
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              aria-label={`删除用户 ${item.username}`}
-              onSelect={() => onDelete(item)}
-              variant="destructive"
-            >
-              <Trash aria-hidden />
-              删除用户
-            </DropdownMenuItem>
+            <DropdownMenuGroup>
+              <DropdownMenuItem onSelect={() => onEdit(item)}>
+                <PencilSimple aria-hidden />
+                编辑用户
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                aria-label={`删除用户 ${item.username}`}
+                onSelect={() => onDelete(item)}
+                variant="destructive"
+              >
+                <Trash aria-hidden />
+                删除用户
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -101,37 +93,45 @@ export function UserList({
       options={bulk}
     >
       <div className="overflow-x-auto rounded-md">
-        <Table className="min-w-[760px] table-fixed">
-          <TableCaption className="sr-only">用户账户列表</TableCaption>
-          <TableHeader>
-            <TableRow>
-              <SelectionHead />
-              <TableHead>用户名</TableHead>
-              <TableHead>邮箱</TableHead>
-              <TableHead>身份与状态</TableHead>
-              <TableHead>注册日期</TableHead>
-              <TableHead className="text-right">操作</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => (
-              <TableRow key={item.id}>
-                <SelectionCell id={item.id} label={item.username} />
-                <TableCell className="max-w-0 truncate">
-                  {item.username}
-                </TableCell>
-                <TableCell className="max-w-0 truncate">{item.email}</TableCell>
-                <TableCell>{badges(item)}</TableCell>
-                <TableCell className="tabular-nums">
-                  {formatUserDate(item.created_at)}
-                </TableCell>
-                <TableCell className="text-right whitespace-nowrap">
-                  {action(item)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <DataTable<API.ManagedUserResponse>
+          data={items}
+          getRowId={(item) => item.id}
+          getRowLabel={(item) => item.username}
+          caption="用户账户列表"
+          className="min-w-[760px] table-fixed"
+          columns={[
+            {
+              id: '用户名',
+              header: '用户名',
+              className: 'whitespace-normal',
+              cell: (item) => <> {item.username} </>,
+            },
+            {
+              id: '邮箱',
+              header: '邮箱',
+              className: 'whitespace-normal',
+              cell: (item) => <> {item.email} </>,
+            },
+            {
+              id: '身份与状态',
+              header: '身份与状态',
+              className: 'whitespace-normal',
+              cell: (item) => <> {badges(item)} </>,
+            },
+            {
+              id: '注册日期',
+              header: '注册日期',
+              className: 'tabular-nums whitespace-normal',
+              cell: (item) => <> {formatUserDate(item.created_at)} </>,
+            },
+            {
+              id: '操作',
+              header: '操作',
+              className: 'text-right whitespace-nowrap whitespace-normal',
+              cell: (item) => <> {action(item)} </>,
+            },
+          ]}
+        />
       </div>
     </BulkDeleteSelection>
   );

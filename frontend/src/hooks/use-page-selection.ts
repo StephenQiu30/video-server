@@ -9,11 +9,17 @@ export function usePageSelection(scope: string, ids: string[]) {
   const selected =
     state.scope === scope ? state.ids.filter((id) => ids.includes(id)) : [];
   function toggle(id: string, checked: boolean) {
-    setState({
-      scope,
-      ids: checked
-        ? [...new Set([...selected, id])]
-        : selected.filter((value) => value !== id),
+    setState((previous) => {
+      const current =
+        previous.scope === scope
+          ? previous.ids.filter((value) => ids.includes(value))
+          : [];
+      return {
+        scope,
+        ids: checked
+          ? [...new Set([...current, id])]
+          : current.filter((value) => value !== id),
+      };
     });
   }
   return {

@@ -23,9 +23,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { FieldLegend, FieldSet } from '@/components/ui/field';
-import { TableCell, TableHead } from '@/components/ui/table';
 import { usePageSelection } from '@/hooks/use-page-selection';
 import { useRequestScope } from '@/hooks/use-request-scope';
 import { displayError } from '@/lib/request-error';
@@ -171,26 +169,13 @@ function SelectionProvider({
     </SelectionContext.Provider>
   );
 }
-export function SelectionHead() {
-  return useContext(SelectionContext) ? (
-    <TableHead className="w-10">
-      <span className="sr-only">选择</span>
-    </TableHead>
-  ) : null;
-}
-export function SelectionCell({ id, label }: { id: string; label: string }) {
+export function useBulkTableSelection() {
   const context = useContext(SelectionContext);
-  if (!context) return null;
-  return (
-    <TableCell className="align-middle">
-      <Checkbox
-        aria-label={`选择 ${label}`}
-        checked={context.selection.selected.includes(id)}
-        disabled={context.disabled || !context.ids.includes(id)}
-        onCheckedChange={(checked) =>
-          context.selection.toggle(id, checked === true)
-        }
-      />
-    </TableCell>
-  );
+  if (!context) return undefined;
+  return {
+    ids: context.selection.selected,
+    busy: context.disabled,
+    toggle: context.selection.toggle,
+    eligible: (id: string) => context.ids.includes(id),
+  };
 }

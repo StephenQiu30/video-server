@@ -10,21 +10,10 @@ import {
 import {
   type BulkDeleteOptions,
   BulkDeleteSelection,
-  SelectionCell,
-  SelectionHead,
 } from '@/components/layout/bulk-delete-selection';
-
+import { type DataColumn, DataTable } from '@/components/layout/data-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   isDirectApiEngine,
   isLocalCodexProvider,
@@ -61,75 +50,101 @@ export function ExecutionRoute({
   );
 }
 
-export function ProviderRow({
-  item,
-  onActivate,
-  onDelete,
-  onEdit,
-}: {
-  item: API.AiProviderProfileResponse;
-  onActivate: () => void;
-  onDelete: () => void;
-  onEdit: () => void;
-}) {
-  const localCodex = isLocalCodexProvider(item.key);
-  return (
-    <TableRow>
-      <SelectionCell id={item.key} label={item.display_name} />
-      <TableCell className="max-w-0">
-        <div className="flex min-w-0 flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-medium">{item.display_name}</h3>
-            {item.is_active ? <Badge variant="default">当前线路</Badge> : null}
-            {localCodex ? <Badge variant="secondary">系统兜底</Badge> : null}
+function ProviderRowColumns(
+  onActivate: (item: API.AiProviderProfileResponse) => void,
+  onDelete: (item: API.AiProviderProfileResponse) => void,
+  onEdit: (item: API.AiProviderProfileResponse) => void,
+): DataColumn<API.AiProviderProfileResponse>[] {
+  return [
+    {
+      id: '服务',
+      header: '服务',
+      className: 'whitespace-normal',
+      cell: (item) => {
+        const localCodex = isLocalCodexProvider(item.key);
+        return (
+          <div className="flex min-w-0 flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-medium">{item.display_name}</h3>
+              {item.is_active ? (
+                <Badge variant="default">当前线路</Badge>
+              ) : null}
+              {localCodex ? <Badge variant="secondary">系统兜底</Badge> : null}
+            </div>
+            <p className="truncate text-xs text-muted-foreground">{item.key}</p>
           </div>
-          <p className="truncate text-xs text-muted-foreground">{item.key}</p>
-        </div>
-      </TableCell>
-      <TableCell className="max-w-0">
-        <div className="flex min-w-0 flex-col gap-1">
-          <span className="truncate font-mono text-xs">{item.model}</span>
-          <span className="truncate text-sm text-muted-foreground">
-            {item.auth_mode === 'host_login'
-              ? '本机账号登录'
-              : `${item.base_url} · ${
-                  item.credential_configured ? '凭据已配置' : '缺少凭据'
-                }`}
-          </span>
-        </div>
-      </TableCell>
-      <TableCell>
-        <Badge variant="secondary">{providerEngineLabel(item.engine)}</Badge>
-      </TableCell>
-      <TableCell className="text-right whitespace-nowrap">
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {!item.is_active ? (
-            <Button onClick={onActivate} size="sm" variant="outline">
-              启用
+        );
+      },
+    },
+    {
+      id: '模型与连接',
+      header: '模型与连接',
+      className: 'w-[32%] whitespace-normal',
+      cell: (item) => {
+        return (
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="truncate font-mono text-xs">{item.model}</span>
+            <span className="truncate text-sm text-muted-foreground">
+              {item.auth_mode === 'host_login'
+                ? '本机账号登录'
+                : `${item.base_url} · ${
+                    item.credential_configured ? '凭据已配置' : '缺少凭据'
+                  }`}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      id: '执行引擎',
+      header: '执行引擎',
+      className: 'w-[16%] whitespace-normal',
+      cell: (item) => {
+        return (
+          <Badge variant="secondary">{providerEngineLabel(item.engine)}</Badge>
+        );
+      },
+    },
+    {
+      id: '操作',
+      header: '操作',
+      className: 'w-[27%] text-right whitespace-nowrap whitespace-normal',
+      cell: (item) => {
+        const localCodex = isLocalCodexProvider(item.key);
+        return (
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {!item.is_active ? (
+              <Button
+                onClick={() => onActivate(item)}
+                size="sm"
+                variant="outline"
+              >
+                启用
+              </Button>
+            ) : null}
+            <Button
+              aria-label={`编辑 ${item.display_name}`}
+              onClick={() => onEdit(item)}
+              size="icon-sm"
+              variant="ghost"
+            >
+              <PencilSimple aria-hidden />
             </Button>
-          ) : null}
-          <Button
-            aria-label={`编辑 ${item.display_name}`}
-            onClick={onEdit}
-            size="icon-sm"
-            variant="ghost"
-          >
-            <PencilSimple aria-hidden />
-          </Button>
-          <Button
-            aria-label={`删除 ${item.display_name}`}
-            disabled={item.is_active || localCodex}
-            onClick={onDelete}
-            size="icon-sm"
-            title={localCodex ? '系统兜底线路不可删除' : undefined}
-            variant="ghost"
-          >
-            <Trash aria-hidden />
-          </Button>
-        </div>
-      </TableCell>
-    </TableRow>
-  );
+            <Button
+              aria-label={`删除 ${item.display_name}`}
+              disabled={item.is_active || localCodex}
+              onClick={() => onDelete(item)}
+              size="icon-sm"
+              title={localCodex ? '系统兜底线路不可删除' : undefined}
+              variant="ghost"
+            >
+              <Trash aria-hidden />
+            </Button>
+          </div>
+        );
+      },
+    },
+  ];
 }
 
 export function ProviderTable({
@@ -152,29 +167,14 @@ export function ProviderTable({
         .map((item) => item.key)}
       options={bulk}
     >
-      <Table className="min-w-[780px] table-fixed">
-        <TableCaption className="sr-only">AI Provider 配置列表</TableCaption>
-        <TableHeader>
-          <TableRow>
-            <SelectionHead />
-            <TableHead className="w-[25%]">服务</TableHead>
-            <TableHead className="w-[32%]">模型与连接</TableHead>
-            <TableHead className="w-[16%]">执行引擎</TableHead>
-            <TableHead className="w-[27%] text-right">操作</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {items.map((item) => (
-            <ProviderRow
-              item={item}
-              key={item.key}
-              onActivate={() => onActivate(item)}
-              onDelete={() => onDelete(item)}
-              onEdit={() => onEdit(item)}
-            />
-          ))}
-        </TableBody>
-      </Table>
+      <DataTable<API.AiProviderProfileResponse>
+        data={items}
+        getRowId={(item) => item.key}
+        getRowLabel={(item) => item.display_name}
+        caption="AI Provider 配置列表"
+        className="min-w-[780px] table-fixed"
+        columns={ProviderRowColumns(onActivate, onDelete, onEdit)}
+      />
     </BulkDeleteSelection>
   );
 }

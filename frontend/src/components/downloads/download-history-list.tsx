@@ -9,20 +9,11 @@ import {
   statusVariant,
 } from '@/components/downloads/download-state-model';
 import type { DownloadAction } from '@/components/downloads/use-download-actions';
+import { DataTable } from '@/components/layout/data-table';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import MediaCover from '@/components/media/media-cover';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemMedia,
-  ItemTitle,
-} from '@/components/ui/item';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -51,21 +42,63 @@ export default function DownloadHistoryList({
     <div className="mt-4">
       {loading && !data ? <LoadingRows /> : null}
       {data?.items.length ? (
-        <ItemGroup className="gap-2">
-          {data.items.map((item) => (
-            <HistoryRow
-              selection={selection}
-              item={item}
-              key={item.id}
-              onDownload={onDownload}
-              onDelete={onDelete}
-              onRetry={onRetry}
-              pendingAction={
-                pendingActions.find((action) => action.id === item.id) ?? null
-              }
-            />
-          ))}
-        </ItemGroup>
+        <DataTable<API.DownloadHistoryItemResponse>
+          caption="下载记录"
+          data={data.items}
+          getRowId={(item) => item.id}
+          getRowLabel={(item) => item.title}
+          className="min-w-[760px]"
+          selection={
+            selection
+              ? {
+                  ...selection,
+                  eligible: (id) =>
+                    !pendingActions.some((action) => action.id === id),
+                }
+              : undefined
+          }
+          columns={[
+            {
+              id: 'content',
+              header: '内容',
+              className: 'whitespace-normal',
+              hideable: false,
+              cell: (item) => <HistoryContent item={item} />,
+            },
+            {
+              id: 'status',
+              header: '状态',
+              className: 'w-32',
+              cell: (item) => (
+                <Badge variant={statusVariant(item.status)}>
+                  {downloadStatusLabels[item.status]}
+                  {isActiveDownloadStatus(item.status)
+                    ? ` · ${item.progress}%`
+                    : ''}
+                </Badge>
+              ),
+            },
+            {
+              id: 'actions',
+              header: '操作',
+              className: 'w-[240px] text-right',
+              hideable: false,
+              cell: (item) => (
+                <HistoryActions
+                  item={item}
+                  onDownload={onDownload}
+                  onDelete={onDelete}
+                  onRetry={onRetry}
+                  selection={selection}
+                  pendingAction={
+                    pendingActions.find((action) => action.id === item.id) ??
+                    null
+                  }
+                />
+              ),
+            },
+          ]}
+        />
       ) : null}
       {data && !data.items.length ? (
         <PageEmptyNotice
@@ -79,7 +112,50 @@ export default function DownloadHistoryList({
   );
 }
 
-function HistoryRow({
+function HistoryContent({ item }: { item: API.DownloadHistoryItemResponse }) {
+  const detailHref = `/downloads/detail?jobId=${encodeURIComponent(item.id)}`;
+  return (
+    <Link
+      aria-label={item.title}
+      className="focus-ring grid min-w-0 grid-cols-[64px_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[96px_minmax(0,1fr)]"
+      href={detailHref}
+    >
+      <div>
+        <MediaCover
+          alt={`${item.title} 媒体封面`}
+          className="w-16 sm:w-24"
+          compact
+          fallback={{
+            detail: item.format_name,
+            eyebrow: item.source_label,
+            title: item.title,
+          }}
+          src={item.thumbnail_url}
+        />
+      </div>
+      <div className="min-w-0 gap-1.5">
+        <div className="line-clamp-2">
+          <span className="line-clamp-2">{item.title}</span>
+        </div>
+        <div className="text-muted-foreground">
+          <span>{item.source_label}</span>
+          <span aria-hidden> · </span>
+          <span>{item.format_name}</span>
+          <span aria-hidden> · </span>
+          <time dateTime={item.created_at}>{formatDate(item.created_at)}</time>
+          {item.status === DownloadStatusCode.Succeeded ? (
+            <>
+              <span aria-hidden> · </span>
+              <span>{fileAvailabilityLabel(item)}</span>
+            </>
+          ) : null}
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function HistoryActions({
   item,
   onDownload,
   onDelete,
@@ -105,113 +181,52 @@ function HistoryRow({
   const busy = Boolean(selection?.busy || pendingAction);
 
   return (
-    <Item
-      className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[auto_minmax(0,1fr)_auto]"
-      role="listitem"
-    >
-      {selection ? (
-        <Checkbox
-          className="self-center"
-          aria-label={`选择 ${item.title}`}
-          checked={selection.ids.includes(item.id)}
+    <div className="flex items-center justify-end gap-1">
+      {canDownload ? (
+        <Button
           disabled={busy}
-          onCheckedChange={(checked) =>
-            selection.toggle(item.id, checked === true)
-          }
-        />
-      ) : null}
-      <Link
-        aria-label={item.title}
-        className="focus-ring grid min-w-0 grid-cols-[64px_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[96px_minmax(0,1fr)]"
-        href={detailHref}
-      >
-        <ItemMedia>
-          <MediaCover
-            alt={`${item.title} 媒体封面`}
-            className="w-16 sm:w-24"
-            compact
-            fallback={{
-              detail: item.format_name,
-              eyebrow: item.source_label,
-              title: item.title,
-            }}
-            src={item.thumbnail_url}
-          />
-        </ItemMedia>
-        <ItemContent className="min-w-0 gap-1.5">
-          <ItemTitle className="line-clamp-2">
-            <span className="line-clamp-2">{item.title}</span>
-          </ItemTitle>
-          <ItemDescription>
-            <span>{item.source_label}</span>
-            <span aria-hidden> · </span>
-            <span>{item.format_name}</span>
-            <span aria-hidden> · </span>
-            <time dateTime={item.created_at}>
-              {formatDate(item.created_at)}
-            </time>
-            {item.status === DownloadStatusCode.Succeeded ? (
-              <>
-                <span aria-hidden> · </span>
-                <span>{fileAvailabilityLabel(item)}</span>
-              </>
-            ) : null}
-          </ItemDescription>
-        </ItemContent>
-      </Link>
-      <ItemActions className="col-start-2 w-full flex-wrap justify-between gap-2 sm:col-start-auto sm:w-auto sm:justify-end">
-        <Badge variant={statusVariant(item.status)}>
-          {downloadStatusLabels[item.status]}
-          {isActiveDownloadStatus(item.status) ? ` · ${item.progress}%` : ''}
-        </Badge>
-        <div className="flex items-center gap-1">
-          {canDownload ? (
-            <Button
-              disabled={busy}
-              onClick={() => onDownload(item)}
-              size="sm"
-              variant="ghost"
-            >
-              {busy && pendingAction?.type === 'download' ? (
-                <Spinner aria-hidden data-icon="inline-start" />
-              ) : (
-                <DownloadSimple data-icon="inline-start" />
-              )}
-              获取文件
-            </Button>
-          ) : recovery === 'reimport' ? (
-            <Button asChild size="sm" variant="ghost">
-              <Link href="/">返回首页重新导入</Link>
-            </Button>
-          ) : recovery === 'retry' ? (
-            <Button
-              disabled={busy}
-              onClick={() => onRetry(item)}
-              size="sm"
-              variant="ghost"
-            >
-              {busy && pendingAction?.type === 'retry' ? (
-                <Spinner aria-hidden data-icon="inline-start" />
-              ) : (
-                <ArrowClockwise data-icon="inline-start" />
-              )}
-              重新下载
-            </Button>
+          onClick={() => onDownload(item)}
+          size="sm"
+          variant="ghost"
+        >
+          {busy && pendingAction?.type === 'download' ? (
+            <Spinner aria-hidden data-icon="inline-start" />
           ) : (
-            <Button asChild size="sm" variant="ghost">
-              <Link href={detailHref}>查看任务</Link>
-            </Button>
+            <DownloadSimple data-icon="inline-start" />
           )}
-          <DownloadDeleteDialog
-            active={isActiveDownloadStatus(item.status)}
-            busy={pendingAction?.type === 'delete'}
-            disabled={busy}
-            compact
-            onDelete={() => onDelete(item)}
-          />
-        </div>
-      </ItemActions>
-    </Item>
+          获取文件
+        </Button>
+      ) : recovery === 'reimport' ? (
+        <Button asChild size="sm" variant="ghost">
+          <Link href="/">返回首页重新导入</Link>
+        </Button>
+      ) : recovery === 'retry' ? (
+        <Button
+          disabled={busy}
+          onClick={() => onRetry(item)}
+          size="sm"
+          variant="ghost"
+        >
+          {busy && pendingAction?.type === 'retry' ? (
+            <Spinner aria-hidden data-icon="inline-start" />
+          ) : (
+            <ArrowClockwise data-icon="inline-start" />
+          )}
+          重新下载
+        </Button>
+      ) : (
+        <Button asChild size="sm" variant="ghost">
+          <Link href={detailHref}>查看任务</Link>
+        </Button>
+      )}
+      <DownloadDeleteDialog
+        active={isActiveDownloadStatus(item.status)}
+        busy={pendingAction?.type === 'delete'}
+        disabled={busy}
+        compact
+        onDelete={() => onDelete(item)}
+      />
+    </div>
   );
 }
 

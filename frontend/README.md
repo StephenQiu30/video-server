@@ -61,6 +61,8 @@ pnpm dlx shadcn@latest add input --diff input.tsx
 
 保留组件 API、焦点、错误与浮层行为；页面和基础控件的视觉样式以根 [design.md](../design.md) 为准，不通过全局 CSS 使组件变形。`components.json` 的配置仅说明当前实现，不是另一份设计标准。cn 使用官方组件依赖的 cn 包。Progress 向 Radix 传递 value，确保辅助技术可读进度；该修正由测试保护。
 
+管理列表和下载记录使用 `components/layout/data-table.tsx`，按 [shadcn Data Table](https://ui.shadcn.com/docs/components/radix/data-table) 组合官方 Table、Checkbox、DropdownMenu 与 TanStack Table v9。列定义统一表头/单元格对齐，支持列显隐与本页行选择；现有页面继续管理服务端筛选、排序和分页，不对单页数据另做客户端排序。批量删除复用原有权限、确认和部分失败处理，当前账户及受保护 AI 线路不可选择。
+
 Biome 对官方 ui 源码中有明确用途的角色、事件、数组 key 与图表 CSS 注入使用目录级规则豁免；业务代码继续执行完整规则。pnpm-workspace.yaml 明确拒绝不需要的 es5-ext 安装脚本。
 
 ## 验证边界

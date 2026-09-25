@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { listOperationLogs } from '@/api/admin';
 import { BackLink } from '@/components/layout/back-link';
+import { DataTable } from '@/components/layout/data-table';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
@@ -31,14 +32,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { privateQueryKey } from '@/lib/query-keys';
 import { displayError } from '@/lib/request-error';
 
@@ -245,23 +238,31 @@ export function OperationLogsView() {
             共 {logs.data.total} 条记录
           </p>
           {logs.data.items.length ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>时间</TableHead>
-                  <TableHead>操作人</TableHead>
-                  <TableHead>操作</TableHead>
-                  <TableHead>对象</TableHead>
-                  <TableHead>结果</TableHead>
-                  <TableHead className="text-right">详情</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {logs.data.items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>{time(item.created_at)}</TableCell>
-                    <TableCell>{item.actor_name ?? '未识别账户'}</TableCell>
-                    <TableCell>
+            <DataTable<API.OperationLogResponse>
+              data={logs.data.items}
+              getRowId={(item) => item.id}
+              getRowLabel={(item) => item.description}
+              caption="系统操作日志"
+              className="min-w-[900px]"
+              columns={[
+                {
+                  id: '时间',
+                  header: '时间',
+                  className: 'whitespace-normal',
+                  cell: (item) => <> {time(item.created_at)} </>,
+                },
+                {
+                  id: '操作人',
+                  header: '操作人',
+                  className: 'whitespace-normal',
+                  cell: (item) => <> {item.actor_name ?? '未识别账户'} </>,
+                },
+                {
+                  id: '操作',
+                  header: '操作',
+                  className: 'whitespace-normal',
+                  cell: (item) => (
+                    <>
                       <div>{item.description}</div>
                       <div className="text-xs text-muted-foreground">
                         {item.source === 'task'
@@ -270,8 +271,15 @@ export function OperationLogsView() {
                             ? '管理员操作'
                             : '业务操作'}
                       </div>
-                    </TableCell>
-                    <TableCell>
+                    </>
+                  ),
+                },
+                {
+                  id: '对象',
+                  header: '对象',
+                  className: 'whitespace-normal',
+                  cell: (item) => (
+                    <>
                       <span
                         title={
                           item.resource_id ?? item.resource_key ?? undefined
@@ -281,8 +289,15 @@ export function OperationLogsView() {
                           item.resource_id?.slice(0, 8) ??
                           '—'}
                       </span>
-                    </TableCell>
-                    <TableCell>
+                    </>
+                  ),
+                },
+                {
+                  id: '结果',
+                  header: '结果',
+                  className: 'whitespace-normal',
+                  cell: (item) => (
+                    <>
                       <Badge
                         variant={
                           item.outcome === 'failed'
@@ -294,8 +309,15 @@ export function OperationLogsView() {
                       >
                         {resultLabel(item)}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
+                    </>
+                  ),
+                },
+                {
+                  id: '详情',
+                  header: '详情',
+                  className: 'text-right whitespace-normal',
+                  cell: (item) => (
+                    <>
                       <Button
                         variant="ghost"
                         onClick={(event) => {
@@ -306,11 +328,11 @@ export function OperationLogsView() {
                       >
                         查看详情
                       </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    </>
+                  ),
+                },
+              ]}
+            />
           ) : (
             <PageEmptyNotice
               title="暂无操作日志"

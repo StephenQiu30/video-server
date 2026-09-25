@@ -3,9 +3,8 @@ import Link from 'next/link';
 import {
   type BulkDeleteOptions,
   BulkDeleteSelection,
-  SelectionCell,
-  SelectionHead,
 } from '@/components/layout/bulk-delete-selection';
+import { type DataColumn, DataTable } from '@/components/layout/data-table';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { ScreenplayDocumentDeleteDialog } from '@/components/screenplay/screenplay-document-delete-dialog';
 import {
@@ -18,15 +17,6 @@ import {
 import { ScreenplayUploadDialog } from '@/components/screenplay/screenplay-upload-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 
 export function ScreenplayDocumentList({
   bulk,
@@ -49,29 +39,14 @@ export function ScreenplayDocumentList({
       <div aria-busy={loading}>
         {loading && !data ? <LoadingRows /> : null}
         {data?.items.length ? (
-          <Table className="min-w-[900px] table-fixed">
-            <TableCaption className="sr-only">剧本文档列表</TableCaption>
-            <TableHeader>
-              <TableRow>
-                <SelectionHead />
-                <TableHead className="w-[34%]">文档</TableHead>
-                <TableHead className="w-[15%]">格式与更新时间</TableHead>
-                <TableHead className="w-[22%]">内容统计</TableHead>
-                <TableHead className="w-[13%]">状态</TableHead>
-                <TableHead className="w-[16%] text-right">操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.items.map((document) => (
-                <DocumentRow
-                  document={document}
-                  key={document.id}
-                  onDelete={onDelete}
-                  pending={pendingDeleteId === document.id}
-                />
-              ))}
-            </TableBody>
-          </Table>
+          <DataTable<API.DocumentResponse>
+            data={data.items}
+            getRowId={(document) => document.id}
+            getRowLabel={(document) => document.title}
+            caption="剧本文档列表"
+            className="min-w-[900px] table-fixed"
+            columns={DocumentRowColumns(onDelete, pendingDeleteId)}
+          />
         ) : null}
         {data && !data.items.length ? (
           <PageEmptyNotice
@@ -86,65 +61,93 @@ export function ScreenplayDocumentList({
   );
 }
 
-function DocumentRow({
-  document,
-  onDelete,
-  pending,
-}: {
-  document: API.DocumentResponse;
-  onDelete: (document: API.DocumentResponse) => Promise<void>;
-  pending: boolean;
-}) {
-  const detailHref = `/documents/detail?documentId=${encodeURIComponent(document.id)}`;
-  return (
-    <TableRow>
-      <SelectionCell id={document.id} label={document.title} />
-      <TableHead className="max-w-0 text-left whitespace-normal" scope="row">
-        <div className="flex min-w-0 flex-col gap-1">
-          <Link
-            className="focus-ring line-clamp-2 rounded-sm text-[15px] font-medium leading-snug hover:text-muted-foreground"
-            href={detailHref}
-          >
-            {document.title}
-          </Link>
-          <span className="truncate text-xs text-muted-foreground">
-            {document.original_filename}
-          </span>
-        </div>
-      </TableHead>
-      <TableCell className="whitespace-normal">
-        <div className="flex flex-col gap-1">
-          <span>{documentFormatLabels[document.source_format]}</span>
-          <time dateTime={document.updated_at}>
-            {formatDocumentDate(document.updated_at)}
-          </time>
-        </div>
-      </TableCell>
-      <TableCell className="whitespace-normal">
-        <div className="flex flex-col gap-1">
-          <span>
-            {document.scene_count ?? '-'} 个场景 ·{' '}
-            {document.character_count?.toLocaleString('zh-CN') ?? '-'} 个字符
-          </span>
-          <span className="text-xs text-muted-foreground">
-            {languageLabel(document.detected_language)}
-          </span>
-        </div>
-      </TableCell>
-      <TableCell>
-        <Badge variant={documentStatusVariant(document.status)}>
-          {documentStatusLabels[document.status]}
-        </Badge>
-      </TableCell>
-      <TableCell className="text-right">
-        <ScreenplayDocumentDeleteDialog
-          busy={pending}
-          compact
-          onDelete={() => onDelete(document)}
-        />
-      </TableCell>
-    </TableRow>
-  );
+function DocumentRowColumns(
+  onDelete: (document: API.DocumentResponse) => Promise<void>,
+  pendingDeleteId: string | null,
+): DataColumn<API.DocumentResponse>[] {
+  return [
+    {
+      id: '文档',
+      header: '文档',
+      className: 'text-left whitespace-normal',
+      cell: (document) => {
+        const detailHref = `/documents/detail?documentId=${encodeURIComponent(document.id)}`;
+        return (
+          <div className="flex min-w-0 flex-col gap-1">
+            <Link
+              className="focus-ring line-clamp-2 rounded-sm text-[15px] font-medium leading-snug hover:text-muted-foreground"
+              href={detailHref}
+            >
+              {document.title}
+            </Link>
+            <span className="truncate text-xs text-muted-foreground">
+              {document.original_filename}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      id: '格式与更新时间',
+      header: '格式与更新时间',
+      className: 'w-[15%] whitespace-normal',
+      cell: (document) => {
+        return (
+          <div className="flex flex-col gap-1">
+            <span>{documentFormatLabels[document.source_format]}</span>
+            <time dateTime={document.updated_at}>
+              {formatDocumentDate(document.updated_at)}
+            </time>
+          </div>
+        );
+      },
+    },
+    {
+      id: '内容统计',
+      header: '内容统计',
+      className: 'w-[22%] whitespace-normal',
+      cell: (document) => {
+        return (
+          <div className="flex flex-col gap-1">
+            <span>
+              {document.scene_count ?? '-'} 个场景 ·{' '}
+              {document.character_count?.toLocaleString('zh-CN') ?? '-'} 个字符
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {languageLabel(document.detected_language)}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      id: '状态',
+      header: '状态',
+      className: 'w-[13%] whitespace-normal',
+      cell: (document) => {
+        return (
+          <Badge variant={documentStatusVariant(document.status)}>
+            {documentStatusLabels[document.status]}
+          </Badge>
+        );
+      },
+    },
+    {
+      id: '操作',
+      header: '操作',
+      className: 'w-[16%] text-right whitespace-normal',
+      cell: (document) => {
+        const pending = pendingDeleteId === document.id;
+        return (
+          <ScreenplayDocumentDeleteDialog
+            busy={pending}
+            compact
+            onDelete={() => onDelete(document)}
+          />
+        );
+      },
+    },
+  ];
 }
 
 function LoadingRows() {

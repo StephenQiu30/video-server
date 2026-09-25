@@ -9,28 +9,22 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   type BulkDeleteOptions,
   BulkDeleteSelection,
-  SelectionCell,
-  SelectionHead,
 } from '@/components/layout/bulk-delete-selection';
-import { Table, TableBody, TableHeader, TableRow } from '@/components/ui/table';
+import { DataTable } from '@/components/layout/data-table';
 
 function Fixture({ options }: { options: BulkDeleteOptions }) {
   return (
     <BulkDeleteSelection ids={['a', 'b']} options={options}>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <SelectionHead />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {['a', 'b', 'protected'].map((id) => (
-            <TableRow key={id}>
-              <SelectionCell id={id} label={id} />
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <DataTable
+        data={['a', 'b', 'protected'].map((id) => ({ id }))}
+        getRowId={(item) => item.id}
+        getRowLabel={(item) => item.id}
+        caption="记录"
+        columns={[
+          { id: 'name', header: '名称', cell: (item) => item.id },
+          { id: 'detail', header: '详情', cell: (item) => `${item.id} detail` },
+        ]}
+      />
     </BulkDeleteSelection>
   );
 }
@@ -53,12 +47,32 @@ describe('bulk deletion', () => {
       'aria-checked',
       'mixed',
     );
-    fireEvent.click(screen.getByRole('checkbox', { name: '全选本页' }));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: '选择本页可操作记录' }),
+    );
     expect(screen.getByRole('button', { name: '批量删除（2）' })).toBeEnabled();
     view.rerender(<Fixture options={{ ...config, scope: 'page-2' }} />);
     expect(
       screen.getByRole('button', { name: '批量删除（0）' }),
     ).toBeDisabled();
+  });
+  it('hides columns without changing selected records', async () => {
+    render(<Fixture options={options()} />);
+    fireEvent.click(screen.getByRole('checkbox', { name: '选择 a' }));
+    fireEvent.pointerDown(screen.getByRole('button', { name: '显示列' }), {
+      button: 0,
+      ctrlKey: false,
+    });
+    fireEvent.click(
+      await screen.findByRole('menuitemcheckbox', { name: '详情' }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('columnheader', { name: '详情' }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole('checkbox', { name: '选择 a' })).toBeChecked();
+    expect(screen.getByRole('button', { name: '批量删除（1）' })).toBeEnabled();
   });
   it('requires confirmation and preserves only failed rows', async () => {
     const config = options();
@@ -67,7 +81,9 @@ describe('bulk deletion', () => {
       .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(new Error('无法删除'));
     render(<Fixture options={config} />);
-    fireEvent.click(screen.getByRole('checkbox', { name: '全选本页' }));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: '选择本页可操作记录' }),
+    );
     fireEvent.click(screen.getByRole('button', { name: '批量删除（2）' }));
     expect(config.remove).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: '确认删除' }));
@@ -88,7 +104,9 @@ describe('bulk deletion', () => {
         }),
     );
     const view = render(<Fixture options={config} />);
-    fireEvent.click(screen.getByRole('checkbox', { name: '全选本页' }));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: '选择本页可操作记录' }),
+    );
     fireEvent.click(screen.getByRole('button', { name: '批量删除（2）' }));
     fireEvent.click(screen.getByRole('button', { name: '确认删除' }));
     expect(config.remove).toHaveBeenCalledTimes(1);

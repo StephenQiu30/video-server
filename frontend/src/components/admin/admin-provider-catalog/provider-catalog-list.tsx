@@ -2,21 +2,10 @@ import { PencilSimple, Trash } from '@phosphor-icons/react';
 import {
   type BulkDeleteOptions,
   BulkDeleteSelection,
-  SelectionCell,
-  SelectionHead,
 } from '@/components/layout/bulk-delete-selection';
-
+import { DataTable } from '@/components/layout/data-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 
 type ProviderCatalogListProps = {
   bulk?: BulkDeleteOptions;
@@ -72,33 +61,45 @@ export function ProviderCatalogList({
 
   return (
     <BulkDeleteSelection ids={items.map((item) => item.key)} options={bulk}>
-      <Table className="min-w-[720px] table-fixed">
-        <TableCaption className="sr-only">平台目录列表</TableCaption>
-        <TableHeader>
-          <TableRow>
-            <SelectionHead />
-            <TableHead>平台</TableHead>
-            <TableHead>目录键</TableHead>
-            <TableHead>注册与可见性</TableHead>
-            <TableHead className="text-right">排序</TableHead>
-            <TableHead className="text-right">操作</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {items.map((item) => (
-            <TableRow key={item.key}>
-              <SelectionCell id={item.key} label={item.display_name} />
-              <TableCell>{item.display_name}</TableCell>
-              <TableCell>{item.key}</TableCell>
-              <TableCell>{badges(item)}</TableCell>
-              <TableCell className="text-right tabular-nums">
-                {item.sort_order}
-              </TableCell>
-              <TableCell className="text-right">{actions(item)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <DataTable<API.ProviderCatalogEntryResponse>
+        data={items}
+        getRowId={(item) => item.key}
+        getRowLabel={(item) => item.display_name}
+        caption="平台目录列表"
+        className="min-w-[720px] table-fixed"
+        columns={[
+          {
+            id: '平台',
+            header: '平台',
+            className: 'whitespace-normal',
+            cell: (item) => <> {item.display_name} </>,
+          },
+          {
+            id: '目录键',
+            header: '目录键',
+            className: 'whitespace-normal',
+            cell: (item) => <> {item.key} </>,
+          },
+          {
+            id: '注册与可见性',
+            header: '注册与可见性',
+            className: 'whitespace-normal',
+            cell: (item) => <> {badges(item)} </>,
+          },
+          {
+            id: '排序',
+            header: '排序',
+            className: 'text-right tabular-nums whitespace-normal',
+            cell: (item) => <> {item.sort_order} </>,
+          },
+          {
+            id: '操作',
+            header: '操作',
+            className: 'text-right whitespace-normal',
+            cell: (item) => <> {actions(item)} </>,
+          },
+        ]}
+      />
     </BulkDeleteSelection>
   );
 }
