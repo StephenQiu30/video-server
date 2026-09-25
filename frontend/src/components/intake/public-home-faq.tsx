@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 import { publicQuestions } from '@/components/intake/public-home-content';
 import { EditorialIntro } from '@/components/layout/editorial-intro';
 
@@ -5,7 +7,7 @@ export function PublicHomeFaq() {
   return (
     <section
       aria-labelledby="questions-title"
-      className="scroll-mt-24 py-20 lg:py-28"
+      className="scroll-mt-24 py-12 lg:py-16"
       data-slot="borderless-section"
       id="questions"
     >
@@ -36,6 +38,12 @@ export function PublicHomeFaq() {
           </section>
         ))}
       </div>
+      <Link
+        className="focus-ring mt-10 inline-flex min-h-6 w-fit items-center text-sm underline underline-offset-4"
+        href="/guide/"
+      >
+        阅读视频分析与自托管使用指南
+      </Link>
     </section>
   );
 }

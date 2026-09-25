@@ -75,7 +75,7 @@ export function PublicHomeWorkflow({
   items: readonly WorkflowStep[];
 }) {
   return (
-    <ol aria-label="使用步骤" className="flex w-full flex-col gap-5">
+    <ol aria-label="使用步骤" className="flex w-full flex-col gap-2">
       {items.map(([title, description], index) => (
         <Item
           asChild

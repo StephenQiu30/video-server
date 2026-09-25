@@ -52,7 +52,7 @@ export function PublicHome() {
   return (
     <div className="flex flex-col pb-6" data-home-view-root="public">
       <div
-        className="grid gap-12 pb-20 pt-10 sm:pt-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:gap-24 lg:pb-28 lg:pt-14"
+        className="grid gap-12 pb-12 pt-10 sm:pt-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:gap-24 lg:pb-16 lg:pt-14"
         data-slot="borderless-section"
       >
         <EditorialIntro
@@ -61,7 +61,7 @@ export function PublicHome() {
           title={
             <>
               把素材，
-              <span className="block sm:ml-[0.85em] sm:inline">带回本地。</span>
+              <span className="block sm:inline">带回本地。</span>
             </>
           }
           titleClassName="max-w-4xl sm:whitespace-nowrap"
@@ -107,7 +107,7 @@ export function PublicHome() {
       </div>
 
       <div
-        className="scroll-mt-24 py-20 lg:py-28"
+        className="scroll-mt-24 py-12 lg:py-16"
         data-slot="borderless-section"
         id="capabilities"
       >
@@ -122,7 +122,7 @@ export function PublicHome() {
       </div>
 
       <div
-        className="grid scroll-mt-24 gap-14 py-20 lg:grid-cols-2 lg:gap-24 lg:py-28"
+        className="grid scroll-mt-24 gap-12 py-12 lg:grid-cols-2 lg:gap-24 lg:py-16"
         data-slot="borderless-section"
         id="architecture"
       >
@@ -150,15 +150,9 @@ export function PublicHome() {
       </div>
 
       <PublicHomeFaq />
-      <Link
-        className="focus-ring w-fit text-sm underline underline-offset-4"
-        href="/guide/"
-      >
-        阅读视频分析与自托管使用指南
-      </Link>
 
       <div
-        className="flex flex-col items-start justify-between gap-8 py-20 sm:flex-row sm:items-end lg:py-28"
+        className="flex flex-col items-start justify-between gap-8 py-12 sm:flex-row sm:items-end lg:py-16"
         data-slot="borderless-section"
       >
         <EditorialIntro
