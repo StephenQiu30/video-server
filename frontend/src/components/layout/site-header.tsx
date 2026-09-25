@@ -30,6 +30,9 @@ export function BrandLink({ className }: { className?: string }) {
         aria-hidden
         className="size-8 shrink-0"
         height={32}
+        // Always above the fold: lazy loading made the brand mark pop in
+        // after every navigation.
+        loading="eager"
         src="/logo.svg"
         width={32}
       />
