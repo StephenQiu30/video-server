@@ -1,9 +1,9 @@
 import type { MetadataRoute } from 'next';
 
-import { absoluteUrl, siteIndexable } from '@/lib/site';
+import { absoluteUrl, publicPages, siteIndexable } from '@/lib/site';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return siteIndexable
-    ? ['/', '/guide/'].map((path) => ({ url: absoluteUrl(path) }))
+    ? publicPages.map(({ path }) => ({ url: absoluteUrl(path) }))
     : [];
 }

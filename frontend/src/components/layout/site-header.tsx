@@ -14,6 +14,7 @@ import { MobileNavigation } from '@/components/layout/mobile-navigation';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { displayError } from '@/lib/request-error';
+import { isPublicPage } from '@/lib/site';
 
 export function BrandLink({ className }: { className?: string }) {
   return (
@@ -47,8 +48,7 @@ export function SiteHeader() {
   const pathname = usePathname() ?? '/';
   const router = useRouter();
   const homeActive = pathname === '/';
-  const publicPage =
-    homeActive || pathname === '/guide' || pathname === '/guide/';
+  const publicPage = isPublicPage(pathname);
   const authView = pathname.startsWith('/user/');
   const historyActive = pathname === '/history';
   const documentsActive = pathname.startsWith('/documents');

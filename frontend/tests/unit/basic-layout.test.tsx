@@ -173,7 +173,7 @@ describe('BasicLayout', () => {
     expect(screen.getByRole('link', { name: '帧取首页' })).toBeVisible();
   });
 
-  it.each(['/', '/guide', '/guide/'])(
+  it.each(['/', '/guide', '/guide/', '/self-hosting/', '/about'])(
     'renders public navigation on %s',
     (pathname) => {
       runtime.pathname = pathname;

@@ -36,7 +36,24 @@ export const siteConfig = {
   repositoryUrl: 'https://github.com/StephenQiu30/video-server',
   mobileRepositoryUrl: 'https://github.com/StephenQiu30/video-app',
   licenseUrl: 'https://github.com/StephenQiu30/video-server/blob/main/LICENSE',
+  maintainer: {
+    name: 'StephenQiu30',
+    url: 'https://github.com/StephenQiu30',
+  },
 } as const;
+
+// Crawlable marketing pages. Everything else is an app view and stays noindex.
+export const publicPages = [
+  { path: '/', label: '首页' },
+  { path: '/guide/', label: '使用指南' },
+  { path: '/self-hosting/', label: '自托管部署' },
+  { path: '/about/', label: '关于' },
+] as const;
+
+export function isPublicPage(pathname: string): boolean {
+  const normalized = pathname.endsWith('/') ? pathname : `${pathname}/`;
+  return publicPages.some(({ path }) => path === normalized);
+}
 
 export const socialPalette = {
   background: '#0a0a0a',

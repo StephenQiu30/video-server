@@ -6,14 +6,14 @@
 
 两个值都需要在构建和运行时保持一致。根 Compose 已将它们传给 frontend 的 build args 与 environment；前端 Dockerfile 默认不开启索引。本次不修改已有 `.env` / `.env.prod`，不自动发布服务。
 
-准备公开时，使用现有部署流程重建 frontend 并重新创建容器。域名变更同样需要重建，不能只 restart。规范域名、HTTP 到 HTTPS 的重定向由部署入口维护；metadata 不替代入口跳转。`skipTrailingSlashRedirect` 为 API 保留，公开指南 canonical 固定为 `/guide/`。
+准备公开时，使用现有部署流程重建 frontend 并重新创建容器。域名变更同样需要重建，不能只 restart。规范域名、HTTP 到 HTTPS 的重定向由部署入口维护；metadata 不替代入口跳转。`skipTrailingSlashRedirect` 为 API 保留，公开页面 canonical 固定带尾斜杠（`/guide/`、`/self-hosting/`、`/about/`）。公开页面清单集中在 `frontend/src/lib/site.ts` 的 `publicPages`，sitemap、`/llms.txt` 与页头公开导航都从这里读取；新增公开页面只改这一处。
 
 ## 公开部署后的检查
 
 1. 无 Cookie 请求 `/`：HTTP 200，head 中 title、description、canonical、robots 正确；删除脚本后仍有产品说明和问答。检查 Cache-Control，不能在 CDN 将按 Cookie 返回的首页缓存为所有用户共享。
-2. 请求 `/guide/`：唯一 h1、稳定目录锚点、面包屑、独立 description/canonical 与正文一致。首页与页脚应有真实可抓取链接。
+2. 分别请求 `/guide/`、`/self-hosting/`、`/about/`：唯一 h1、稳定目录锚点、面包屑、独立 description/canonical 与正文一致。首页与页脚应有真实可抓取链接。
 3. 分别用普通 UA、Googlebot、bingbot 与 OAI-SearchBot 请求页面，正文应一致。不要只通过 UA 放行而忽略 CDN、WAF、IP 验证和网络可达性。
-4. `/robots.txt` 中 API/health 保持禁止；`/sitemap.xml` 只包含正式 origin 的 `/` 和 `/guide/`。不要添加账户、任务、媒体文件、带 token 的短时链接或登录页面。
+4. `/robots.txt` 中 API/health 保持禁止；`/sitemap.xml` 只包含正式 origin 的 `/`、`/guide/`、`/self-hosting/` 和 `/about/`。`/llms.txt` 只在 `SITE_INDEXABLE=true` 时返回 200，内容为产品定义、内容边界、公开页面、源码链接与首页 FAQ；私有实例返回 404。不要添加账户、任务、媒体文件、带 token 的短时链接或登录页面。
 5. `/user/login/`、`/history/`、`/account/` 和带会话 Cookie 的 `/` 应 noindex。已有页面下线索引时允许爬虫读到 noindex；robots.txt 不能代替鉴权或搜索移除申请。
 6. `/opengraph-image/` 返回 1200×630 PNG，分享标题与页面一致。通过 Schema Markup Validator 检查实体结构，通过 Google Rich Results Test 检查支持的类型；不是每个有效 schema 都有富结果资格。
 7. 用 Search Console 与 Bing Webmaster Tools 验证正式域名并提交 sitemap，查看 URL 检查抓取后的 HTML。检查 Search Console 中站点是否允许纳入生成式 AI 功能，并使用其 Generative AI performance report 衡量表现。需要域名所有权及对应站长账户，不能把本地测试写成已提交或已收录。
@@ -31,7 +31,7 @@
 
 > 帧取 FrameFetch App：连接自托管 video-server 的 Flutter iOS/Android 客户端，支持素材上传、任务跟踪与 AI 分析结果阅读。Open-source mobile client for FrameFetch.
 
-两个仓库的 About 已写入 GitHub；现有 topics 保持不变。正式域名确认后由维护者设置 Homepage，并上传合适的 social preview；README 发布必须走正常 Git 推送，不能把本地改动视为 GitHub 已更新。
+两个仓库的 About 已写入 GitHub；现有 topics 保持不变。正式域名确认后由维护者设置 Homepage，并在 Settings → Social preview 上传 `docs/images/github-social-preview.png`（App 为 `.jpg`；GitHub API 不支持上传该图片，截至 2026-09-26 两仓仍使用默认预览）。两仓根目录的 `CITATION.cff` 让 GitHub 显示 “Cite this repository”；video-server 新增与 video-app 对称的 Issue 模板，引导问题分流到正确仓库；README 发布必须走正常 Git 推送，不能把本地改动视为 GitHub 已更新。
 
 ## 持续衡量
 
@@ -53,3 +53,9 @@
 - GitHub 两仓 About 已更新并回读确认，topics 未改动，Homepage 继续为空。README 改动仍需正常推送后才在 GitHub 生效。
 
 正式域名、站长账户、实际抓取/收录、线上 Core Web Vitals、真实 AI 引用与搜索表现尚未验收；用户明确本轮仅优化代码与 GitHub。
+
+2026-09-26：
+
+- 新增 `/self-hosting/`（TechArticle + BreadcrumbList）与 `/about/`（AboutPage + BreadcrumbList）公开页面，以及 `/llms.txt`；页脚增加两页链接，指南页链接到部署页。首页 JSON-LD 增加 `featureList`、维护者 `Person`、`softwareHelp` 与移动端 `SoftwareSourceCode`；仍不声明 `offers` 或评分。
+- `SITE_INDEXABLE=true`、占位域名 `https://framefetch.example` 的 standalone 构建在本机 8139 验证：四个公开页面 200、canonical 与 `index, follow` 正确，sitemap 含四个 URL，`/llms.txt` 与 `/llms.txt/` 均返回 text/plain。375px 下两新页无横向溢出。
+- 前端 `pnpm lint`、`pnpm format:check` 与全部 93 个测试文件、490 项测试通过。未部署、未提交搜索引擎、未改动 GitHub 设置。

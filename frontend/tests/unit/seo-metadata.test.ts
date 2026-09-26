@@ -23,6 +23,8 @@ describe('public SEO metadata', () => {
     expect(sitemap()).toEqual([
       { url: 'https://framefetch.example/' },
       { url: 'https://framefetch.example/guide/' },
+      { url: 'https://framefetch.example/self-hosting/' },
+      { url: 'https://framefetch.example/about/' },
     ]);
     const metadata = publicMetadata('Guide', 'Description', '/guide/');
     expect(metadata.alternates?.canonical).toBe(
@@ -57,6 +59,34 @@ describe('public SEO metadata', () => {
       });
     },
   );
+
+  it('serves llms.txt only for an indexable public site', async () => {
+    vi.stubEnv('SITE_INDEXABLE', 'true');
+    vi.stubEnv('SITE_URL', 'https://framefetch.example');
+    const { GET } = await import('@/app/llms.txt/route');
+    const response = GET();
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('text/plain');
+    const body = await response.text();
+    expect(body).toMatch(/^# 帧取 FrameFetch\n\n> /);
+    for (const path of ['/', '/guide/', '/self-hosting/', '/about/']) {
+      expect(body).toContain(`(https://framefetch.example${path})`);
+    }
+    expect(body).toContain('### 帧取 FrameFetch 是什么？');
+
+    vi.resetModules();
+    vi.stubEnv('SITE_INDEXABLE', 'false');
+    const { GET: privateGet } = await import('@/app/llms.txt/route');
+    expect(privateGet().status).toBe(404);
+  });
+
+  it('classifies only marketing pages as public', async () => {
+    const { isPublicPage } = await import('@/lib/site');
+    for (const path of ['/', '/guide', '/guide/', '/self-hosting/', '/about'])
+      expect(isPublicPage(path)).toBe(true);
+    for (const path of ['/history', '/account/', '/user/login', '/guides/'])
+      expect(isPublicPage(path)).toBe(false);
+  });
 
   it('rejects invalid or credential-bearing canonical origins', () => {
     expect(resolveSiteUrl(undefined).origin).toBe('http://127.0.0.1:8101');

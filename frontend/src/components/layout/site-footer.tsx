@@ -28,6 +28,8 @@ export function SiteFooter({ className }: { className?: string }) {
           >
             <NavigationMenuList className="flex-wrap gap-4">
               <FooterLink href="/guide/">使用指南</FooterLink>
+              <FooterLink href="/self-hosting/">自托管部署</FooterLink>
+              <FooterLink href="/about/">关于</FooterLink>
               <FooterLink href={siteConfig.repositoryUrl}>GitHub</FooterLink>
               <FooterLink href={`${siteConfig.repositoryUrl}/tree/main/docs`}>
                 文档

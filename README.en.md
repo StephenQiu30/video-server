@@ -35,7 +35,7 @@ FrameFetch is not designed to circumvent platform restrictions. Anonymous provid
 3. Run an available video, scene, shot or screenplay analysis and review its timeline and keyframe evidence against the source.
 4. Export a Markdown or DOCX report for content research, creative planning or team review.
 
-The Web instance exposes a public `/guide/` in Chinese. See the capability table below and [project documentation](docs/README.md) for implementation and configuration. Available outputs depend on the configured analysis capabilities and AI service.
+The Web instance exposes public Chinese pages — `/guide/` (usage guide), `/self-hosting/` (deployment guide) and `/about/` (scope and boundaries) — plus an English `/llms.txt` summary for generative search engines. See the capability table below and [project documentation](docs/README.md) for implementation and configuration. Available outputs depend on the configured analysis capabilities and AI service.
 
 ### Frequently asked questions
 

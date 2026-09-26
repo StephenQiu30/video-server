@@ -1,7 +1,8 @@
 import { PageHeader } from '@/components/layout/page-header';
 import { PageNavigation } from '@/components/layout/page-navigation';
+import { breadcrumbList, JsonLd } from '@/components/seo/json-ld';
 import { publicMetadata } from '@/lib/public-metadata';
-import { absoluteUrl, siteConfig } from '@/lib/site';
+import { siteConfig } from '@/lib/site';
 
 const title = '视频解析、AI 分析与自托管使用指南 · 帧取 FrameFetch';
 const description =
@@ -66,27 +67,14 @@ const sections = [
 export default function GuidePage() {
   const breadcrumbs = {
     '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      {
-        '@type': 'ListItem',
-        position: 1,
-        name: siteConfig.name,
-        item: absoluteUrl('/'),
-      },
-      {
-        '@type': 'ListItem',
-        position: 2,
-        name: '使用指南',
-        item: absoluteUrl('/guide/'),
-      },
-    ],
+    ...breadcrumbList([
+      { name: siteConfig.name, path: '/' },
+      { name: '使用指南', path: '/guide/' },
+    ]),
   };
   return (
     <article className="inner-page">
-      <script type="application/ld+json">
-        {JSON.stringify(breadcrumbs).replace(/</g, '\\u003c')}
-      </script>
+      <JsonLd data={breadcrumbs} />
       <PageNavigation
         fallbackHref="/"
         breadcrumbs={[{ label: '帧取', href: '/' }, { label: '使用指南' }]}
@@ -150,6 +138,12 @@ export default function GuidePage() {
         href="/#questions"
       >
         返回首页常见问题
+      </a>
+      <a
+        className="focus-ring ml-6 text-sm underline underline-offset-4"
+        href="/self-hosting/"
+      >
+        自托管部署指南
       </a>
     </article>
   );

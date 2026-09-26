@@ -1,0 +1,85 @@
+name: Bug 报告
+description: 报告可复现的 FrameFetch API、Web、Worker 或部署问题
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你帮助改进 FrameFetch。提交前请搜索已有 Issue，并删除 Token、Cookie、`.env` 内容、完整媒体 URL、预签名 URL、用户媒体与其他敏感信息。
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: 涉及模块
+      options:
+        - Web 前端
+        - API
+        - 下载 / 媒体 Worker 与 Runner
+        - 剧本文档导入
+        - AI 分析 Worker
+        - Docker Compose / 部署
+        - 其他
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: 版本或提交
+      description: 完整 commit SHA 或 Release 版本
+      placeholder: abcdef0
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: 运行环境
+      description: 操作系统、Docker / Compose 版本、使用的 Compose 文件；如相关，请附浏览器版本
+      placeholder: Ubuntu 24.04, Docker 28, docker-compose-prod.yml, Chrome 140
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 请提供最小、稳定的复现步骤，使用脱敏或公开测试数据
+      placeholder: |
+        1. 启动服务……
+        2. 打开……
+        3. 点击……
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期结果
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 脱敏日志或截图
+      description: 可附 `docker compose logs` 片段、截图或录屏；请先移除账号、密钥、完整 URL 与用户内容
+      render: text
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交确认
+      options:
+        - label: 我已搜索现有 Issue，并确认问题不涉及需私下报告的安全漏洞。
+          required: true
+        - label: 我只使用自己有权处理的公开、免费、非 DRM 内容或本地素材复现。
+          required: true
