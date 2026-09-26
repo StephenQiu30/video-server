@@ -17,6 +17,13 @@ import { PageNavigation } from '@/components/layout/page-navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
   Field,
   FieldDescription,
   FieldError,
@@ -125,9 +132,10 @@ export function AccountView() {
       >
         <Skeleton className="h-3 w-32" />
         <Skeleton className="h-24 w-full max-w-2xl" />
-        <div className="grid gap-12 pt-4 lg:grid-cols-[minmax(220px,0.7fr)_minmax(0,1.3fr)] lg:gap-20">
-          <Skeleton className="h-32 w-full max-w-xs" />
+        <div className="grid gap-10 pt-4 lg:grid-cols-[minmax(280px,360px)_minmax(0,1fr)] lg:gap-12 xl:gap-16">
+          <Skeleton className="h-80 w-full" />
           <div className="flex flex-col gap-6">
+            <Skeleton className="h-20 w-full" />
             <Skeleton className="h-20 w-full" />
             <Skeleton className="h-20 w-full" />
           </div>
@@ -160,69 +168,74 @@ export function AccountView() {
       />
 
       <Form
-        className="mt-14 grid gap-12 sm:mt-16 lg:grid-cols-[minmax(220px,0.7fr)_minmax(0,1.3fr)] lg:gap-20"
+        className="mt-14 grid gap-10 sm:mt-16 lg:grid-cols-[minmax(280px,360px)_minmax(0,1fr)] lg:gap-12 xl:gap-16"
         onSubmit={submit}
       >
-        <aside>
-          <h2 className="text-sm font-medium">当前身份</h2>
-          <div className="mt-5 flex items-center gap-4">
-            <Avatar aria-hidden className="size-14">
-              <AvatarImage alt="" src={avatarUrl(user)} />
-              <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
-            <div className="min-w-0">
-              <p className="truncate text-lg font-medium tracking-[-0.02em]">
-                {user.username}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">{role}</p>
+        <Card className="self-start">
+          <CardHeader>
+            <CardTitle>
+              <h2>当前身份</h2>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-6">
+            <div className="flex items-center gap-4">
+              <Avatar aria-hidden className="size-14">
+                <AvatarImage alt="" src={avatarUrl(user)} />
+                <AvatarFallback>{initials}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <p className="truncate text-lg font-medium tracking-[-0.02em]">
+                  {user.username}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">{role}</p>
+              </div>
             </div>
-          </div>
-          <Field
-            className="mt-5 max-w-xs"
-            data-invalid={avatarError ? true : undefined}
-          >
-            <FieldLabel htmlFor="avatar-image">上传头像</FieldLabel>
-            <Input
-              accept="image/jpeg,image/png,image/webp"
-              aria-describedby={
-                avatarError ? 'avatar-help avatar-error' : 'avatar-help'
-              }
-              aria-invalid={avatarError ? true : undefined}
-              disabled={avatarBusy}
-              id="avatar-image"
-              onChange={uploadAvatar}
-              type="file"
-            />
-            <FieldDescription aria-live="polite" id="avatar-help">
-              {avatarBusy
-                ? '正在处理头像…'
-                : '支持 JPEG、PNG、WebP，最大 4 MB；上传后自动裁切为方形。'}
-            </FieldDescription>
-            {avatarError ? (
-              <FieldError id="avatar-error">{avatarError}</FieldError>
-            ) : null}
-          </Field>
-          {user.avatar_version ? (
-            <Button
-              className="mt-2"
-              disabled={avatarBusy}
-              onClick={() => void deleteAvatar()}
-              size="sm"
-              type="button"
-              variant="ghost"
-            >
-              <XIcon aria-hidden data-icon="inline-start" />
-              移除头像
-            </Button>
-          ) : null}
-          <p className="mt-7 max-w-xs text-sm leading-6 text-muted-foreground">
-            用户名会显示在导航与任务记录中；登录邮箱和账户身份由系统策略管理。
-          </p>
-        </aside>
+            <div>
+              <Field data-invalid={avatarError ? true : undefined}>
+                <FieldLabel htmlFor="avatar-image">上传头像</FieldLabel>
+                <Input
+                  accept="image/jpeg,image/png,image/webp"
+                  aria-describedby={
+                    avatarError ? 'avatar-help avatar-error' : 'avatar-help'
+                  }
+                  aria-invalid={avatarError ? true : undefined}
+                  disabled={avatarBusy}
+                  id="avatar-image"
+                  onChange={uploadAvatar}
+                  type="file"
+                />
+                <FieldDescription aria-live="polite" id="avatar-help">
+                  {avatarBusy
+                    ? '正在处理头像…'
+                    : '支持 JPEG、PNG、WebP，最大 4 MB；上传后自动裁切为方形。'}
+                </FieldDescription>
+                {avatarError ? (
+                  <FieldError id="avatar-error">{avatarError}</FieldError>
+                ) : null}
+              </Field>
+              {user.avatar_version ? (
+                <Button
+                  className="mt-2"
+                  disabled={avatarBusy}
+                  onClick={() => void deleteAvatar()}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  <XIcon aria-hidden data-icon="inline-start" />
+                  移除头像
+                </Button>
+              ) : null}
+            </div>
+            <CardDescription className="leading-6">
+              用户名会显示在导航与任务记录中；登录邮箱和账户身份由系统策略管理。
+            </CardDescription>
+          </CardContent>
+        </Card>
 
-        <div>
+        <div className="min-w-0">
           <h2 className="mb-6 text-sm font-medium">资料字段</h2>
-          <FieldGroup className="gap-8">
+          <FieldGroup className="grid auto-rows-fr gap-6">
             <Field>
               <div className="flex items-center justify-between gap-3">
                 <FieldLabel htmlFor="username">用户名</FieldLabel>
@@ -244,29 +257,27 @@ export function AccountView() {
                 {USERNAME_HELP} 将显示在导航和任务记录中。
               </FieldDescription>
             </Field>
-            <div className="grid gap-6 sm:grid-cols-2">
-              <ReadOnlyField
-                description="用于登录账户，暂不支持在此修改。"
-                id="email"
-                label="登录邮箱"
-                value={user.email}
-              />
-              <ReadOnlyField
-                description="由账户权限策略分配。"
-                id="role"
-                label="账户身份"
-                value={role}
-              />
-            </div>
-            {notice ? (
-              <FeedbackNotice
-                presentation="toast"
-                description={notice.text}
-                title="资料保存失败"
-                tone="error"
-              />
-            ) : null}
+            <ReadOnlyField
+              description="用于登录账户，暂不支持在此修改。"
+              id="email"
+              label="登录邮箱"
+              value={user.email}
+            />
+            <ReadOnlyField
+              description="由账户权限策略分配。"
+              id="role"
+              label="账户身份"
+              value={role}
+            />
           </FieldGroup>
+          {notice ? (
+            <FeedbackNotice
+              presentation="toast"
+              description={notice.text}
+              title="资料保存失败"
+              tone="error"
+            />
+          ) : null}
           <div className="mt-9 flex justify-start">
             <Button disabled={saving || unchanged} type="submit">
               {saving ? (
