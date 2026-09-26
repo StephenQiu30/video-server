@@ -2,11 +2,23 @@
 
 import {
   BookOpenIcon,
+  ChartLineUpIcon,
+  ClockCounterClockwiseIcon,
   FileTextIcon,
   FileVideoIcon,
+  HardDrivesIcon,
+  HouseIcon,
+  InfoIcon,
   LinkSimpleIcon,
+  ListBulletsIcon,
   MagnifyingGlassIcon,
+  PulseIcon,
+  RobotIcon,
   SignInIcon,
+  StackIcon,
+  UserCircleIcon,
+  UserPlusIcon,
+  UsersThreeIcon,
 } from '@phosphor-icons/react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -43,6 +55,94 @@ import {
 import { FieldError } from '@/components/ui/field';
 import { Kbd } from '@/components/ui/kbd';
 
+const publicDestinations = [
+  { label: '首页', href: '/', keywords: '工作区', icon: HouseIcon },
+  { label: '使用指南', href: '/guide/', keywords: '帮助', icon: BookOpenIcon },
+  {
+    label: '自托管部署',
+    href: '/self-hosting/',
+    keywords: '部署',
+    icon: HardDrivesIcon,
+  },
+  { label: '关于', href: '/about/', keywords: 'FrameFetch', icon: InfoIcon },
+] as const;
+
+const accountDestinations = [
+  {
+    label: '下载记录',
+    href: '/history',
+    keywords: '历史 任务',
+    icon: ClockCounterClockwiseIcon,
+  },
+  {
+    label: '我的处理记录',
+    href: '/history/activity',
+    keywords: '解析历史 分析历史',
+    icon: ListBulletsIcon,
+  },
+  {
+    label: '剧本文档',
+    href: '/documents',
+    keywords: '文档',
+    icon: FileTextIcon,
+  },
+  { label: '平台状态', href: '/providers', keywords: '来源', icon: PulseIcon },
+  {
+    label: '个人资料',
+    href: '/account',
+    keywords: '账户',
+    icon: UserCircleIcon,
+  },
+] as const;
+
+const adminDestinations = [
+  {
+    label: '系统操作日志',
+    href: '/admin/operation-logs',
+    keywords: '管理员 日志',
+    icon: ListBulletsIcon,
+  },
+  {
+    label: 'AI 服务',
+    href: '/admin/ai-providers',
+    keywords: '管理员 模型',
+    icon: RobotIcon,
+  },
+  {
+    label: '下载分析',
+    href: '/admin/analytics',
+    keywords: '管理员 统计',
+    icon: ChartLineUpIcon,
+  },
+  {
+    label: '文件管理',
+    href: '/admin/files',
+    keywords: '管理员 存储',
+    icon: HardDrivesIcon,
+  },
+  {
+    label: '平台目录',
+    href: '/admin/providers',
+    keywords: '管理员 平台',
+    icon: StackIcon,
+  },
+  {
+    label: '用户管理',
+    href: '/admin/users',
+    keywords: '管理员 用户',
+    icon: UsersThreeIcon,
+  },
+] as const;
+
+function matchesDestination(
+  destination: { label: string; href: string; keywords: string },
+  query: string,
+) {
+  return `${destination.label} ${destination.href} ${destination.keywords}`
+    .toLocaleLowerCase()
+    .includes(query);
+}
+
 export function QuickParseDialog() {
   const { user } = useAuth();
   const { input, requestQuickParse, setMode } = useIntakeDraft();
@@ -52,6 +152,37 @@ export function QuickParseDialog() {
   const returnFocus = useRef<HTMLElement | null>(null);
   const [value, setValue] = useState('');
   const [invalid, setInvalid] = useState(false);
+  const query = value.trim().toLocaleLowerCase();
+  const isShareText = /https?:\/\//iu.test(value);
+  const publicMatches = publicDestinations.filter((item) =>
+    matchesDestination(item, query),
+  );
+  const accountMatches = user
+    ? accountDestinations.filter((item) => matchesDestination(item, query))
+    : [];
+  const adminMatches =
+    user?.role === 'admin'
+      ? adminDestinations.filter((item) => matchesDestination(item, query))
+      : [];
+  const navigationMatches =
+    publicMatches.length + accountMatches.length + adminMatches.length;
+  const showNavigation = !isShareText;
+  const showVideoUpload = Boolean(
+    user && (!query || (!navigationMatches && '上传本地视频'.includes(query))),
+  );
+  const showScreenplayUpload = Boolean(
+    user && (!query || (!navigationMatches && '上传剧本文档'.includes(query))),
+  );
+  const showParse = Boolean(
+    user &&
+      (!query ||
+        isShareText ||
+        (!navigationMatches && !showVideoUpload && !showScreenplayUpload)),
+  );
+  const showLogin = Boolean(
+    !user && (!query || isShareText || '登录后使用'.includes(query)),
+  );
+  const showRegister = Boolean(!user && (!query || '注册账户'.includes(query)));
 
   const openDialog = useCallback(() => {
     returnFocus.current =
@@ -104,6 +235,28 @@ export function QuickParseDialog() {
     }
   }
 
+  function navigate(href: string) {
+    setOpen(false);
+    if (pathname !== href) {
+      markNavigationPush(href);
+      router.push(href);
+    }
+  }
+
+  function selectSearchResult() {
+    const destination = [
+      ...publicMatches,
+      ...accountMatches,
+      ...adminMatches,
+    ][0];
+    if (destination) return navigate(destination.href);
+    if (showVideoUpload) return selectUpload('video');
+    if (showScreenplayUpload) return selectUpload('screenplay');
+    if (showLogin) return navigate('/user/login?redirect=%2F');
+    if (showRegister) return navigate('/user/register');
+    if (showParse) submit();
+  }
+
   function pasteShareText(event: ClipboardEvent<HTMLInputElement>) {
     const pasted = event.clipboardData.getData('text');
     if (!/[\r\n]/.test(pasted)) return;
@@ -147,80 +300,140 @@ export function QuickParseDialog() {
             <DialogTitle>快捷操作</DialogTitle>
             <DialogDescription>
               {user
-                ? '解析公开链接，或上传本地视频与剧本文档。'
-                : '登录后可解析链接、上传视频与剧本文档。'}
+                ? '搜索页面、解析公开链接，或上传本地视频与剧本文档。'
+                : '搜索页面；登录后可解析链接、上传视频与剧本文档。'}
             </DialogDescription>
           </DialogHeader>
-          <Command
-            label="链接或操作"
-            shouldFilter={false}
-            tabIndex={user ? undefined : 0}
-          >
-            {user ? (
-              <CommandInput
-                aria-describedby={invalid ? 'quick-parse-error' : undefined}
-                aria-invalid={invalid ? true : undefined}
-                aria-label="链接或操作"
-                maxLength={4096}
-                onPaste={pasteShareText}
-                onValueChange={(nextValue) => {
-                  setValue(nextValue);
-                  setInvalid(false);
-                }}
-                placeholder="粘贴媒体链接，或选择下方操作…"
-                value={value}
-              />
-            ) : null}
+          <Command label="链接或页面" shouldFilter={false}>
+            <CommandInput
+              aria-describedby={invalid ? 'quick-parse-error' : undefined}
+              aria-invalid={invalid ? true : undefined}
+              aria-label="链接或页面"
+              maxLength={4096}
+              onKeyDown={(event) => {
+                if (
+                  event.key !== 'Enter' ||
+                  event.nativeEvent.isComposing ||
+                  !query ||
+                  isShareText
+                )
+                  return;
+                event.preventDefault();
+                event.stopPropagation();
+                selectSearchResult();
+              }}
+              onPaste={pasteShareText}
+              onValueChange={(nextValue) => {
+                setValue(nextValue);
+                setInvalid(false);
+              }}
+              placeholder="搜索页面，或粘贴媒体链接…"
+              value={value}
+            />
             <CommandList>
-              {user ? (
+              {user &&
+              (showParse || showVideoUpload || showScreenplayUpload) ? (
                 <CommandGroup heading="选择操作">
-                  <CommandItem onSelect={submit} value="解析链接">
-                    <LinkSimpleIcon aria-hidden />
-                    解析链接
-                    <CommandShortcut>↵</CommandShortcut>
-                  </CommandItem>
-                  <CommandItem
-                    onSelect={() => selectUpload('video')}
-                    value="上传本地视频"
-                  >
-                    <FileVideoIcon aria-hidden />
-                    上传本地视频
-                  </CommandItem>
-                  <CommandItem
-                    onSelect={() => selectUpload('screenplay')}
-                    value="上传剧本文档"
-                  >
-                    <FileTextIcon aria-hidden />
-                    上传剧本文档
-                  </CommandItem>
+                  {showParse ? (
+                    <CommandItem onSelect={submit} value="解析链接">
+                      <LinkSimpleIcon aria-hidden />
+                      解析链接
+                      <CommandShortcut>↵</CommandShortcut>
+                    </CommandItem>
+                  ) : null}
+                  {showVideoUpload ? (
+                    <CommandItem
+                      onSelect={() => selectUpload('video')}
+                      value="上传本地视频"
+                    >
+                      <FileVideoIcon aria-hidden />
+                      上传本地视频
+                    </CommandItem>
+                  ) : null}
+                  {showScreenplayUpload ? (
+                    <CommandItem
+                      onSelect={() => selectUpload('screenplay')}
+                      value="上传剧本文档"
+                    >
+                      <FileTextIcon aria-hidden />
+                      上传剧本文档
+                    </CommandItem>
+                  ) : null}
                 </CommandGroup>
-              ) : (
+              ) : null}
+              {showLogin || showRegister ? (
                 <CommandGroup heading="开始使用">
-                  <CommandItem
-                    onSelect={() => {
-                      setOpen(false);
-                      const target = '/user/login?redirect=%2F';
-                      markNavigationPush(target);
-                      router.push(target);
-                    }}
-                    value="登录后使用"
-                  >
-                    <SignInIcon aria-hidden />
-                    登录后使用
-                  </CommandItem>
-                  <CommandItem
-                    onSelect={() => {
-                      setOpen(false);
-                      markNavigationPush('/guide/');
-                      router.push('/guide/');
-                    }}
-                    value="使用指南"
-                  >
-                    <BookOpenIcon aria-hidden />
-                    使用指南
-                  </CommandItem>
+                  {showLogin ? (
+                    <CommandItem
+                      onSelect={() => navigate('/user/login?redirect=%2F')}
+                      value="登录后使用"
+                    >
+                      <SignInIcon aria-hidden />
+                      登录后使用
+                    </CommandItem>
+                  ) : null}
+                  {showRegister ? (
+                    <CommandItem
+                      onSelect={() => navigate('/user/register')}
+                      value="注册账户"
+                    >
+                      <UserPlusIcon aria-hidden />
+                      注册账户
+                    </CommandItem>
+                  ) : null}
                 </CommandGroup>
-              )}
+              ) : null}
+              {showNavigation && publicMatches.length ? (
+                <CommandGroup heading="页面">
+                  {publicMatches.map(({ label, href, icon: Icon }) => (
+                    <CommandItem
+                      key={href}
+                      onSelect={() => navigate(href)}
+                      value={label}
+                    >
+                      <Icon aria-hidden />
+                      {label}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ) : null}
+              {showNavigation && accountMatches.length ? (
+                <CommandGroup heading="工作区">
+                  {accountMatches.map(({ label, href, icon: Icon }) => (
+                    <CommandItem
+                      key={href}
+                      onSelect={() => navigate(href)}
+                      value={label}
+                    >
+                      <Icon aria-hidden />
+                      {label}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ) : null}
+              {showNavigation && adminMatches.length ? (
+                <CommandGroup heading="管理">
+                  {adminMatches.map(({ label, href, icon: Icon }) => (
+                    <CommandItem
+                      key={href}
+                      onSelect={() => navigate(href)}
+                      value={label}
+                    >
+                      <Icon aria-hidden />
+                      {label}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ) : null}
+              {!user &&
+              query &&
+              !navigationMatches &&
+              !showLogin &&
+              !showRegister ? (
+                <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+                  没有匹配的页面
+                </p>
+              ) : null}
             </CommandList>
             {invalid ? (
               <FieldError id="quick-parse-error">
