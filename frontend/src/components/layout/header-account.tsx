@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  CaretDownIcon,
   ChartLineUpIcon,
   HardDrivesIcon,
   ListBulletsIcon,
@@ -12,6 +11,7 @@ import {
   UsersThreeIcon,
 } from '@phosphor-icons/react';
 import Link from 'next/link';
+import { useEffect, useRef, useState } from 'react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -51,6 +51,33 @@ export function HeaderAccount({
   user,
   usersActive,
 }: HeaderAccountProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const openedByHover = useRef(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    },
+    [],
+  );
+
+  function cancelHoverClose() {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  }
+
+  function scheduleHoverClose() {
+    if (!openedByHover.current) return;
+    cancelHoverClose();
+    closeTimer.current = setTimeout(() => {
+      setMenuOpen(false);
+      closeTimer.current = null;
+    }, 180);
+  }
+
   return (
     <div
       className="flex shrink-0 items-center justify-end"
@@ -59,19 +86,56 @@ export function HeaderAccount({
       {loading ? (
         <Skeleton aria-hidden className="h-9 w-[clamp(4.5rem,5vw,5.5rem)]" />
       ) : user ? (
-        <DropdownMenu>
+        <DropdownMenu
+          modal={false}
+          onOpenChange={(open) => {
+            cancelHoverClose();
+            if (!open) openedByHover.current = false;
+            setMenuOpen(open);
+          }}
+          open={menuOpen}
+        >
           <DropdownMenuTrigger asChild>
-            <Button aria-label="打开账户菜单" size="lg" variant="ghost">
+            <Button
+              aria-label="打开账户菜单"
+              className="rounded-full p-0"
+              onKeyDown={() => {
+                cancelHoverClose();
+                openedByHover.current = false;
+              }}
+              onPointerEnter={(event) => {
+                if (event.pointerType !== 'mouse') return;
+                cancelHoverClose();
+                if (!menuOpen) {
+                  openedByHover.current = true;
+                  setMenuOpen(true);
+                }
+              }}
+              onPointerLeave={scheduleHoverClose}
+              size="icon-lg"
+              variant="ghost"
+            >
               <Avatar>
                 <AvatarImage alt="" src={avatarUrl(user)} />
                 <AvatarFallback>
                   {user.username.slice(0, 1).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <CaretDownIcon aria-hidden className="size-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent aria-label="账户菜单" className="w-56">
+          <DropdownMenuContent
+            align="end"
+            aria-label="账户菜单"
+            className="w-56"
+            onCloseAutoFocus={(event) => {
+              if (openedByHover.current) {
+                event.preventDefault();
+                openedByHover.current = false;
+              }
+            }}
+            onPointerEnter={cancelHoverClose}
+            onPointerLeave={scheduleHoverClose}
+          >
             <DropdownMenuLabel>
               <span className="block truncate font-medium text-foreground">
                 {user.username}

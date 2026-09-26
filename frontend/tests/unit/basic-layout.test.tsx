@@ -386,6 +386,37 @@ describe('BasicLayout', () => {
     ).toHaveAttribute('href', '/admin/providers');
   });
 
+  it('opens the avatar menu on mouse hover and keeps it open while entering the menu', async () => {
+    runtime.user = {
+      created_at: '2026-08-09T10:00:00Z',
+      email: 'owner@example.com',
+      id: 'owner-id',
+      role: 'admin',
+      updated_at: '2026-08-09T10:00:00Z',
+      username: 'owner',
+    };
+    render(
+      <BasicLayout>
+        <div>页面内容</div>
+      </BasicLayout>,
+    );
+
+    const trigger = screen.getByRole('button', { name: '打开账户菜单' });
+    expect(trigger.querySelector('svg')).toBeNull();
+    fireEvent.pointerOver(trigger, { pointerType: 'mouse' });
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    const item = await screen.findByRole('menuitem', { name: '个人资料' });
+    const menu = item.closest('[role="menu"]');
+    expect(menu).not.toBeNull();
+    fireEvent.pointerLeave(trigger, { pointerType: 'mouse' });
+    fireEvent.pointerEnter(menu as HTMLElement, { pointerType: 'mouse' });
+    await new Promise((resolve) => setTimeout(resolve, 220));
+    expect(menu).toBeInTheDocument();
+
+    fireEvent.pointerLeave(menu as HTMLElement, { pointerType: 'mouse' });
+    await waitFor(() => expect(item).not.toBeInTheDocument());
+  });
+
   it('uses the shared BasicLayout chrome on authentication routes', () => {
     runtime.pathname = '/user/login';
     render(
