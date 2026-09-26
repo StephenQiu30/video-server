@@ -37,6 +37,8 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
+  FieldLegend,
+  FieldSet,
 } from '@/components/ui/field';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -204,7 +206,7 @@ export function AccountView() {
   const initials = user.username.trim().slice(0, 2).toUpperCase();
 
   return (
-    <div>
+    <>
       <PageNavigation fallbackHref="/" />
       <PageHeader
         description="管理用户名与头像；管理员还可调整账户身份。"
@@ -248,7 +250,7 @@ export function AccountView() {
                 tabIndex={-1}
                 type="file"
               />
-              <div className="flex flex-wrap justify-center gap-2">
+              <FieldGroup className="flex-row flex-wrap justify-center gap-2">
                 <Button
                   aria-describedby={
                     avatarError ? 'avatar-help avatar-error' : 'avatar-help'
@@ -276,7 +278,7 @@ export function AccountView() {
                     移除头像
                   </Button>
                 ) : null}
-              </div>
+              </FieldGroup>
               <FieldDescription
                 aria-live="polite"
                 className="text-center"
@@ -291,16 +293,19 @@ export function AccountView() {
           </CardContent>
         </Card>
 
-        <div className="min-w-0">
-          <h2 className="mb-6 text-sm font-medium">资料字段</h2>
+        <FieldSet className="min-w-0 gap-6">
+          <FieldLegend variant="label">资料字段</FieldLegend>
           <FieldGroup className="grid auto-rows-fr gap-6">
             <Field>
-              <div className="flex items-center justify-between gap-3">
-                <FieldLabel htmlFor="username">用户名</FieldLabel>
-                <span className="text-xs text-muted-foreground tabular-nums">
+              <FieldLabel className="w-full justify-between" htmlFor="username">
+                用户名
+                <span
+                  aria-hidden="true"
+                  className="text-xs text-muted-foreground tabular-nums"
+                >
                   {usernameLength(username)}/32
                 </span>
-              </div>
+              </FieldLabel>
               <Input
                 aria-describedby="username-help"
                 id="username"
@@ -360,22 +365,24 @@ export function AccountView() {
               tone="error"
             />
           ) : null}
-          <div className="mt-9 flex justify-start">
-            <Button disabled={saving || unchanged} type="submit">
-              {saving ? (
-                <Spinner
-                  aria-hidden
-                  data-icon="inline-start"
-                  role="presentation"
-                />
-              ) : (
-                <FloppyDisk aria-hidden data-icon="inline-start" />
-              )}
-              {saving ? '正在保存' : '保存资料'}
-            </Button>
-          </div>
-        </div>
+          <Button
+            className="mt-3 self-start"
+            disabled={saving || unchanged}
+            type="submit"
+          >
+            {saving ? (
+              <Spinner
+                aria-hidden
+                data-icon="inline-start"
+                role="presentation"
+              />
+            ) : (
+              <FloppyDisk aria-hidden data-icon="inline-start" />
+            )}
+            {saving ? '正在保存' : '保存资料'}
+          </Button>
+        </FieldSet>
       </Form>
-    </div>
+    </>
   );
 }
