@@ -47,10 +47,9 @@ describe('account avatar', () => {
 
   it('shows upload entry and validates file type and size inline', () => {
     render(<AccountView />);
-    expect(
-      screen.getByRole('button', { name: '上传头像' }),
-    ).toBeInTheDocument();
-    const input = screen.getByLabelText('选择头像图片');
+    const input = screen.getByLabelText('上传头像');
+    expect(input).toHaveAttribute('type', 'file');
+    expect(input).toHaveAttribute('aria-describedby', 'avatar-help');
     fireEvent.change(input, {
       target: {
         files: [new File(['x'], 'bad.svg', { type: 'image/svg+xml' })],
@@ -58,6 +57,11 @@ describe('account avatar', () => {
     });
     expect(screen.getByRole('alert')).toHaveTextContent(
       '请选择 JPEG、PNG 或 WebP 图片',
+    );
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input).toHaveAttribute(
+      'aria-describedby',
+      'avatar-help avatar-error',
     );
     fireEvent.change(input, {
       target: {
@@ -77,7 +81,7 @@ describe('account avatar', () => {
     runtime.uploadAvatar.mockResolvedValue(updated);
     render(<AccountView />);
     const file = new File(['image bytes'], 'avatar.png', { type: 'image/png' });
-    fireEvent.change(screen.getByLabelText('选择头像图片'), {
+    fireEvent.change(screen.getByLabelText('上传头像'), {
       target: { files: [file] },
     });
     await waitFor(() =>

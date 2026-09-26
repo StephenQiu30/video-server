@@ -90,6 +90,7 @@ export function MediaUploadForm({
             event.currentTarget.value = '';
           }}
           ref={inputRef}
+          tabIndex={-1}
           type="file"
         />
         <IntakeSubmitButton disabled={busy} size="xl">

@@ -93,6 +93,7 @@ export function ScreenplayUploadForm({
         event.currentTarget.value = '';
       }}
       ref={inputRef}
+      tabIndex={-1}
       type="file"
     />
   );

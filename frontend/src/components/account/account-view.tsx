@@ -1,13 +1,7 @@
 'use client';
 
-import { FloppyDisk, UploadSimpleIcon, XIcon } from '@phosphor-icons/react';
-import {
-  type ChangeEvent,
-  type FormEvent,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { FloppyDisk, XIcon } from '@phosphor-icons/react';
+import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import {
   deleteCurrentUserAvatar,
@@ -53,7 +47,6 @@ export function AccountView() {
   const [notice, setNotice] = useState<Notice>(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
-  const avatarInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => setUsername(user?.username ?? ''), [user?.username]);
 
@@ -184,47 +177,43 @@ export function AccountView() {
               <p className="mt-1 text-sm text-muted-foreground">{role}</p>
             </div>
           </div>
-          <input
-            accept="image/jpeg,image/png,image/webp"
-            aria-label="选择头像图片"
-            className="hidden"
-            onChange={uploadAvatar}
-            ref={avatarInput}
-            type="file"
-          />
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Button
+          <Field
+            className="mt-5 max-w-xs"
+            data-invalid={avatarError ? true : undefined}
+          >
+            <FieldLabel htmlFor="avatar-image">上传头像</FieldLabel>
+            <Input
+              accept="image/jpeg,image/png,image/webp"
+              aria-describedby={
+                avatarError ? 'avatar-help avatar-error' : 'avatar-help'
+              }
+              aria-invalid={avatarError ? true : undefined}
               disabled={avatarBusy}
-              onClick={() => avatarInput.current?.click()}
+              id="avatar-image"
+              onChange={uploadAvatar}
+              type="file"
+            />
+            <FieldDescription aria-live="polite" id="avatar-help">
+              {avatarBusy
+                ? '正在处理头像…'
+                : '支持 JPEG、PNG、WebP，最大 4 MB；上传后自动裁切为方形。'}
+            </FieldDescription>
+            {avatarError ? (
+              <FieldError id="avatar-error">{avatarError}</FieldError>
+            ) : null}
+          </Field>
+          {user.avatar_version ? (
+            <Button
+              className="mt-2"
+              disabled={avatarBusy}
+              onClick={() => void deleteAvatar()}
               size="sm"
               type="button"
-              variant="outline"
+              variant="ghost"
             >
-              {avatarBusy ? (
-                <Spinner aria-hidden data-icon="inline-start" />
-              ) : (
-                <UploadSimpleIcon aria-hidden data-icon="inline-start" />
-              )}
-              {avatarBusy ? '正在处理头像' : '上传头像'}
+              <XIcon aria-hidden data-icon="inline-start" />
+              移除头像
             </Button>
-            {user.avatar_version ? (
-              <Button
-                disabled={avatarBusy}
-                onClick={() => void deleteAvatar()}
-                size="sm"
-                type="button"
-                variant="ghost"
-              >
-                <XIcon aria-hidden data-icon="inline-start" />
-                移除头像
-              </Button>
-            ) : null}
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">
-            支持 JPEG、PNG、WebP，最大 4 MB；上传后自动裁切为方形。
-          </p>
-          {avatarError ? (
-            <FieldError className="mt-2">{avatarError}</FieldError>
           ) : null}
           <p className="mt-7 max-w-xs text-sm leading-6 text-muted-foreground">
             用户名会显示在导航与任务记录中；登录邮箱和账户身份由系统策略管理。
