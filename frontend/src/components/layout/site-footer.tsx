@@ -23,10 +23,10 @@ export function SiteFooter({ className }: { className?: string }) {
           <QuickParseDialog />
           <NavigationMenu
             aria-label="项目链接"
-            className="max-w-none flex-none"
+            className="min-w-0 max-w-none w-full sm:w-auto"
             viewport={false}
           >
-            <NavigationMenuList className="flex-wrap gap-4">
+            <NavigationMenuList className="w-full justify-start flex-wrap gap-4">
               <FooterLink href="/guide/">使用指南</FooterLink>
               <FooterLink href="/self-hosting/">自托管部署</FooterLink>
               <FooterLink href="/about/">关于</FooterLink>
