@@ -1,5 +1,6 @@
 'use client';
 
+import { CaretDownIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 
 import AnalysisReportPreview from '@/components/analysis/analysis-report-preview';
@@ -14,6 +15,12 @@ import {
   Metric,
   ResultTab,
 } from '@/components/screenplay/screenplay-result-primitives';
+import { Button } from '@/components/ui/button';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { ItemGroup } from '@/components/ui/item';
 import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs';
 
@@ -37,23 +44,31 @@ function SceneReviewList({
       <ol className="space-y-3" start={first + 1}>
         {visibleScenes.map((scene, index) => (
           <li key={scene.id}>
-            <details className="border-b py-4">
-              <summary className="cursor-pointer font-medium marker:text-muted-foreground">
-                场景 {first + index + 1} · {scene.purpose || '未说明场景作用'}
-              </summary>
-              <ItemGroup className="grid gap-4 sm:grid-cols-3">
-                <Detail label="冲突">{scene.conflict}</Detail>
-                <Detail label="变化">{scene.turn}</Detail>
-                <Detail label="节奏">{scene.pacing}</Detail>
-              </ItemGroup>
-              {scene.findings.length > 0 && (
-                <ul className="mt-4 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                  {scene.findings.map((finding) => (
-                    <li key={finding}>{finding}</li>
-                  ))}
-                </ul>
-              )}
-            </details>
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <Button
+                  className="h-auto w-full justify-between py-4 text-left whitespace-normal"
+                  variant="ghost"
+                >
+                  场景 {first + index + 1} · {scene.purpose || '未说明场景作用'}
+                  <CaretDownIcon aria-hidden data-icon="inline-end" />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-2 pb-4">
+                <ItemGroup className="grid gap-4 sm:grid-cols-3">
+                  <Detail label="冲突">{scene.conflict}</Detail>
+                  <Detail label="变化">{scene.turn}</Detail>
+                  <Detail label="节奏">{scene.pacing}</Detail>
+                </ItemGroup>
+                {scene.findings.length > 0 && (
+                  <ul className="mt-4 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                    {scene.findings.map((finding) => (
+                      <li key={finding}>{finding}</li>
+                    ))}
+                  </ul>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
           </li>
         ))}
       </ol>

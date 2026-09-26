@@ -2,7 +2,7 @@
 
 import { MagnifyingGlassIcon } from '@phosphor-icons/react';
 
-import { Field, FieldLabel } from '@/components/ui/field';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import {
   InputGroup,
   InputGroupAddon,
@@ -11,6 +11,7 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -32,7 +33,7 @@ export function ProviderCatalogFilters({
   onVisibilityChange,
 }: ProviderCatalogFiltersProps) {
   return (
-    <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_12rem]">
+    <FieldGroup className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_12rem]">
       <Field>
         <FieldLabel htmlFor="provider-catalog-search">搜索平台</FieldLabel>
         <InputGroup>
@@ -60,12 +61,14 @@ export function ProviderCatalogFilters({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">全部状态</SelectItem>
-            <SelectItem value="visible">公开显示</SelectItem>
-            <SelectItem value="hidden">已隐藏</SelectItem>
+            <SelectGroup>
+              <SelectItem value="all">全部状态</SelectItem>
+              <SelectItem value="visible">公开显示</SelectItem>
+              <SelectItem value="hidden">已隐藏</SelectItem>
+            </SelectGroup>
           </SelectContent>
         </Select>
       </Field>
-    </div>
+    </FieldGroup>
   );
 }

@@ -1,10 +1,16 @@
-import { ArrowClockwise, PlugsConnected, Plus } from '@phosphor-icons/react';
+import {
+  ArrowClockwise,
+  PlugsConnected,
+  Plus,
+  WarningCircle,
+} from '@phosphor-icons/react';
 import type { BulkDeleteOptions } from '@/components/layout/bulk-delete-selection';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { PageNavigation } from '@/components/layout/page-navigation';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -122,12 +128,15 @@ export function AiProviderScreen({
           )}
         </div>
         {!agentAvailable ? (
-          <p className="mt-3 text-sm leading-6 text-warning">
-            当前未观察到分析 Agent
-            状态；配置仍然有效，新的分析任务会先进入可靠队列， 待 Agent
-            恢复后继续处理。请检查宿主机分析 Worker、Codex 登录、数据库与
-            消息队列。
-          </p>
+          <Alert className="mt-3">
+            <WarningCircle aria-hidden />
+            <AlertTitle>分析 Agent 暂时离线</AlertTitle>
+            <AlertDescription>
+              配置仍然有效，新的分析任务会先进入可靠队列，待 Agent
+              恢复后继续处理。请检查宿主机分析 Worker、Codex
+              登录、数据库与消息队列。
+            </AlertDescription>
+          </Alert>
         ) : null}
       </div>
 

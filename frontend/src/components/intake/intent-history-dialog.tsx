@@ -24,6 +24,7 @@ import {
 } from '@/components/intake/intent-status';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import MediaCover from '@/components/media/media-cover';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -166,9 +167,9 @@ export function IntentHistoryDialog({
                 {statusHeading(job)}。{statusDescription(job)}
               </p>
               {job.status === DownloadStatusCode.Failed ? (
-                <p className="text-sm leading-6 text-destructive">
-                  {failureDescription(job)}
-                </p>
+                <Alert variant="destructive">
+                  <AlertDescription>{failureDescription(job)}</AlertDescription>
+                </Alert>
               ) : null}
               {isActiveDownloadStatus(job.status) ? (
                 <div className="flex flex-col gap-2 pt-2">

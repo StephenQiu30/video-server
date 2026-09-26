@@ -28,6 +28,7 @@ import {
 import { ScreenplayResultView } from '@/components/screenplay/screenplay-result-view';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { localizedErrorMessage } from '@/lib/error-messages';
 import { privateQueryKey } from '@/lib/query-keys';
 import { displayError } from '@/lib/request-error';
 
@@ -231,9 +232,15 @@ function AnalysisDetailContent({
             />
           ) : null}
           {job.error_code ? (
-            <p className="mt-4 text-sm text-destructive" role="status">
-              任务未完成：{job.error_code}
-            </p>
+            <FeedbackNotice
+              className="mt-4"
+              description={
+                localizedErrorMessage(job.error_code) ??
+                `错误代码：${job.error_code}`
+              }
+              title="分析任务未完成"
+              tone="error"
+            />
           ) : null}
           {job.result?.kind === 'video_visual_analysis' ? (
             <AnalysisResultView

@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -89,8 +90,10 @@ export function UserEditor({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">管理员</SelectItem>
-                  <SelectItem value="user">普通用户</SelectItem>
+                  <SelectGroup>
+                    <SelectItem value="admin">管理员</SelectItem>
+                    <SelectItem value="user">普通用户</SelectItem>
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </Field>
@@ -122,7 +125,7 @@ export function UserEditor({
                 onCheckedChange={(value) => onQuotaChange('exempt', value)}
               />
             </Field>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <FieldGroup className="grid gap-4 sm:grid-cols-2">
               <QuotaInput
                 id="edit-quota-active"
                 label="同时活跃任务"
@@ -161,7 +164,7 @@ export function UserEditor({
                   onQuotaChange('dailyAnalysisAttempts', value)
                 }
               />
-            </div>
+            </FieldGroup>
             {editor.error ? (
               <Alert variant="destructive">
                 <WarningCircle aria-hidden />

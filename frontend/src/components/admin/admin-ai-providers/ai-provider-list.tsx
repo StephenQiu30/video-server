@@ -14,6 +14,7 @@ import {
 import { type DataColumn, DataTable } from '@/components/layout/data-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Item, ItemContent, ItemMedia, ItemTitle } from '@/components/ui/item';
 import {
   isDirectApiEngine,
   isLocalCodexProvider,
@@ -181,11 +182,13 @@ export function ProviderTable({
 
 function RouteNode({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <span className="inline-flex min-w-0 items-center gap-2 rounded-md bg-surface px-3 py-2">
-      <span aria-hidden className="shrink-0 text-primary [&>svg]:size-4">
+    <Item className="min-w-0 w-auto flex-nowrap" size="xs" variant="muted">
+      <ItemMedia aria-hidden variant="icon">
         {icon}
-      </span>
-      <span className="max-w-64 truncate">{label}</span>
-    </span>
+      </ItemMedia>
+      <ItemContent className="min-w-0">
+        <ItemTitle className="max-w-64 truncate">{label}</ItemTitle>
+      </ItemContent>
+    </Item>
   );
 }

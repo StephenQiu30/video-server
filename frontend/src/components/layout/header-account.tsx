@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -145,14 +146,16 @@ export function HeaderAccount({
               </span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/account">
-                <UserCircleIcon aria-hidden className="size-4" />
-                个人资料
-              </Link>
-            </DropdownMenuItem>
+            <DropdownMenuGroup>
+              <DropdownMenuItem asChild>
+                <Link href="/account">
+                  <UserCircleIcon aria-hidden className="size-4" />
+                  个人资料
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
             {user.role === 'admin' ? (
-              <>
+              <DropdownMenuGroup>
                 <DropdownMenuItem asChild>
                   <Link
                     aria-current={
@@ -211,13 +214,15 @@ export function HeaderAccount({
                     用户管理
                   </Link>
                 </DropdownMenuItem>
-              </>
+              </DropdownMenuGroup>
             ) : null}
             <DropdownMenuSeparator />
-            <DropdownMenuItem disabled={signingOut} onSelect={onSignOut}>
-              <SignOutIcon aria-hidden className="size-4" />
-              {signingOut ? '正在退出…' : '退出登录'}
-            </DropdownMenuItem>
+            <DropdownMenuGroup>
+              <DropdownMenuItem disabled={signingOut} onSelect={onSignOut}>
+                <SignOutIcon aria-hidden className="size-4" />
+                {signingOut ? '正在退出…' : '退出登录'}
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (

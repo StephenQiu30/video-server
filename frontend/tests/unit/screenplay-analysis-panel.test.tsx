@@ -146,6 +146,25 @@ describe('ScreenplayAnalysisPanel', () => {
     click.mockRestore();
   });
 
+  it('expands and collapses a scene review with the disclosure control', async () => {
+    mockHttpResponses(screenplayAnalysisJob('analysis'));
+    render(<ScreenplayAnalysisPanel documentId={documentId} />);
+
+    const scenesTab = await screen.findByRole('tab', { name: '场景' });
+    fireEvent.mouseDown(scenesTab, { button: 0, ctrlKey: false });
+    fireEvent.click(scenesTab);
+
+    const scene = screen.getByRole('button', {
+      name: /场景 1 · 建立任务与时限/,
+    });
+    expect(scene).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(scene);
+    expect(scene).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('素材缺失且备份不可用')).toBeVisible();
+    fireEvent.click(scene);
+    expect(scene).toHaveAttribute('aria-expanded', 'false');
+  });
+
   it('keeps rewritten text in the canonical report view', async () => {
     mockHttpResponses(screenplayAnalysisJob('rewrite'));
     render(<ScreenplayAnalysisPanel documentId={documentId} />);

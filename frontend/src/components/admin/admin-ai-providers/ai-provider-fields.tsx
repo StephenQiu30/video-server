@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -43,7 +44,7 @@ export function AiProviderFields({
           </AlertDescription>
         </Alert>
       ) : null}
-      <div className="grid gap-6 sm:grid-cols-2">
+      <FieldGroup className="grid gap-6 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor="ai-provider-key">配置标识</FieldLabel>
           <Input
@@ -71,9 +72,9 @@ export function AiProviderFields({
             value={editor.displayName}
           />
         </Field>
-      </div>
+      </FieldGroup>
 
-      <div className="grid gap-6 sm:grid-cols-2">
+      <FieldGroup className="grid gap-6 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor="ai-provider-engine">执行引擎</FieldLabel>
           <Select
@@ -92,13 +93,15 @@ export function AiProviderFields({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="openrouter">OpenRouter API</SelectItem>
-              <SelectItem value="openai">OpenAI 兼容 API</SelectItem>
-              <SelectItem value="codex">Codex CLI · Responses</SelectItem>
-              <SelectItem value="claude">Claude CLI · Messages</SelectItem>
-              <SelectItem value="deepseek">
-                DeepSeek API · LangChain 视觉
-              </SelectItem>
+              <SelectGroup>
+                <SelectItem value="openrouter">OpenRouter API</SelectItem>
+                <SelectItem value="openai">OpenAI 兼容 API</SelectItem>
+                <SelectItem value="codex">Codex CLI · Responses</SelectItem>
+                <SelectItem value="claude">Claude CLI · Messages</SelectItem>
+                <SelectItem value="deepseek">
+                  DeepSeek API · LangChain 视觉
+                </SelectItem>
+              </SelectGroup>
             </SelectContent>
           </Select>
         </Field>
@@ -122,17 +125,19 @@ export function AiProviderFields({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem
-                disabled={isDirectApiEngine(editor.engine)}
-                value="host_login"
-              >
-                本机账号登录 · 免 Key
-              </SelectItem>
-              <SelectItem value="api_key">API Key</SelectItem>
+              <SelectGroup>
+                <SelectItem
+                  disabled={isDirectApiEngine(editor.engine)}
+                  value="host_login"
+                >
+                  本机账号登录 · 免 Key
+                </SelectItem>
+                <SelectItem value="api_key">API Key</SelectItem>
+              </SelectGroup>
             </SelectContent>
           </Select>
         </Field>
-      </div>
+      </FieldGroup>
 
       {editor.engine === 'openrouter' ? (
         <OpenRouterModels

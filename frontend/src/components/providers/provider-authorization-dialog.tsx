@@ -10,6 +10,7 @@ import {
   getProviderAuthorization,
 } from '@/api/providers';
 import { useAuth } from '@/components/auth/auth-provider';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -364,23 +365,25 @@ function AuthorizationResult({
 
 function SetupRequired() {
   return (
-    <div className="flex flex-col gap-3 text-sm leading-6 text-muted-foreground">
-      <p>
-        当前部署尚未安装本机 Access
-        Agent。请按项目运行手册完成一次本机初始化；初始化后，可以在这里打开隔离浏览器完成平台授权。
-      </p>
-      <p>
-        Agent 必须与 Docker Compose
-        运行在同一台设备上；本项目不会通过公共代理或共享账号绕过平台验证。
-      </p>
-    </div>
+    <Alert>
+      <AlertTitle>本机 Access Agent 尚未安装</AlertTitle>
+      <AlertDescription>
+        <p>
+          请按项目运行手册完成一次本机初始化；初始化后，可以在这里打开隔离浏览器完成平台授权。
+        </p>
+        <p>
+          Agent 必须与 Docker Compose
+          运行在同一台设备上；本项目不会通过公共代理或共享账号绕过平台验证。
+        </p>
+      </AlertDescription>
+    </Alert>
   );
 }
 
 function AuthorizationError({ message }: { message: string }) {
   return (
-    <p aria-live="assertive" className="text-sm leading-6 text-destructive">
-      {message}
-    </p>
+    <Alert variant="destructive">
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
   );
 }

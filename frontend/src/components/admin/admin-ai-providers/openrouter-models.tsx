@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -89,14 +90,16 @@ export function OpenRouterModels({
               <SelectValue placeholder="选择模型" />
             </SelectTrigger>
             <SelectContent>
-              {visible?.map((item) => (
-                <SelectItem key={item.id} value={item.id}>
-                  {item.id} ·{' '}
-                  {item.input_modalities.includes('image')
-                    ? '支持图像'
-                    : '仅文本'}
-                </SelectItem>
-              ))}
+              <SelectGroup>
+                {visible?.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.id} ·{' '}
+                    {item.input_modalities.includes('image')
+                      ? '支持图像'
+                      : '仅文本'}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
           <FieldDescription aria-live="polite">
