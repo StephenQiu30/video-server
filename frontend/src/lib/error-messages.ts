@@ -56,6 +56,7 @@ const localizedErrorMessages: Record<string, string> = {
   invalid_state: '当前任务状态不支持此操作，请刷新页面后重试。',
   invalid_url: '视频链接无效或不受支持，请检查后重试。',
   invalid_username: '用户名格式不符合要求，请重新输入。',
+  last_admin_change: '请先保留另一位启用的管理员，再修改当前身份。',
   media_validation_failed: '生成文件未通过完整性校验，请重新下载后再试。',
   metrics_unavailable: '运行指标暂时不可用，请稍后重试。',
   not_found: '任务或相关资源不存在，请返回下载记录确认。',
@@ -90,7 +91,7 @@ const localizedErrorMessages: Record<string, string> = {
   reserved_ai_provider_mutation:
     '本机 Codex 是系统兜底线路，只能修改显示名称和模型。',
   resource_expired: '原始媒体解析信息已失效，请重新解析链接。',
-  self_admin_change: '管理员不能停用、删除自己或修改自己的管理员权限。',
+  self_admin_change: '管理员不能停用或删除自己的账户。',
   service_unavailable: '服务暂时不可用，请稍后重试。',
   storage_unavailable: '文件存储服务暂时不可用，请稍后重试。',
   temp_space_exhausted: '下载临时空间不足，请清理空间后重试。',

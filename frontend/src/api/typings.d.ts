@@ -1217,6 +1217,7 @@ declare namespace API {
     | "invalid_url"
     | "invalid_username"
     | "invalid_verification_code"
+    | "last_admin_change"
     | "job_conflict"
     | "method_not_allowed"
     | "metrics_unavailable"

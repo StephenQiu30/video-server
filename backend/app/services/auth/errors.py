@@ -14,6 +14,7 @@ class AuthErrorCode(StrEnum):
     FORBIDDEN = "forbidden"
     USER_NOT_FOUND = "user_not_found"
     SELF_ADMIN_CHANGE = "self_admin_change"
+    LAST_ADMIN_CHANGE = "last_admin_change"
     UNAUTHENTICATED = "unauthenticated"
 
 
@@ -29,6 +30,10 @@ class DuplicateEmailError(RuntimeError):
 
 class DuplicateUsernameError(RuntimeError):
     """Raised when a normalized username is already assigned."""
+
+
+class LastAdminError(RuntimeError):
+    """Raised when an access change would remove the last active administrator."""
 
 
 class SessionRotationConflict(RuntimeError):

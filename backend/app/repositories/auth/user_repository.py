@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.models import AuthSessionRow, UserRow
 from app.models.web_session import WebSessionRow
 from app.repositories.auth.mapping import account_from_row
-from app.services.auth.errors import DuplicateUsernameError
+from app.services.auth.errors import DuplicateUsernameError, LastAdminError
 from app.services.auth.models import AccountRecord, ManagedUserPage, UserRole
 from app.services.quotas import UserQuota
 
@@ -145,6 +145,20 @@ class SqlAlchemyUserRepository:
             )
         should_revoke_sessions = False
         async with self._sessions.begin() as session:
+            if role is UserRole.USER or is_active is False:
+                active_admin_ids = (
+                    await session.scalars(
+                        select(UserRow.id)
+                        .where(
+                            UserRow.role == UserRole.ADMIN.value,
+                            UserRow.is_active.is_(True),
+                        )
+                        .order_by(UserRow.id)
+                        .with_for_update()
+                    )
+                ).all()
+                if account_id in active_admin_ids and len(active_admin_ids) == 1:
+                    raise LastAdminError
             row = await session.scalar(
                 update(UserRow)
                 .where(UserRow.id == account_id)

@@ -1,17 +1,19 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from app.core.config import Settings
 from app.core.db import create_session_factory
 from app.integrations.jwt_tokens import JwtTokenService
 from app.integrations.passwords import Argon2PasswordHasher
 from app.main import create_app
+from app.models.auth import UserRow
 from app.repositories.auth.auth_repository import SqlAlchemyAuthRepository
 from app.repositories.auth.email_verification_repository import (
     SqlAlchemyVerificationStore,
@@ -19,11 +21,14 @@ from app.repositories.auth.email_verification_repository import (
 from app.repositories.auth.user_repository import SqlAlchemyUserRepository
 from app.repositories.auth.web_sessions import WebSessionRepository
 from app.services.auth.email_verification import EmailVerification
+from app.services.auth.errors import AuthError, AuthErrorCode
+from app.services.auth.models import CurrentUser, UserRole
 from app.services.auth.service import AuthService
 from app.services.auth.user_service import UserService
 from app.services.auth.web_sessions import WebSessionService
 from httpx import ASGITransport, AsyncClient, Response
 from PIL import Image
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 
@@ -327,7 +332,7 @@ async def test_profile_and_admin_user_management_are_role_protected(
     }
     assert disabled.json()["data"]["is_active"] is False
     assert self_demote.status_code == 409
-    assert self_demote.json()["code"] == "self_admin_change"
+    assert self_demote.json()["code"] == "last_admin_change"
     assert self_delete.status_code == 409
     assert self_delete.json()["code"] == "self_admin_change"
     assert deleted.status_code == 204
@@ -337,6 +342,133 @@ async def test_profile_and_admin_user_management_are_role_protected(
     assert missing_delete.json()["code"] == "user_not_found"
     assert revoked_session.status_code == 401
     assert "set-cookie" not in revoked_session.headers
+
+
+async def test_admin_can_demote_self_when_another_active_admin_remains(
+    tmp_path: Path,
+    postgres_engine: AsyncEngine,
+) -> None:
+    bootstrap_secret = "test-admin-bootstrap-secret-32-bytes"
+    async with auth_client(
+        tmp_path, postgres_engine, "admin@example.com", bootstrap_secret
+    ) as client:
+        owner = await client.register(
+            "/api/auth/register",
+            json={
+                "username": "admin_owner",
+                "email": "admin@example.com",
+                "password": "strong-pass-123",
+            },
+            headers={"X-Admin-Bootstrap-Secret": bootstrap_secret},
+        )
+        await client.post("/api/auth/logout")
+        second = await client.register(
+            "/api/auth/register",
+            json={
+                "username": "second_admin",
+                "email": "second@example.com",
+                "password": "strong-pass-456",
+            },
+        )
+        await client.post("/api/auth/logout")
+        await client.post(
+            "/api/auth/login",
+            json={"email": "admin@example.com", "password": "strong-pass-123"},
+        )
+        promoted = await client.patch(
+            f"/api/admin/users/{second.json()['data']['id']}",
+            json={"role": "admin"},
+        )
+        demoted = await client.patch(
+            f"/api/admin/users/{owner.json()['data']['id']}",
+            json={"role": "user"},
+        )
+        current = await client.get("/api/auth/me")
+        forbidden = await client.get("/api/admin/users")
+
+    assert promoted.status_code == 200
+    assert demoted.status_code == 200
+    assert demoted.json()["data"]["role"] == "user"
+    assert current.json()["data"]["role"] == "user"
+    assert forbidden.status_code == 403
+
+
+async def test_parallel_admin_demotions_keep_one_active_admin(
+    tmp_path: Path,
+    postgres_engine: AsyncEngine,
+) -> None:
+    bootstrap_secret = "test-admin-bootstrap-secret-32-bytes"
+    async with auth_client(
+        tmp_path, postgres_engine, "admin@example.com", bootstrap_secret
+    ) as client:
+        owner = await client.register(
+            "/api/auth/register",
+            json={
+                "username": "admin_owner",
+                "email": "admin@example.com",
+                "password": "strong-pass-123",
+            },
+            headers={"X-Admin-Bootstrap-Secret": bootstrap_secret},
+        )
+        await client.post("/api/auth/logout")
+        other = await client.register(
+            "/api/auth/register",
+            json={
+                "username": "other_admin",
+                "email": "other@example.com",
+                "password": "strong-pass-456",
+            },
+        )
+        await client.post("/api/auth/logout")
+        await client.post(
+            "/api/auth/login",
+            json={"email": "admin@example.com", "password": "strong-pass-123"},
+        )
+        promoted = await client.patch(
+            f"/api/admin/users/{other.json()['data']['id']}",
+            json={"role": "admin"},
+        )
+    assert promoted.status_code == 200
+
+    now = datetime.now(UTC)
+    actors = [
+        CurrentUser(
+            id=UUID(record["id"]),
+            username=record["username"],
+            email=record["email"],
+            role=UserRole.ADMIN,
+            created_at=now,
+            updated_at=now,
+        )
+        for record in (owner.json()["data"], other.json()["data"])
+    ]
+    sessions = create_session_factory(postgres_engine)
+    service = UserService(
+        repository=SqlAlchemyUserRepository(sessions),
+        now=lambda: datetime.now(UTC),
+    )
+    results = await asyncio.gather(
+        *(
+            service.update_access(actor, actor.id, role=UserRole.USER, is_active=None)
+            for actor in actors
+        ),
+        return_exceptions=True,
+    )
+    async with sessions() as session:
+        active_admins = await session.scalar(
+            select(func.count())
+            .select_from(UserRow)
+            .where(
+                UserRow.role == UserRole.ADMIN.value,
+                UserRow.is_active.is_(True),
+            )
+        )
+
+    assert sum(not isinstance(result, BaseException) for result in results) == 1
+    assert [result.code for result in results if isinstance(result, AuthError)] == [
+        AuthErrorCode.LAST_ADMIN_CHANGE
+    ]
+    assert active_admins == 1
 
 
 async def test_configured_bootstrap_email_requires_the_bootstrap_secret(

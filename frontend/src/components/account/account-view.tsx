@@ -1,8 +1,15 @@
 'use client';
 
-import { FloppyDisk, XIcon } from '@phosphor-icons/react';
-import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react';
+import { FloppyDisk, UploadSimpleIcon, XIcon } from '@phosphor-icons/react';
+import {
+  type ChangeEvent,
+  type FormEvent,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { toast } from 'sonner';
+import { updateUserAccess } from '@/api/admin';
 import {
   deleteCurrentUserAvatar,
   updateCurrentUser,
@@ -15,6 +22,7 @@ import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { PageNavigation } from '@/components/layout/page-navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -32,6 +40,14 @@ import {
 } from '@/components/ui/field';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { avatarUrl } from '@/lib/avatar';
@@ -50,15 +66,21 @@ const AVATAR_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 export function AccountView() {
   const { user, loading, setUser, refreshUser } = useAuth();
   const [username, setUsername] = useState(user?.username ?? '');
+  const [selectedRole, setSelectedRole] = useState<API.UserRole>(
+    user?.role ?? 'user',
+  );
+  const avatarInput = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
 
   useEffect(() => setUsername(user?.username ?? ''), [user?.username]);
+  useEffect(() => setSelectedRole(user?.role ?? 'user'), [user?.role]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!user) return;
     const value = normalizeUsername(username);
     const validationError = validateUsername(value);
     if (validationError) {
@@ -72,13 +94,34 @@ export function AccountView() {
     }
     setSaving(true);
     setNotice(null);
+    let usernameSaved = false;
     try {
-      const updated = await updateCurrentUser({ username: value });
-      setUser(updated);
-      setUsername(updated.username);
+      let updated = user;
+      if (value !== user.username) {
+        updated = await updateCurrentUser({ username: value });
+        setUser(updated);
+        setUsername(updated.username);
+        usernameSaved = true;
+      }
+      if (user.role === 'admin' && selectedRole !== updated.role) {
+        const access = await updateUserAccess(
+          { user_id: user.id },
+          { role: selectedRole },
+        );
+        updated = {
+          ...updated,
+          role: access.role,
+          updated_at: access.updated_at,
+        };
+        setUser(updated);
+      }
       toast.success('个人资料已更新。');
     } catch (error) {
-      setNotice({ text: displayError(error) });
+      setNotice({
+        text: usernameSaved
+          ? `用户名已保存；账户身份修改失败：${displayError(error)}`
+          : displayError(error),
+      });
     } finally {
       setSaving(false);
     }
@@ -155,7 +198,8 @@ export function AccountView() {
     );
   }
 
-  const unchanged = normalizeUsername(username) === user.username;
+  const unchanged =
+    normalizeUsername(username) === user.username && selectedRole === user.role;
   const role = user.role === 'admin' ? '管理员' : '普通用户';
   const initials = user.username.trim().slice(0, 2).toUpperCase();
 
@@ -163,7 +207,7 @@ export function AccountView() {
     <div>
       <PageNavigation fallbackHref="/" />
       <PageHeader
-        description="管理公开用户名，并查看不会随任务变化的账户身份信息。"
+        description="管理用户名与头像；管理员还可调整账户身份。"
         title="个人资料"
       />
 
@@ -171,65 +215,79 @@ export function AccountView() {
         className="mt-14 grid gap-10 sm:mt-16 lg:grid-cols-[minmax(280px,360px)_minmax(0,1fr)] lg:gap-12 xl:gap-16"
         onSubmit={submit}
       >
-        <Card className="self-start">
-          <CardHeader>
+        <Card className="self-start ring-0">
+          <CardHeader className="justify-items-center gap-3 text-center">
+            <Avatar aria-hidden className="size-24">
+              <AvatarImage alt="" src={avatarUrl(user)} />
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
             <CardTitle>
-              <h2>当前身份</h2>
+              <h2>{user.username}</h2>
             </CardTitle>
+            <CardDescription>{user.email}</CardDescription>
+            <Badge variant="secondary">{role}</Badge>
           </CardHeader>
-          <CardContent className="flex flex-col gap-6">
-            <div className="flex items-center gap-4">
-              <Avatar aria-hidden className="size-14">
-                <AvatarImage alt="" src={avatarUrl(user)} />
-                <AvatarFallback>{initials}</AvatarFallback>
-              </Avatar>
-              <div className="min-w-0">
-                <p className="truncate text-lg font-medium tracking-[-0.02em]">
-                  {user.username}
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">{role}</p>
-              </div>
-            </div>
-            <div>
-              <Field data-invalid={avatarError ? true : undefined}>
-                <FieldLabel htmlFor="avatar-image">上传头像</FieldLabel>
-                <Input
-                  accept="image/jpeg,image/png,image/webp"
+          <CardContent>
+            <Field
+              className="items-center text-center"
+              data-invalid={avatarError ? true : undefined}
+            >
+              <Input
+                accept="image/jpeg,image/png,image/webp"
+                aria-describedby={
+                  avatarError ? 'avatar-help avatar-error' : 'avatar-help'
+                }
+                aria-invalid={avatarError ? true : undefined}
+                aria-label="选择头像图片"
+                aria-hidden="true"
+                className="sr-only"
+                disabled={avatarBusy}
+                id="avatar-image"
+                onChange={uploadAvatar}
+                ref={avatarInput}
+                tabIndex={-1}
+                type="file"
+              />
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button
                   aria-describedby={
                     avatarError ? 'avatar-help avatar-error' : 'avatar-help'
                   }
-                  aria-invalid={avatarError ? true : undefined}
                   disabled={avatarBusy}
-                  id="avatar-image"
-                  onChange={uploadAvatar}
-                  type="file"
-                />
-                <FieldDescription aria-live="polite" id="avatar-help">
-                  {avatarBusy
-                    ? '正在处理头像…'
-                    : '支持 JPEG、PNG、WebP，最大 4 MB；上传后自动裁切为方形。'}
-                </FieldDescription>
-                {avatarError ? (
-                  <FieldError id="avatar-error">{avatarError}</FieldError>
-                ) : null}
-              </Field>
-              {user.avatar_version ? (
-                <Button
-                  className="mt-2"
-                  disabled={avatarBusy}
-                  onClick={() => void deleteAvatar()}
-                  size="sm"
+                  onClick={() => avatarInput.current?.click()}
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                 >
-                  <XIcon aria-hidden data-icon="inline-start" />
-                  移除头像
+                  {avatarBusy ? (
+                    <Spinner aria-hidden data-icon="inline-start" />
+                  ) : (
+                    <UploadSimpleIcon aria-hidden data-icon="inline-start" />
+                  )}
+                  {avatarBusy ? '正在处理头像' : '上传头像'}
                 </Button>
+                {user.avatar_version ? (
+                  <Button
+                    disabled={avatarBusy}
+                    onClick={() => void deleteAvatar()}
+                    type="button"
+                    variant="ghost"
+                  >
+                    <XIcon aria-hidden data-icon="inline-start" />
+                    移除头像
+                  </Button>
+                ) : null}
+              </div>
+              <FieldDescription
+                aria-live="polite"
+                className="text-center"
+                id="avatar-help"
+              >
+                JPEG、PNG 或 WebP，最大 4 MB。上传后自动裁切为方形。
+              </FieldDescription>
+              {avatarError ? (
+                <FieldError id="avatar-error">{avatarError}</FieldError>
               ) : null}
-            </div>
-            <CardDescription className="leading-6">
-              用户名会显示在导航与任务记录中；登录邮箱和账户身份由系统策略管理。
-            </CardDescription>
+            </Field>
           </CardContent>
         </Card>
 
@@ -263,12 +321,36 @@ export function AccountView() {
               label="登录邮箱"
               value={user.email}
             />
-            <ReadOnlyField
-              description="由账户权限策略分配。"
-              id="role"
-              label="账户身份"
-              value={role}
-            />
+            <Field data-disabled={user.role !== 'admin' ? true : undefined}>
+              <FieldLabel htmlFor="role">账户身份</FieldLabel>
+              <Select
+                disabled={user.role !== 'admin' || saving}
+                onValueChange={(value) => {
+                  setSelectedRole(value as API.UserRole);
+                  setNotice(null);
+                }}
+                value={selectedRole}
+              >
+                <SelectTrigger
+                  aria-describedby="role-help"
+                  className="w-full"
+                  id="role"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="admin">管理员</SelectItem>
+                    <SelectItem value="user">普通用户</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <FieldDescription id="role-help">
+                {user.role === 'admin'
+                  ? '更改为普通用户前，必须保留另一位启用的管理员。'
+                  : '仅管理员可以修改账户身份。'}
+              </FieldDescription>
+            </Field>
           </FieldGroup>
           {notice ? (
             <FeedbackNotice

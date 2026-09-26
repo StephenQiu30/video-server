@@ -6,7 +6,12 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 from app.services.auth.avatars import normalize_avatar
-from app.services.auth.errors import AuthError, AuthErrorCode, DuplicateUsernameError
+from app.services.auth.errors import (
+    AuthError,
+    AuthErrorCode,
+    DuplicateUsernameError,
+    LastAdminError,
+)
 from app.services.auth.models import CurrentUser, ManagedUser, ManagedUserPage, UserRole
 from app.services.auth.ports import UserRepository
 from app.services.auth.usernames import normalize_username
@@ -95,17 +100,18 @@ class UserService:
         quota: UserQuota | None = None,
     ) -> ManagedUser:
         _require_admin(actor)
-        if actor.id == account_id and (
-            (role is not None and role is not UserRole.ADMIN) or is_active is False
-        ):
+        if actor.id == account_id and is_active is False:
             raise AuthError(AuthErrorCode.SELF_ADMIN_CHANGE)
-        account = await self._repository.update_account_access(
-            account_id=account_id,
-            role=role,
-            is_active=is_active,
-            quota=quota,
-            now=self._now(),
-        )
+        try:
+            account = await self._repository.update_account_access(
+                account_id=account_id,
+                role=role,
+                is_active=is_active,
+                quota=quota,
+                now=self._now(),
+            )
+        except LastAdminError as exc:
+            raise AuthError(AuthErrorCode.LAST_ADMIN_CHANGE) from exc
         if account is None:
             raise AuthError(AuthErrorCode.USER_NOT_FOUND)
         return account.managed_view()

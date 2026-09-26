@@ -47,7 +47,11 @@ describe('account avatar', () => {
 
   it('shows upload entry and validates file type and size inline', () => {
     render(<AccountView />);
-    const input = screen.getByLabelText('上传头像');
+    expect(screen.getByRole('button', { name: '上传头像' })).toBeVisible();
+    const input = screen.getByLabelText('选择头像图片');
+    const openPicker = vi.spyOn(input as HTMLInputElement, 'click');
+    fireEvent.click(screen.getByRole('button', { name: '上传头像' }));
+    expect(openPicker).toHaveBeenCalledOnce();
     expect(input).toHaveAttribute('type', 'file');
     expect(input).toHaveAttribute('aria-describedby', 'avatar-help');
     fireEvent.change(input, {
@@ -81,7 +85,7 @@ describe('account avatar', () => {
     runtime.uploadAvatar.mockResolvedValue(updated);
     render(<AccountView />);
     const file = new File(['image bytes'], 'avatar.png', { type: 'image/png' });
-    fireEvent.change(screen.getByLabelText('上传头像'), {
+    fireEvent.change(screen.getByLabelText('选择头像图片'), {
       target: { files: [file] },
     });
     await waitFor(() =>

@@ -360,7 +360,12 @@ _AUTH_ERRORS: dict[AuthErrorCode, tuple[int, str, str]] = {
     AuthErrorCode.SELF_ADMIN_CHANGE: (
         409,
         "Self administration conflict",
-        "Administrators cannot demote, disable, or delete their own account.",
+        "Administrators cannot disable or delete their own account.",
+    ),
+    AuthErrorCode.LAST_ADMIN_CHANGE: (
+        409,
+        "Last administrator required",
+        "Keep at least one active administrator before changing this account.",
     ),
     AuthErrorCode.INVALID_VERIFICATION_CODE: (
         400,

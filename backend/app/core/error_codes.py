@@ -47,6 +47,7 @@ class ErrorCode(StrEnum):
     INVALID_URL = "invalid_url"
     INVALID_USERNAME = "invalid_username"
     INVALID_VERIFICATION_CODE = "invalid_verification_code"
+    LAST_ADMIN_CHANGE = "last_admin_change"
     JOB_CONFLICT = "job_conflict"
     METHOD_NOT_ALLOWED = "method_not_allowed"
     METRICS_UNAVAILABLE = "metrics_unavailable"
