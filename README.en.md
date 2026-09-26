@@ -4,6 +4,7 @@
   <p><strong>Open-source, self-hosted public-media download, screenplay processing and AI analysis workflow</strong></p>
   <p>
     <a href="https://github.com/StephenQiu30/video-server/actions/workflows/ci.yml"><img src="https://github.com/StephenQiu30/video-server/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
+    <a href="https://github.com/StephenQiu30/video-server/releases"><img src="https://img.shields.io/github/v/release/StephenQiu30/video-server?color=111111" alt="Latest release" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-111111.svg" alt="MIT License" /></a>
     <img src="https://img.shields.io/badge/Python-3.12-3776AB.svg" alt="Python 3.12" />
     <img src="https://img.shields.io/badge/Next.js-16-000000.svg" alt="Next.js 16" />
@@ -11,7 +12,9 @@
   </p>
   <p>
     <a href="#quick-start">Quick start</a> ·
+    <a href="#use-cases">Use cases</a> ·
     <a href="#capabilities">Capabilities</a> ·
+    <a href="#frequently-asked-questions">FAQ</a> ·
     <a href="#screenshots">Screenshots</a> ·
     <a href="#architecture">Architecture</a> ·
     <a href="README.md">简体中文</a>
@@ -27,6 +30,14 @@
 FrameFetch is an open-source, self-hosted video downloader and media workflow for creators, content researchers and developers. It turns an authorized public-media URL, local video or screenplay into an observable, recoverable job: inspect the source, select a real format, download and verify it in an isolated runner, persist the artifact, and optionally produce a structured AI analysis report.
 
 FrameFetch is not designed to circumvent platform restrictions. Anonymous providers only handle content that can be positively identified as public, free and non-DRM. Membership, private, purchased, region-restricted and protected playback rights are outside the project's scope.
+
+## Use cases
+
+- **Video and short-form breakdowns**: import your own footage or authorized public videos and generate storyboards, scene timelines and keyframe evidence to review pacing and narrative structure.
+- **Screenplay and script research**: import Markdown, Fountain, TXT, PDF or DOCX screenplays, then read, analyze or rewrite them in one workspace and export Markdown / DOCX reports.
+- **Team media library**: keep format-, duration- and SHA-256-verified media on your own servers, with users, roles, tasks and storage managed in one place.
+- **Self-hosted video downloader**: submit authorized public media links from the Web UI, API or the iOS / Android client, download asynchronously and follow progress in real time without any hosted service.
+- **Building on top**: use OpenAPI as the single contract to add providers, analysis capabilities or clients on FastAPI, Next.js and Flutter.
 
 ## From video parsing to an AI report
 
@@ -233,6 +244,10 @@ npm run build
 Contributions to provider adapters, reliability, web and mobile UX, AI reports, tests and documentation are welcome. Before opening a pull request, read the [Contributing Guide](CONTRIBUTING.md), [Code of Conduct](CODE_OF_CONDUCT.md), [repository rules](AGENTS.md), [documentation index](docs/README.md), and [Security Policy](SECURITY.md).
 
 Keep implementation, OpenAPI contracts, tests, operations documentation and acceptance evidence aligned. Prefer small, independently verifiable changes.
+
+## Citation
+
+To cite FrameFetch in papers, reports or course material, use “Cite this repository” in the GitHub sidebar or the root [`CITATION.cff`](CITATION.cff). See [Releases](https://github.com/StephenQiu30/video-server/releases) for version history.
 
 ## License
 
