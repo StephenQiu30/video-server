@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
+from io import BytesIO
 from pathlib import Path
 from uuid import uuid4
 
@@ -22,6 +23,7 @@ from app.services.auth.service import AuthService
 from app.services.auth.user_service import UserService
 from app.services.auth.web_sessions import WebSessionService
 from httpx import ASGITransport, AsyncClient, Response
+from PIL import Image
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 
@@ -531,3 +533,96 @@ async def test_web_session_store_outage_preserves_cookie_and_recovers(
         await client.post("/api/auth/logout")
         client.cookies.set("test_web", token)
         assert (await client.get("/api/auth/me")).status_code == 401
+
+
+async def test_avatar_upload_replaces_and_removes_private_image(
+    tmp_path: Path, postgres_engine: AsyncEngine
+) -> None:
+    image = BytesIO()
+    Image.new("RGB", (640, 320), "#2468ac").save(image, format="PNG")
+    async with auth_client(tmp_path, postgres_engine) as client:
+        await client.register(
+            "/api/auth/register",
+            json={
+                "username": "avatar_user",
+                "email": "avatar@example.com",
+                "password": "strong-pass-123",
+            },
+        )
+        missing = await client.get("/api/users/me/avatar")
+        uploaded = await client.put(
+            "/api/users/me/avatar",
+            content=image.getvalue(),
+            headers={"Content-Type": "application/octet-stream"},
+        )
+        avatar = await client.get("/api/users/me/avatar")
+        current = await client.get("/api/auth/me")
+        renamed = await client.patch(
+            "/api/users/me", json={"username": "avatar_renamed"}
+        )
+        version = uploaded.json()["data"]["avatar_version"]
+        await client.post("/api/auth/logout")
+        anonymous = await client.get("/api/users/me/avatar")
+        await client.register(
+            "/api/auth/register",
+            json={
+                "username": "second_user",
+                "email": "second@example.com",
+                "password": "strong-pass-456",
+            },
+        )
+        other_user = await client.get("/api/users/me/avatar")
+        await client.post("/api/auth/logout")
+        await client.post(
+            "/api/auth/login",
+            json={"email": "avatar@example.com", "password": "strong-pass-123"},
+        )
+        removed = await client.delete("/api/users/me/avatar")
+        after_remove = await client.get("/api/users/me/avatar")
+
+    assert missing.status_code == 404
+    assert uploaded.status_code == 200
+    assert version
+    assert avatar.status_code == 200
+    assert avatar.headers["content-type"] == "image/webp"
+    assert avatar.headers["cache-control"] == "private, no-store"
+    with Image.open(BytesIO(avatar.content)) as normalized:
+        assert normalized.format == "WEBP"
+        assert normalized.size == (256, 256)
+        assert "exif" not in normalized.info
+    assert current.json()["data"]["avatar_version"] == version
+    assert renamed.json()["data"]["avatar_version"] == version
+    assert anonymous.status_code == 401
+    assert other_user.status_code == 404
+    assert removed.json()["data"]["avatar_version"] is None
+    assert after_remove.status_code == 404
+
+
+async def test_avatar_upload_rejects_invalid_and_oversized_images(
+    tmp_path: Path, postgres_engine: AsyncEngine
+) -> None:
+    async with auth_client(tmp_path, postgres_engine) as client:
+        await client.register(
+            "/api/auth/register",
+            json={
+                "username": "avatar_validation",
+                "email": "avatar-validation@example.com",
+                "password": "strong-pass-123",
+            },
+        )
+        invalid = await client.put(
+            "/api/users/me/avatar",
+            content=b"<svg><script>alert(1)</script></svg>",
+            headers={"Content-Type": "application/octet-stream"},
+        )
+        oversized = await client.put(
+            "/api/users/me/avatar",
+            content=b"x" * (4 * 1024 * 1024 + 1),
+            headers={"Content-Type": "application/octet-stream"},
+        )
+        current = await client.get("/api/auth/me")
+
+    assert invalid.status_code == 422
+    assert invalid.json()["code"] == "invalid_request"
+    assert oversized.status_code == 413
+    assert current.json()["data"]["avatar_version"] is None

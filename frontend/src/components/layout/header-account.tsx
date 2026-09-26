@@ -13,7 +13,7 @@ import {
 } from '@phosphor-icons/react';
 import Link from 'next/link';
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -24,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import { avatarUrl } from '@/lib/avatar';
 
 type HeaderAccountProps = {
   analyticsActive: boolean;
@@ -62,6 +63,7 @@ export function HeaderAccount({
           <DropdownMenuTrigger asChild>
             <Button aria-label="打开账户菜单" size="lg" variant="ghost">
               <Avatar>
+                <AvatarImage alt="" src={avatarUrl(user)} />
                 <AvatarFallback>
                   {user.username.slice(0, 1).toUpperCase()}
                 </AvatarFallback>

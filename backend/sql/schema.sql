@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash VARCHAR(512) NOT NULL,
     role VARCHAR(16) NOT NULL DEFAULT 'user',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    avatar_data BYTEA,
+    avatar_version UUID,
     quota_exempt BOOLEAN NOT NULL DEFAULT FALSE,
     quota_max_active_tasks INTEGER CHECK (quota_max_active_tasks > 0),
     quota_daily_tasks INTEGER CHECK (quota_daily_tasks > 0),
@@ -30,6 +32,8 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_exempt BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_data BYTEA;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_version UUID;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_max_active_tasks INTEGER CHECK (quota_max_active_tasks > 0);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_daily_tasks INTEGER CHECK (quota_daily_tasks > 0);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_daily_bytes BIGINT CHECK (quota_daily_bytes > 0);

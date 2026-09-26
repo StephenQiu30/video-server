@@ -28,6 +28,31 @@ class SqlAlchemyUserRepository:
         self._sessions = sessions
         self._revoke_sessions = revoke_sessions
 
+    async def get_avatar(self, account_id: UUID) -> bytes | None:
+        async with self._sessions() as session:
+            return await session.scalar(
+                select(UserRow.avatar_data).where(
+                    UserRow.id == account_id, UserRow.is_active.is_(True)
+                )
+            )
+
+    async def set_avatar(
+        self,
+        *,
+        account_id: UUID,
+        data: bytes | None,
+        version: UUID | None,
+        now: datetime,
+    ) -> AccountRecord | None:
+        async with self._sessions.begin() as session:
+            row = await session.scalar(
+                update(UserRow)
+                .where(UserRow.id == account_id, UserRow.is_active.is_(True))
+                .values(avatar_data=data, avatar_version=version, updated_at=now)
+                .returning(UserRow)
+            )
+        return account_from_row(row) if row is not None else None
+
     async def update_username(
         self,
         *,

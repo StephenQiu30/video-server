@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from app.api.browser_origin import requires_browser_origin, same_browser_origin
 from app.api.errors import error_response, unexpected_error_handler
 from app.core.errors import AppError
+from app.services.auth.avatars import MAX_AVATAR_UPLOAD_BYTES
 
 
 class RequestBodyTooLarge(Exception):
@@ -28,6 +29,8 @@ async def request_guard(
     media_origins: tuple[str, ...] = (),
 ) -> Response:
     settings = request.app.state.settings
+    if request.url.path == "/api/users/me/avatar" and request.method == "PUT":
+        max_body_bytes = max(max_body_bytes, MAX_AVATAR_UPLOAD_BYTES)
     if requires_browser_origin(request, settings) and not same_browser_origin(
         request, settings
     ):

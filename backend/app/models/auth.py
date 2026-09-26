@@ -12,6 +12,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    LargeBinary,
     String,
     Uuid,
 )
@@ -35,6 +36,10 @@ class UserRow(Base):
     password_hash: Mapped[str] = mapped_column(String(512), nullable=False)
     role: Mapped[str] = mapped_column(String(16), nullable=False, default="user")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    avatar_data: Mapped[bytes | None] = mapped_column(
+        LargeBinary, nullable=True, deferred=True
+    )
+    avatar_version: Mapped[UUID | None] = mapped_column(Uuid, nullable=True)
     quota_exempt: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     quota_max_active_tasks: Mapped[int | None] = mapped_column(nullable=True)
     quota_daily_tasks: Mapped[int | None] = mapped_column(nullable=True)

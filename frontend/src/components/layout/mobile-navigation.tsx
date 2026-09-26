@@ -4,7 +4,7 @@ import { ListIcon, SignOutIcon } from '@phosphor-icons/react';
 import { useRef } from 'react';
 
 import { MobileNavigationItems } from '@/components/layout/mobile-navigation-items';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { NavigationMenu } from '@/components/ui/navigation-menu';
 import {
@@ -18,6 +18,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Spinner } from '@/components/ui/spinner';
+import { avatarUrl } from '@/lib/avatar';
 
 type MobileNavigationProps = {
   loading: boolean;
@@ -68,6 +69,7 @@ export function MobileNavigation({
         {user ? (
           <div className="flex items-center gap-3 px-5 py-4">
             <Avatar size="lg">
+              <AvatarImage alt="" src={avatarUrl(user)} />
               <AvatarFallback>
                 {user.username.slice(0, 1).toUpperCase()}
               </AvatarFallback>

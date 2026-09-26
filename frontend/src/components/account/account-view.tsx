@@ -1,20 +1,31 @@
 'use client';
 
-import { FloppyDisk } from '@phosphor-icons/react';
-import { type FormEvent, useEffect, useState } from 'react';
+import { FloppyDisk, UploadSimpleIcon, XIcon } from '@phosphor-icons/react';
+import {
+  type ChangeEvent,
+  type FormEvent,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { toast } from 'sonner';
-import { updateCurrentUser } from '@/api/users';
+import {
+  deleteCurrentUserAvatar,
+  updateCurrentUser,
+  uploadCurrentUserAvatar,
+} from '@/api/users';
 import { ReadOnlyField } from '@/components/account/read-only-field';
 import { useAuth } from '@/components/auth/auth-provider';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { PageNavigation } from '@/components/layout/page-navigation';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
 } from '@/components/ui/field';
@@ -22,6 +33,7 @@ import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
+import { avatarUrl } from '@/lib/avatar';
 import { displayError } from '@/lib/request-error';
 import {
   normalizeUsername,
@@ -31,12 +43,17 @@ import {
 } from '@/lib/username';
 
 type Notice = { text: string } | null;
+const MAX_AVATAR_UPLOAD_BYTES = 4 * 1024 * 1024;
+const AVATAR_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 export function AccountView() {
   const { user, loading, setUser, refreshUser } = useAuth();
   const [username, setUsername] = useState(user?.username ?? '');
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const avatarInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => setUsername(user?.username ?? ''), [user?.username]);
 
@@ -64,6 +81,45 @@ export function AccountView() {
       setNotice({ text: displayError(error) });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function uploadAvatar(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!AVATAR_TYPES.has(file.type)) {
+      setAvatarError('请选择 JPEG、PNG 或 WebP 图片。');
+      return;
+    }
+    if (file.size === 0 || file.size > MAX_AVATAR_UPLOAD_BYTES) {
+      setAvatarError('头像文件不能超过 4 MB。');
+      return;
+    }
+    setAvatarError(null);
+    setAvatarBusy(true);
+    try {
+      const updated = await uploadCurrentUserAvatar(file);
+      setUser(updated);
+      toast.success('头像已更新。');
+    } catch (error) {
+      toast.error(displayError(error));
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
+
+  async function deleteAvatar() {
+    setAvatarError(null);
+    setAvatarBusy(true);
+    try {
+      const updated = await deleteCurrentUserAvatar();
+      setUser(updated);
+      toast.success('头像已移除。');
+    } catch (error) {
+      toast.error(displayError(error));
+    } finally {
+      setAvatarBusy(false);
     }
   }
 
@@ -118,6 +174,7 @@ export function AccountView() {
           <h2 className="text-sm font-medium">当前身份</h2>
           <div className="mt-5 flex items-center gap-4">
             <Avatar aria-hidden className="size-14">
+              <AvatarImage alt="" src={avatarUrl(user)} />
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <div className="min-w-0">
@@ -127,6 +184,48 @@ export function AccountView() {
               <p className="mt-1 text-sm text-muted-foreground">{role}</p>
             </div>
           </div>
+          <input
+            accept="image/jpeg,image/png,image/webp"
+            aria-label="选择头像图片"
+            className="hidden"
+            onChange={uploadAvatar}
+            ref={avatarInput}
+            type="file"
+          />
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Button
+              disabled={avatarBusy}
+              onClick={() => avatarInput.current?.click()}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              {avatarBusy ? (
+                <Spinner aria-hidden data-icon="inline-start" />
+              ) : (
+                <UploadSimpleIcon aria-hidden data-icon="inline-start" />
+              )}
+              {avatarBusy ? '正在处理头像' : '上传头像'}
+            </Button>
+            {user.avatar_version ? (
+              <Button
+                disabled={avatarBusy}
+                onClick={() => void deleteAvatar()}
+                size="sm"
+                type="button"
+                variant="ghost"
+              >
+                <XIcon aria-hidden data-icon="inline-start" />
+                移除头像
+              </Button>
+            ) : null}
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            支持 JPEG、PNG、WebP，最大 4 MB；上传后自动裁切为方形。
+          </p>
+          {avatarError ? (
+            <FieldError className="mt-2">{avatarError}</FieldError>
+          ) : null}
           <p className="mt-7 max-w-xs text-sm leading-6 text-muted-foreground">
             用户名会显示在导航与任务记录中；登录邮箱和账户身份由系统策略管理。
           </p>

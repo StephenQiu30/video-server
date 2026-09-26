@@ -43,6 +43,7 @@ class QuotaLimits(BaseModel):
 
 
 RateLimitOperation = Literal[
+    "avatar_upload",
     "login",
     "register",
     "registration_code",
@@ -67,6 +68,7 @@ class RateLimitPolicy(BaseModel):
 
 def default_rate_limits() -> dict[RateLimitOperation, RateLimitPolicy]:
     return {
+        "avatar_upload": RateLimitPolicy(limit=10, window_seconds=60),
         "login": RateLimitPolicy(limit=10, window_seconds=60),
         "registration_code": RateLimitPolicy(limit=5, window_seconds=3600),
         "registration_code_verify": RateLimitPolicy(limit=10, window_seconds=60),

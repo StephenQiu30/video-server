@@ -61,6 +61,7 @@ class UserResponse(BaseModel):
     role: UserRole
     created_at: datetime
     updated_at: datetime
+    avatar_version: UUID | None = None
 
     @classmethod
     def from_user(cls, user: CurrentUser) -> UserResponse:
@@ -71,4 +72,5 @@ class UserResponse(BaseModel):
             role=user.role,
             created_at=user.created_at,
             updated_at=user.updated_at,
+            avatar_version=user.avatar_version,
         )

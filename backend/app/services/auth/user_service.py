@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from datetime import datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
+from app.services.auth.avatars import normalize_avatar
 from app.services.auth.errors import AuthError, AuthErrorCode, DuplicateUsernameError
 from app.services.auth.models import CurrentUser, ManagedUser, ManagedUserPage, UserRole
 from app.services.auth.ports import UserRepository
@@ -20,6 +22,32 @@ class UserService:
     ) -> None:
         self._repository = repository
         self._now = now
+
+    async def get_avatar(self, user: CurrentUser) -> bytes | None:
+        return await self._repository.get_avatar(user.id)
+
+    async def set_avatar(self, user: CurrentUser, content: bytes) -> CurrentUser:
+        avatar = await asyncio.to_thread(normalize_avatar, content)
+        account = await self._repository.set_avatar(
+            account_id=user.id,
+            data=avatar,
+            version=uuid4(),
+            now=self._now(),
+        )
+        if account is None:
+            raise AuthError(AuthErrorCode.UNAUTHENTICATED)
+        return account.public_view()
+
+    async def delete_avatar(self, user: CurrentUser) -> CurrentUser:
+        account = await self._repository.set_avatar(
+            account_id=user.id,
+            data=None,
+            version=None,
+            now=self._now(),
+        )
+        if account is None:
+            raise AuthError(AuthErrorCode.UNAUTHENTICATED)
+        return account.public_view()
 
     async def update_profile(self, user: CurrentUser, username: str) -> CurrentUser:
         try:

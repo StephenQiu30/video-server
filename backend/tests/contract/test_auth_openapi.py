@@ -23,6 +23,7 @@ def test_auth_openapi_exposes_email_session_contract(tmp_path: Path) -> None:
         "/api/app/v1/auth/refresh",
         "/api/app/v1/auth/logout",
         "/api/users/me",
+        "/api/users/me/avatar",
         "/api/admin/users",
         "/api/admin/users/{user_id}",
         "/api/admin/providers",
@@ -61,6 +62,16 @@ def test_auth_openapi_exposes_email_session_contract(tmp_path: Path) -> None:
         "Location"
     ]
     assert paths["/api/users/me"]["patch"]["operationId"] == "updateCurrentUser"
+    avatar_path = paths["/api/users/me/avatar"]
+    assert avatar_path["put"]["operationId"] == "uploadCurrentUserAvatar"
+    assert avatar_path["delete"]["operationId"] == "deleteCurrentUserAvatar"
+    assert avatar_path["get"]["operationId"] == "getCurrentUserAvatar"
+    assert (
+        avatar_path["put"]["requestBody"]["content"]["application/octet-stream"][
+            "schema"
+        ]["format"]
+        == "binary"
+    )
     assert paths["/api/app/v1/auth/register"]["post"]["operationId"] == (
         "registerNativeUser"
     )

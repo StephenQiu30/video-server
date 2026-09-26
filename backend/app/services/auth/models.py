@@ -25,6 +25,7 @@ class AccountRecord:
     created_at: datetime
     updated_at: datetime
     quota: UserQuota = UserQuota()
+    avatar_version: UUID | None = None
 
     def public_view(self) -> CurrentUser:
         return CurrentUser(
@@ -35,6 +36,7 @@ class AccountRecord:
             created_at=self.created_at,
             updated_at=self.updated_at,
             quota=self.quota,
+            avatar_version=self.avatar_version,
         )
 
     def managed_view(self) -> ManagedUser:
@@ -59,6 +61,7 @@ class CurrentUser:
     created_at: datetime
     updated_at: datetime
     quota: UserQuota = UserQuota()
+    avatar_version: UUID | None = None
 
     @property
     def owner_hash(self) -> str:

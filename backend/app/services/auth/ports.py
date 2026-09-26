@@ -68,6 +68,17 @@ class AuthRepository(Protocol):
 
 
 class UserRepository(Protocol):
+    async def get_avatar(self, account_id: UUID) -> bytes | None: ...
+
+    async def set_avatar(
+        self,
+        *,
+        account_id: UUID,
+        data: bytes | None,
+        version: UUID | None,
+        now: datetime,
+    ) -> AccountRecord | None: ...
+
     async def update_username(
         self,
         *,

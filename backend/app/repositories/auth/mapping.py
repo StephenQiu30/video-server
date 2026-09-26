@@ -14,6 +14,7 @@ def account_from_row(row: UserRow) -> AccountRecord:
         is_active=row.is_active,
         created_at=as_utc(row.created_at),
         updated_at=as_utc(row.updated_at),
+        avatar_version=row.avatar_version,
         quota=UserQuota(
             exempt=row.quota_exempt,
             max_active_per_owner=row.quota_max_active_tasks,

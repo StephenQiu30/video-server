@@ -16,3 +16,34 @@ export async function updateCurrentUser(
     ...(options || {}),
   });
 }
+
+/** 读取当前用户头像 GET /api/users/me/avatar */
+export async function getCurrentUserAvatar(options?: RequestOptions) {
+  return request<any>("/api/users/me/avatar", {
+    method: "GET",
+    ...(options || {}),
+  });
+}
+
+/** 上传当前用户头像 PUT /api/users/me/avatar */
+export async function uploadCurrentUserAvatar(
+  body: Blob,
+  options?: RequestOptions
+) {
+  return request<API.ApiResponseUserResponse_>("/api/users/me/avatar", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/octet-stream",
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+/** 移除当前用户头像 DELETE /api/users/me/avatar */
+export async function deleteCurrentUserAvatar(options?: RequestOptions) {
+  return request<API.ApiResponseUserResponse_>("/api/users/me/avatar", {
+    method: "DELETE",
+    ...(options || {}),
+  });
+}

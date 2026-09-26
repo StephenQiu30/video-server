@@ -2443,6 +2443,8 @@ declare namespace API {
     created_at: string;
     /** Updated At */
     updated_at: string;
+    /** Avatar Version */
+    avatar_version?: string | null;
   };
 
   type UserRole = "admin" | "user";
